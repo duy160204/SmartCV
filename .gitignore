@@ -1,0 +1,4 @@
+SmartCV/node_modules/
+fe/node_modules/
+.env
+.DS_Store
