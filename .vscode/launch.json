@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-SmartCvApplication<SmartCV>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.SmartCV.SmartCvApplication",
+            "projectName": "SmartCV",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
