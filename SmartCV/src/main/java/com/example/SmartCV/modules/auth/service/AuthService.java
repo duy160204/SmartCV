@@ -36,8 +36,9 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public void register(RegisterRequestDTO request){
-        if(userRepository.findByEmail(request.getEmail()).isPresent()){
+    // Đăng ký người dùng
+    public void register(RegisterRequestDTO request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already in use");
         }
 
@@ -48,27 +49,38 @@ public class AuthService {
         user.setVerified(false);
         user.setVerifyToken(UUID.randomUUID().toString());
         userRepository.save(user);
+
         emailService.sendVerificationEmail(user.getEmail(), user.getVerifyToken());
     }
 
-    public AuthResponseDTO login(LoginRequestDTO request){
+    // Đăng nhập người dùng
+    public AuthResponseDTO login(LoginRequestDTO request) {
         User user = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        if(user.isVerified()){
+        if (!user.isVerified()) {  // sửa logic: phải verify mới login
             throw new RuntimeException("Email not verified");
         }
-        if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Wrong password");
         }
 
-        return new AuthResponseDTO(user.getEmail(), user.getUsername(), "Local", user.isVerified());
-    
+        String token = jwtUtils.generateToken(user);
+
+        return new AuthResponseDTO(
+            user.getEmail(),
+            user.getUsername(),
+            "Local",      // provider
+            user.isVerified(),
+            token         // JWT
+);
     }
 
-    public String verifyEmail(String token){
+    // Xác thực email
+    public String verifyEmail(String token) {
         User user = userRepository.findByVerifyToken(token)
-            .orElseThrow(() -> new RuntimeException("Invalid verify token"));
+                .orElseThrow(() -> new RuntimeException("Invalid verify token"));
 
         user.setVerified(true);
         user.setVerifyToken(null);
