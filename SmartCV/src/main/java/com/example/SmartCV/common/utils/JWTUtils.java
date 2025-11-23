@@ -1,5 +1,6 @@
 package com.example.SmartCV.common.utils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 import org.springframework.stereotype.Component;
@@ -8,10 +9,16 @@ import com.example.SmartCV.modules.auth.domain.User;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import javax.crypto.SecretKey;
 
 @Component
 public class JWTUtils {
-    private final String secret = "DuyLvSmartCVProjectSecretKey";
+
+    // Secret phải >= 64 ký tự cho HS512
+    private static final String SECRET = "DuyLvSmartCVProjectSuperLongSecretKeyForHS512Algorithm_1234567890";
+    private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+
     private final long jwtExpirationMs = 24 * 60 * 60 * 1000; // 24h
 
     public String generateToken(User user) {
@@ -22,13 +29,13 @@ public class JWTUtils {
                 .claim("roles", user.getRoleId())
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(now + jwtExpirationMs))
-                .signWith(SignatureAlgorithm.HS512, secret)
+                .signWith(KEY, SignatureAlgorithm.HS512)
                 .compact();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(KEY).build().parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -37,8 +44,9 @@ public class JWTUtils {
     }
 
     public String getEmailFromToken(String token) {
-        return Jwts.parser()
-                .setSigningKey(secret)
+        return Jwts.parserBuilder()
+                .setSigningKey(KEY)
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();

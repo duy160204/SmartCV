@@ -12,4 +12,6 @@ import com.example.SmartCV.modules.auth.domain.OAuthAccount;
 public interface OAuthAccountRepository extends JpaRepository<OAuthAccount, Long> {
 
     Optional<OAuthAccount> findByProviderAndProviderUserId(String provider, String providerUserId);
+
+    Optional<OAuthAccount> findByUserIdAndProvider(Long id, String provider);
 }

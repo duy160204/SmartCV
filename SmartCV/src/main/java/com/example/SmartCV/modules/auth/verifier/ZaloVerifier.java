@@ -1,21 +1,20 @@
 package com.example.SmartCV.modules.auth.verifier;
 
-import com.example.SmartCV.modules.auth.dto.GitHubUserDTO;
+import com.example.SmartCV.modules.auth.dto.ZaloUserDTO;
 import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
-public class GitHubVerifier {
+public class ZaloVerifier {
 
-    public static GitHubUserDTO verify(String accessToken, String clientId, String clientSecret) {
-        // Gọi GitHub API
-        String url = "https://api.github.com/user?access_token=" + accessToken;
+    public static ZaloUserDTO verify(String accessToken, String clientId, String clientSecret) {
+        String url = "https://graph.zalo.me/v2.0/me?access_token=" + accessToken;
 
         RestTemplate rest = new RestTemplate();
         Map<String, Object> res = rest.getForObject(url, Map.class);
 
         if (res == null || res.get("id") == null) return null;
 
-        GitHubUserDTO user = new GitHubUserDTO();
+        ZaloUserDTO user = new ZaloUserDTO();
         user.setId(String.valueOf(res.get("id")));
         user.setName((String) res.get("name"));
         user.setEmail((String) res.get("email"));
