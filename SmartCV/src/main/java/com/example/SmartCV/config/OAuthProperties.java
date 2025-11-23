@@ -22,6 +22,8 @@ public class OAuthProperties {
     public static class Google {
         private String clientId;
         private String clientSecret;
+        private String redirectUri;
+        private String scope; // ví dụ: "email profile"
     }
 
     @Getter
@@ -29,6 +31,8 @@ public class OAuthProperties {
     public static class GitHub {
         private String clientId;
         private String clientSecret;
+        private String redirectUri;
+        private String scope; // ví dụ: "user:email"
     }
 
     @Getter
@@ -36,6 +40,8 @@ public class OAuthProperties {
     public static class Facebook {
         private String clientId;
         private String clientSecret;
+        private String redirectUri;
+        private String scope; // ví dụ: "email public_profile"
     }
 
     @Getter
@@ -43,6 +49,8 @@ public class OAuthProperties {
     public static class LinkedIn {
         private String clientId;
         private String clientSecret;
+        private String redirectUri;
+        private String scope; // ví dụ: "r_liteprofile r_emailaddress"
     }
 
     @Getter
@@ -50,5 +58,7 @@ public class OAuthProperties {
     public static class Zalo {
         private String clientId;
         private String clientSecret;
+        private String redirectUri;
+        private String scope; // ví dụ: "basic"
     }
 }

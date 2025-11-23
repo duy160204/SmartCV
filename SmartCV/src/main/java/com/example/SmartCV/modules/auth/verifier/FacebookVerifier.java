@@ -1,23 +1,16 @@
 package com.example.SmartCV.modules.auth.verifier;
 
+import com.example.SmartCV.config.OAuthProperties;
 import com.example.SmartCV.modules.auth.dto.FacebookUserDTO;
-import org.springframework.web.client.RestTemplate;
-import java.util.Map;
 
 public class FacebookVerifier {
 
-    public static FacebookUserDTO verify(String accessToken, String clientId, String clientSecret) {
-        String url = "https://graph.facebook.com/me?fields=id,name,email&access_token=" + accessToken;
-
-        RestTemplate rest = new RestTemplate();
-        Map<String, Object> res = rest.getForObject(url, Map.class);
-
-        if (res == null || res.get("id") == null) return null;
-
+    public static FacebookUserDTO getUserFromCode(String code, OAuthProperties.Facebook props) {
+        // TODO: gửi code lên Facebook token endpoint, lấy access token, gọi API user info
         FacebookUserDTO user = new FacebookUserDTO();
-        user.setId((String) res.get("id"));
-        user.setName((String) res.get("name"));
-        user.setEmail((String) res.get("email"));
+        user.setId("654321");
+        user.setName("Facebook Test");
+        user.setEmail("facebook@test.com");
         return user;
     }
 }

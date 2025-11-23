@@ -1,24 +1,16 @@
 package com.example.SmartCV.modules.auth.verifier;
 
+import com.example.SmartCV.config.OAuthProperties;
 import com.example.SmartCV.modules.auth.dto.GitHubUserDTO;
-import org.springframework.web.client.RestTemplate;
-import java.util.Map;
 
 public class GitHubVerifier {
 
-    public static GitHubUserDTO verify(String accessToken, String clientId, String clientSecret) {
-        // Gọi GitHub API
-        String url = "https://api.github.com/user?access_token=" + accessToken;
-
-        RestTemplate rest = new RestTemplate();
-        Map<String, Object> res = rest.getForObject(url, Map.class);
-
-        if (res == null || res.get("id") == null) return null;
-
+    public static GitHubUserDTO getUserFromCode(String code, OAuthProperties.GitHub props) {
+        // TODO: gửi code lên GitHub Token endpoint, nhận access token, gọi API lấy user info
         GitHubUserDTO user = new GitHubUserDTO();
-        user.setId(String.valueOf(res.get("id")));
-        user.setName((String) res.get("name"));
-        user.setEmail((String) res.get("email"));
+        user.setId("123456");
+        user.setName("GitHub Test");
+        user.setEmail("github@test.com");
         return user;
     }
 }

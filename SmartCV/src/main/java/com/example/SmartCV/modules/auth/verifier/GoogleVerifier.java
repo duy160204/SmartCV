@@ -1,21 +1,22 @@
 package com.example.SmartCV.modules.auth.verifier;
 
+import com.example.SmartCV.config.OAuthProperties;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
-
-import java.util.Collections;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 public class GoogleVerifier {
 
-    public static GoogleIdToken.Payload verify(String idToken, String clientId) throws Exception {
-        var verifier = new GoogleIdTokenVerifier.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance())
-                .setAudience(Collections.singletonList(clientId))
-                .build();
+    public static String exchangeCodeForAccessToken(String code, OAuthProperties.Google props) throws IOException {
+        // TODO: POST request tới Google Token Endpoint để lấy access token
+        return "access_token_from_google";
+    }
 
-        GoogleIdToken token = verifier.verify(idToken);
-        if (token != null) return token.getPayload();
-        return null;
+    public static GoogleIdToken.Payload getPayload(String accessToken) throws GeneralSecurityException, IOException {
+        // TODO: verify access token và trả về payload
+        GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+        payload.setEmail("test@gmail.com");
+        payload.set("name", "Test User");
+        return payload;
     }
 }
