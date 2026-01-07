@@ -1,11 +1,11 @@
 package com.example.SmartCV.modules.auth.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.modules.auth.dto.AuthResponseDTO;
 import com.example.SmartCV.modules.auth.service.OAuthService;
 import com.example.SmartCV.modules.auth.service.OAuthService.OAuthException;
@@ -21,34 +21,64 @@ public class OAuthController {
 
     // =================== CALLBACK =================== //
     @GetMapping("/{provider}/callback")
-    public void oauthCallback(@PathVariable String provider, @RequestParam String code, HttpServletResponse response) {
+    public ResponseEntity<?> oauthCallback(
+            @PathVariable String provider,
+            @RequestParam String code,
+            HttpServletResponse response
+    ) {
         try {
             AuthResponseDTO auth;
             switch (provider.toLowerCase()) {
-                case "google": auth = oauthService.loginWithGoogle(code); break;
-                case "github": auth = oauthService.loginWithGitHub(code); break;
-                case "facebook": auth = oauthService.loginWithFacebook(code); break;
-                case "linkedin": auth = oauthService.loginWithLinkedIn(code); break;
-                case "zalo": auth = oauthService.loginWithZalo(code); break;
-                default: throw new IllegalArgumentException("Unsupported OAuth provider");
+                case "google":
+                    auth = oauthService.loginWithGoogle(code);
+                    break;
+                case "github":
+                    auth = oauthService.loginWithGitHub(code);
+                    break;
+                case "facebook":
+                    auth = oauthService.loginWithFacebook(code);
+                    break;
+                case "linkedin":
+                    auth = oauthService.loginWithLinkedIn(code);
+                    break;
+                case "zalo":
+                    auth = oauthService.loginWithZalo(code);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
             }
 
-            // Tạo cookie JWT
-            ResponseCookie cookie = ResponseCookie.from("jwt", auth.getToken())
+            // =================== TẠO COOKIE JWT =================== //
+            ResponseCookie cookie = ResponseCookie.from("jwt", auth.getAccessToken())
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
-                    .maxAge(24 * 60 * 60)
+                    .maxAge(24 * 60 * 60) // 1 ngày
                     .sameSite("Strict")
                     .build();
 
             response.addHeader("Set-Cookie", cookie.toString());
-            response.sendRedirect("/"); // redirect về giao diện chính sau login
+
+            // =================== TRẢ RESPONSE JSON =================== //
+            // Chỉ trả refreshToken và các thông tin cần thiết cho frontend
+            AuthResponseDTO responseBody = new AuthResponseDTO(
+                    auth.getEmail(),
+                    auth.getName(),
+                    auth.getProvider(),
+                    auth.isVerified(),
+                    auth.getRole(),
+                    null,                   // Không trả lại accessToken trong body
+                    auth.getRefreshToken()   // Trả refreshToken
+            );
+
+            return ResponseEntity.ok(responseBody);
 
         } catch (OAuthException e) {
-            throw new RuntimeException("OAuth login failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("OAuth login failed: " + e.getMessage());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Internal server error: " + e.getMessage());
         }
     }
 }

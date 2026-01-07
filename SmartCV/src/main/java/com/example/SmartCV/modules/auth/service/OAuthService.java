@@ -2,6 +2,7 @@ package com.example.SmartCV.modules.auth.service;
 
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,19 +10,21 @@ import org.springframework.stereotype.Service;
 import com.example.SmartCV.config.OAuthProperties;
 import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.modules.auth.domain.OAuthAccount;
+import com.example.SmartCV.modules.auth.domain.RefreshToken;
 import com.example.SmartCV.modules.auth.domain.Role;
 import com.example.SmartCV.modules.auth.domain.User;
 import com.example.SmartCV.modules.auth.dto.AuthResponseDTO;
-import com.example.SmartCV.modules.auth.dto.GitHubUserDTO;
 import com.example.SmartCV.modules.auth.dto.FacebookUserDTO;
+import com.example.SmartCV.modules.auth.dto.GitHubUserDTO;
 import com.example.SmartCV.modules.auth.dto.LinkedInUserDTO;
 import com.example.SmartCV.modules.auth.dto.ZaloUserDTO;
 import com.example.SmartCV.modules.auth.repository.OAuthAccountRepository;
 import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
-import com.example.SmartCV.modules.auth.verifier.GoogleVerifier;
-import com.example.SmartCV.modules.auth.verifier.GitHubVerifier;
+import com.example.SmartCV.modules.auth.service.RefreshTokenService;
 import com.example.SmartCV.modules.auth.verifier.FacebookVerifier;
+import com.example.SmartCV.modules.auth.verifier.GitHubVerifier;
+import com.example.SmartCV.modules.auth.verifier.GoogleVerifier;
 import com.example.SmartCV.modules.auth.verifier.LinkedInVerifier;
 import com.example.SmartCV.modules.auth.verifier.ZaloVerifier;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -43,6 +46,9 @@ public class OAuthService {
 
     @Autowired
     private OAuthProperties oauthProperties;
+
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     // =================== GOOGLE =================== //
     public AuthResponseDTO loginWithGoogle(String code) throws OAuthException {
@@ -157,12 +163,32 @@ public class OAuthService {
             oauthAccountRepository.save(oauth);
         }
 
-        String token = jwtUtils.generateToken(user);
-        return new AuthResponseDTO(user.getEmail(), user.getUsername(), provider, user.isVerified(), token);
+        // Lấy role name
+        String role = roleRepository.findById(user.getRoleId())
+                .map(Role::getName)
+                .orElse("guest");
+
+        // Tạo access token
+        String accessToken = jwtUtils.generateToken(user);
+
+        // Tạo refresh token
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return new AuthResponseDTO(
+                user.getEmail(),
+                user.getUsername(),
+                provider,
+                user.isVerified(),
+                role,
+                accessToken,
+                refreshToken.getToken()
+        );
     }
 
     // =================== EXCEPTION =================== //
     public static class OAuthException extends Exception {
-        public OAuthException(String message) { super(message); }
+        public OAuthException(String message) {
+            super(message);
+        }
     }
 }

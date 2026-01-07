@@ -117,6 +117,13 @@
             <scope>runtime</scope>
         </dependency>
 
+                <!-- ========== MAIL (SMTP) ========== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+
         <!-- ========== SPRING AI ========== -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
