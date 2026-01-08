@@ -1,0 +1,15 @@
+package com.example.SmartCV.modules.cv.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.SmartCV.modules.cv.domain.Template;
+import com.example.SmartCV.modules.cv.domain.PlanType;
+
+public interface TemplateRepository extends JpaRepository<Template, Long> {
+
+    List<Template> findByIsActiveTrue();
+
+    List<Template> findByIsActiveTrueAndPlanRequiredIn(List<PlanType> plans);
+}

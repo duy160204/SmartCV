@@ -13,31 +13,29 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.SmartCV.common.utils.CustomUserDetailsService;
 import com.example.SmartCV.common.utils.JWTUtils;
-import com.example.SmartCV.modules.auth.domain.User;
-import com.example.SmartCV.modules.auth.repository.UserRepository;
+import com.example.SmartCV.common.utils.UserPrincipal;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JWTUtils jwtUtils;
-    private final UserRepository userRepository;
-
-    public SecurityConfig(JWTUtils jwtUtils, UserRepository userRepository) {
-        this.jwtUtils = jwtUtils;
-        this.userRepository = userRepository;
-    }
+    private final CustomUserDetailsService userDetailsService;
 
     // Password encoder
     @Bean
@@ -60,7 +58,7 @@ public class SecurityConfig {
                     "/auth/oauth/**",
                     "/auth/refresh-token",
                     "/auth/logout",
-                    "/auth/forgot-password"  
+                    "/auth/forgot-password"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -70,8 +68,7 @@ public class SecurityConfig {
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             );
 
-        // Add JWT filter
-        http.addFilterBefore(jwtAuthenticationFilter(), org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -80,8 +77,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000")); // frontend URL
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowCredentials(true);
         config.setAllowedHeaders(List.of("*"));
 
@@ -93,32 +90,32 @@ public class SecurityConfig {
     // JWT filter bean
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtils, userRepository);
+        return new JwtAuthenticationFilter(jwtUtils, userDetailsService);
     }
 
     // ===================== JWT Filter =====================
     public static class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         private final JWTUtils jwtUtils;
-        private final UserRepository userRepository;
+        private final CustomUserDetailsService userDetailsService;
 
-        public JwtAuthenticationFilter(JWTUtils jwtUtils, UserRepository userRepository) {
+        public JwtAuthenticationFilter(JWTUtils jwtUtils, CustomUserDetailsService userDetailsService) {
             this.jwtUtils = jwtUtils;
-            this.userRepository = userRepository;
+            this.userDetailsService = userDetailsService;
         }
 
         @Override
         protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
             String path = request.getRequestURI();
-            // Bỏ filter cho các endpoint public
             return path.startsWith("/auth");
         }
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        FilterChain filterChain)
-                throws ServletException, IOException {
+        protected void doFilterInternal(
+                HttpServletRequest request,
+                HttpServletResponse response,
+                FilterChain filterChain
+        ) throws ServletException, IOException {
 
             try {
                 String token = null;
@@ -134,14 +131,20 @@ public class SecurityConfig {
 
                 if (token != null && jwtUtils.validateToken(token)) {
                     String email = jwtUtils.getEmailFromToken(token);
-                    User user = userRepository.findByEmail(email).orElse(null);
 
-                    if (user != null) {
-                        UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(user, null, List.of());
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                    }
+                    UserPrincipal userPrincipal =
+                            (UserPrincipal) userDetailsService.loadUserByUsername(email);
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userPrincipal,
+                                    null,
+                                    userPrincipal.getAuthorities()
+                            );
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
