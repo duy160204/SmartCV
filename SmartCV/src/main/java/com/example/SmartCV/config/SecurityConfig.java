@@ -110,27 +110,36 @@ public class SecurityConfig {
             return path.startsWith("/auth");
         }
 
-        @Override
+        
+       @Override
         protected void doFilterInternal(
                 HttpServletRequest request,
                 HttpServletResponse response,
                 FilterChain filterChain
         ) throws ServletException, IOException {
 
+            System.out.println("➡️ JWT FILTER RUNNING, URI = " + request.getRequestURI());
+
             try {
                 String token = null;
 
                 if (request.getCookies() != null) {
+                    System.out.println("🍪 Cookies:");
                     for (Cookie cookie : request.getCookies()) {
+                        System.out.println(" - " + cookie.getName());
                         if ("jwt".equals(cookie.getName())) {
                             token = cookie.getValue();
-                            break;
                         }
                     }
+                } else {
+                    System.out.println("❌ NO COOKIES AT ALL");
                 }
 
                 if (token != null && jwtUtils.validateToken(token)) {
+                    System.out.println("✅ JWT VALID");
+
                     String email = jwtUtils.getEmailFromToken(token);
+                    System.out.println("👤 Email from token = " + email);
 
                     UserPrincipal userPrincipal =
                             (UserPrincipal) userDetailsService.loadUserByUsername(email);
@@ -143,6 +152,8 @@ public class SecurityConfig {
                             );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    System.out.println("❌ JWT NULL OR INVALID");
                 }
 
             } catch (Exception e) {
@@ -151,5 +162,6 @@ public class SecurityConfig {
 
             filterChain.doFilter(request, response);
         }
+
     }
 }

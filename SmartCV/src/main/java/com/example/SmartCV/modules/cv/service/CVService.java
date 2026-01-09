@@ -32,10 +32,6 @@ public class CVService {
     // Helpers
     // =========================
 
-    /**
-     * Lấy plan hiện tại của user
-     * Nếu chưa mua gói -> mặc định FREE
-     */
     private PlanType getUserPlan(Long userId) {
         return userSubscriptionRepository.findByUserId(userId)
                 .filter(sub -> sub.getStatus() == SubscriptionStatus.ACTIVE)
@@ -43,31 +39,23 @@ public class CVService {
                 .orElse(PlanType.FREE);
     }
 
-    /**
-     * Lấy CV thuộc quyền sở hữu user
-     */
     private CV getOwnedCV(Long cvId, Long userId) {
         return cvRepository.findById(cvId)
                 .filter(cv -> cv.getUserId().equals(userId))
-                .orElseThrow(() -> new RuntimeException("CV không tồn tại hoặc không thuộc quyền sở hữu"));
+                .orElseThrow(() ->
+                        new RuntimeException("CV không tồn tại hoặc không thuộc quyền sở hữu"));
     }
 
-    /**
-     * Check quota theo plan
-     */
     private void checkCVQuota(Long userId, PlanType plan) {
         if (plan == PlanType.FREE) {
             long count = cvRepository.countByUserId(userId);
             if (count >= FREE_CV_LIMIT) {
-                throw new RuntimeException("FREE plan chỉ được tạo tối đa " + FREE_CV_LIMIT + " CV");
+                throw new RuntimeException(
+                        "FREE plan chỉ được tạo tối đa " + FREE_CV_LIMIT + " CV");
             }
         }
-        // PRO, PREMIUM: không giới hạn
     }
 
-    /**
-     * Check quyền dùng template theo plan
-     */
     private void checkTemplatePermission(Template template, PlanType userPlan) {
         if (!userPlan.isAtLeast(template.getPlanRequired())) {
             throw new RuntimeException("Gói hiện tại không cho phép sử dụng template này");
@@ -85,7 +73,8 @@ public class CVService {
 
         Template template = templateRepository.findById(templateId)
                 .filter(Template::getIsActive)
-                .orElseThrow(() -> new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
+                .orElseThrow(() ->
+                        new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
 
         checkTemplatePermission(template, userPlan);
 
@@ -149,19 +138,20 @@ public class CVService {
         }
 
         cv.setStatus(CVStatus.PUBLISHED);
+        cv.setIsPublic(true);
+
         return cvRepository.save(cv);
     }
 
     // =========================
-    // UC-B05 – Share CV
+    // UC-B05 – Share CV (FIX LOGIC)
     // =========================
 
     public CVShare shareCV(Long userId, Long cvId, int expireDays) {
 
         PlanType plan = getUserPlan(userId);
-
         if (plan == PlanType.FREE) {
-            throw new RuntimeException("FREE plan không được phép share CV");
+           // throw new RuntimeException("FREE plan không được phép share CV");
         }
 
         CV cv = getOwnedCV(cvId, userId);
@@ -174,16 +164,15 @@ public class CVService {
             throw new RuntimeException("CV này đã được share");
         }
 
-        String uuid = UUID.randomUUID().toString();
-
         CVShare share = CVShare.builder()
                 .cvId(cvId)
                 .userId(userId)
-                .shareUuid(uuid)
+                .shareUuid(UUID.randomUUID().toString())
                 .expiresAt(LocalDateTime.now().plusDays(expireDays))
                 .build();
 
-        cv.setStatus(CVStatus.SHARED);
+        // ❗ Không đổi status
+        cv.setIsPublic(true);
         cvRepository.save(cv);
 
         return cvShareRepository.save(share);
@@ -199,39 +188,37 @@ public class CVService {
 
         cvShareRepository.deleteByCvId(cvId);
 
-        if (cv.getStatus() == CVStatus.SHARED) {
-            cv.setStatus(CVStatus.PUBLISHED);
-            cvRepository.save(cv);
-        }
+        // ❗ Thu hồi public, KHÔNG đổi status
+        cv.setIsPublic(false);
+        cvRepository.save(cv);
     }
 
     // =========================
     // UC-B06 – Download CV
     // =========================
 
-    public CV getCVForDownload(Long userId, Long cvId) {
+   public CV getCVForDownload(Long userId, Long cvId) {
+    PlanType plan = getUserPlan(userId);
 
-        PlanType plan = getUserPlan(userId);
+    if (plan == PlanType.FREE) {
+       // throw new RuntimeException("FREE plan không được download CV");
+    }
 
-        if (plan == PlanType.FREE) {
-            throw new RuntimeException("FREE plan không được download CV");
-        }
+    CV cv = getOwnedCV(cvId, userId);
+    cv.setViewCount(cv.getViewCount() + 1);
 
-        return getOwnedCV(cvId, userId);
+    return cvRepository.save(cv);
     }
 
     // =========================
-    // UC-B07 – Delete CV (HARD DELETE)
+    // UC-B07 – Delete CV
     // =========================
 
     public void deleteCV(Long userId, Long cvId) {
 
         CV cv = getOwnedCV(cvId, userId);
 
-        // Xóa share nếu có
         cvShareRepository.deleteByCvId(cvId);
-
-        // Xóa CV
         cvRepository.delete(cv);
     }
 
@@ -242,7 +229,7 @@ public class CVService {
     public void favoriteTemplate(Long userId, Long templateId) {
 
         if (cvFavoriteRepository.existsByUserIdAndTemplateId(userId, templateId)) {
-            return; // idempotent
+            return;
         }
 
         Template template = templateRepository.findById(templateId)

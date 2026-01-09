@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.SmartCV.modules.auth.domain.User;
+import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.cv.domain.Template;
 import com.example.SmartCV.modules.cv.service.TemplateService;
 
@@ -22,10 +22,9 @@ public class TemplateController {
     // =========================
     // Helpers
     // =========================
-
     private Long getUserId(Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        return user.getId();
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return principal.getId();
     }
 
     // =========================
