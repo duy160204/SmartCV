@@ -1,4 +1,4 @@
-package com.example.SmartCV.modules.cv.domain;
+package com.example.SmartCV.modules.subscription.domain;
 
 public enum PlanType {
     FREE(1),

@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.SmartCV.modules.cv.domain.*;
 import com.example.SmartCV.modules.cv.repository.*;
+import com.example.SmartCV.modules.subscription.domain.PlanType;
 import com.example.SmartCV.modules.subscription.domain.SubscriptionStatus;
 import com.example.SmartCV.modules.subscription.domain.UserSubscription;
 import com.example.SmartCV.modules.subscription.repository.UserSubscriptionRepository;

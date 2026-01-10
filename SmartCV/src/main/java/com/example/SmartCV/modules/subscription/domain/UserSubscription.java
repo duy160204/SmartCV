@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.example.SmartCV.modules.cv.domain.PlanType;
+import com.example.SmartCV.modules.subscription.domain.PlanType;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -55,8 +55,7 @@ public class UserSubscription {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // ===== Business methods =====
-
+    // ===== Business helpers =====
     public boolean isActive() {
         return status == SubscriptionStatus.ACTIVE
                 && (endDate == null || !endDate.isBefore(LocalDate.now()));

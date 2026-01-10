@@ -152,6 +152,7 @@ public class SecurityConfig {
                             );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    request.setAttribute("userId", userPrincipal.getId());
                 } else {
                     System.out.println("❌ JWT NULL OR INVALID");
                 }
