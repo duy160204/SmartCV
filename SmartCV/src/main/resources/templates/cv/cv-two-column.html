@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: "DejaVu Sans", Arial, sans-serif;
+            margin: 0;
+            color: #222;
+        }
+
+        .container {
+            display: table;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .left {
+            display: table-cell;
+            width: 30%;
+            background: #f4f4f4;
+            padding: 30px;
+            vertical-align: top;
+        }
+
+        .right {
+            display: table-cell;
+            width: 70%;
+            padding: 30px;
+            vertical-align: top;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 26px;
+        }
+
+        .job-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin-top: 24px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        ul {
+            padding-left: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- LEFT COLUMN -->
+    <div class="left">
+        <h1 th:text="${cv.profile.fullName}">Nguyễn Văn A</h1>
+        <div class="job-title" th:text="${cv.profile.title}">
+            Backend Developer
+        </div>
+
+        <div class="section">
+            <div class="section-title">LIÊN HỆ</div>
+            <div th:text="${cv.profile.email}">email@gmail.com</div>
+            <div th:text="${cv.profile.phone}">0123456789</div>
+            <div th:text="${cv.profile.address}">Hà Nội</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">KỸ NĂNG</div>
+            <ul>
+                <li th:each="skill : ${cv.skills}" th:text="${skill}">
+                    Java
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="right">
+
+        <div class="section">
+            <div class="section-title">TÓM TẮT</div>
+            <div th:utext="${cv.profile.summary}">
+                Mô tả bản thân
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">KINH NGHIỆM</div>
+            <div th:each="exp : ${cv.experiences}">
+                <b th:text="${exp.position}">Backend Dev</b>
+                - <span th:text="${exp.company}">ABC</span><br/>
+                <small>
+                    <span th:text="${exp.startDate}">2023</span> -
+                    <span th:text="${exp.endDate}">Now</span>
+                </small>
+                <ul>
+                    <li th:each="item : ${exp.details}" th:text="${item}">
+                        Mô tả
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">HỌC VẤN</div>
+            <div th:each="edu : ${cv.educations}">
+                <b th:text="${edu.school}">ĐH CNTT</b>
+                - <span th:text="${edu.degree}">CNTT</span>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

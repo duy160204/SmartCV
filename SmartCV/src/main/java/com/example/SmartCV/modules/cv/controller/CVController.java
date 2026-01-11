@@ -1,7 +1,10 @@
 package com.example.SmartCV.modules.cv.controller;
 
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -9,10 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.cv.domain.CV;
 import com.example.SmartCV.modules.cv.domain.CVFavorite;
-import com.example.SmartCV.modules.cv.domain.CVShare;
 import com.example.SmartCV.modules.cv.service.CVService;
 
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -23,27 +24,20 @@ public class CVController {
     private final CVService cvService;
 
     // =========================
-    // Helpers
-    // =========================
-    private Long getUserId(UserPrincipal principal) {
-        return principal.getId();
-    }
-
-    // =========================
     // UC-B01 – Create CV
     // =========================
     @PostMapping
     public ResponseEntity<CV> createCV(
-            @RequestBody CreateCVRequest request,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody Map<String, Object> body
     ) {
-        Long userId = getUserId(principal);
-        CV cv = cvService.createCV(
-                userId,
-                request.getTemplateId(),
-                request.getTitle(),
-                request.getContent()
-        );
+        Long userId = principal.getId();
+
+        Long templateId = Long.valueOf(body.get("templateId").toString());
+        String title = body.get("title").toString();
+        String content = body.get("content").toString();
+
+        CV cv = cvService.createCV(userId, templateId, title, content);
         return ResponseEntity.ok(cv);
     }
 
@@ -52,31 +46,32 @@ public class CVController {
     // =========================
     @PutMapping("/{cvId}")
     public ResponseEntity<CV> updateCV(
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long cvId,
-            @RequestBody UpdateCVRequest request,
-            @AuthenticationPrincipal UserPrincipal principal
+            @RequestBody Map<String, Object> body
     ) {
-        Long userId = getUserId(principal);
-        CV cv = cvService.updateCV(
-                userId,
-                cvId,
-                request.getTitle(),
-                request.getContent()
-        );
+        Long userId = principal.getId();
+
+        String title = body.get("title").toString();
+        String content = body.get("content").toString();
+
+        CV cv = cvService.updateCV(userId, cvId, title, content);
         return ResponseEntity.ok(cv);
     }
 
     // =========================
     // UC-B03 – Auto Save
     // =========================
-    @PatchMapping("/{cvId}/auto-save")
+    @PatchMapping("/{cvId}/autosave")
     public ResponseEntity<Void> autoSave(
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long cvId,
-            @RequestBody AutoSaveRequest request,
-            @AuthenticationPrincipal UserPrincipal principal
+            @RequestBody Map<String, Object> body
     ) {
-        Long userId = getUserId(principal);
-        cvService.autoSave(userId, cvId, request.getContent());
+        Long userId = principal.getId();
+        String content = body.get("content").toString();
+
+        cvService.autoSave(userId, cvId, content);
         return ResponseEntity.ok().build();
     }
 
@@ -85,133 +80,94 @@ public class CVController {
     // =========================
     @PostMapping("/{cvId}/publish")
     public ResponseEntity<CV> publishCV(
-            @PathVariable Long cvId,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long cvId
     ) {
-        Long userId = getUserId(principal);
+        Long userId = principal.getId();
         CV cv = cvService.publishCV(userId, cvId);
         return ResponseEntity.ok(cv);
     }
 
     // =========================
-    // UC-B05 – Share CV
-    // =========================
-    @PostMapping("/{cvId}/share")
-    public ResponseEntity<CVShare> shareCV(
-            @PathVariable Long cvId,
-            @RequestParam(defaultValue = "7") int expireDays,
-            @AuthenticationPrincipal UserPrincipal principal
-    ) {
-        Long userId = getUserId(principal);
-        CVShare share = cvService.shareCV(userId, cvId, expireDays);
-        return ResponseEntity.ok(share);
-    }
-
-    @DeleteMapping("/{cvId}/share")
-    public ResponseEntity<Void> revokeShare(
-            @PathVariable Long cvId,
-            @AuthenticationPrincipal UserPrincipal principal
-    ) {
-        Long userId = getUserId(principal);
-        cvService.revokeShare(userId, cvId);
-        return ResponseEntity.ok().build();
-    }
-
-    // =========================
-    // UC-B06 – Download CV
+    // UC-B05 – Download CV (PDF)
     // =========================
     @GetMapping("/{cvId}/download")
-    public ResponseEntity<CV> downloadCV(
-            @PathVariable Long cvId,
-            @AuthenticationPrincipal UserPrincipal principal
+    public ResponseEntity<byte[]> downloadCV(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long cvId
     ) {
-        Long userId = getUserId(principal);
-        CV cv = cvService.getCVForDownload(userId, cvId);
-        return ResponseEntity.ok(cv);
+        Long userId = principal.getId();
+
+        byte[] pdfBytes = cvService.downloadCV(userId, cvId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=cv-" + cvId + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 
     // =========================
-    // UC-B07 – Delete CV
+    // UC-B06 – Delete CV
     // =========================
     @DeleteMapping("/{cvId}")
     public ResponseEntity<Void> deleteCV(
-            @PathVariable Long cvId,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long cvId
     ) {
-        Long userId = getUserId(principal);
-        cvService.deleteCV(userId, cvId);
+        cvService.deleteCV(principal.getId(), cvId);
         return ResponseEntity.ok().build();
     }
 
     // =========================
-    // UC-B08 – Favorite Template
+    // UC-B07 – Favorite Template
     // =========================
-    @PostMapping("/favorite/{templateId}")
+    @PostMapping("/template/{templateId}/favorite")
     public ResponseEntity<Void> favoriteTemplate(
-            @PathVariable Long templateId,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long templateId
     ) {
-        Long userId = getUserId(principal);
-        cvService.favoriteTemplate(userId, templateId);
+        cvService.favoriteTemplate(principal.getId(), templateId);
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/favorite/{templateId}")
+    @DeleteMapping("/template/{templateId}/favorite")
     public ResponseEntity<Void> unfavoriteTemplate(
-            @PathVariable Long templateId,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long templateId
     ) {
-        Long userId = getUserId(principal);
-        cvService.unfavoriteTemplate(userId, templateId);
+        cvService.unfavoriteTemplate(principal.getId(), templateId);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/favorite")
+    @GetMapping("/favorites")
     public ResponseEntity<List<CVFavorite>> getFavorites(
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        Long userId = getUserId(principal);
-        return ResponseEntity.ok(cvService.getFavorites(userId));
+        return ResponseEntity.ok(
+                cvService.getFavorites(principal.getId())
+        );
     }
 
     // =========================
-    // Extra – List CV
+    // UC-B08 – List CV
     // =========================
     @GetMapping
     public ResponseEntity<List<CV>> getMyCVs(
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        Long userId = getUserId(principal);
-        return ResponseEntity.ok(cvService.getMyCVs(userId));
+        return ResponseEntity.ok(
+                cvService.getMyCVs(principal.getId())
+        );
     }
 
     @GetMapping("/{cvId}")
     public ResponseEntity<CV> getMyCVDetail(
-            @PathVariable Long cvId,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long cvId
     ) {
-        Long userId = getUserId(principal);
-        return ResponseEntity.ok(cvService.getMyCVDetail(userId, cvId));
-    }
-
-    // =========================
-    // Request DTO
-    // =========================
-    @Data
-    public static class CreateCVRequest {
-        private Long templateId;
-        private String title;
-        private String content;
-    }
-
-    @Data
-    public static class UpdateCVRequest {
-        private String title;
-        private String content;
-    }
-
-    @Data
-    public static class AutoSaveRequest {
-        private String content;
+        return ResponseEntity.ok(
+                cvService.getMyCVDetail(principal.getId(), cvId)
+        );
     }
 }

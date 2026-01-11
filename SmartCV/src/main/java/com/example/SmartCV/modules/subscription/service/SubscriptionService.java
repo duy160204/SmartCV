@@ -6,18 +6,19 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.SmartCV.modules.auth.domain.User;
+import com.example.SmartCV.modules.auth.repository.UserRepository;
+import com.example.SmartCV.modules.auth.service.EmailService;
 import com.example.SmartCV.modules.cv.domain.CV;
-import com.example.SmartCV.modules.subscription.dto.MySubscriptionDTO;
-import com.example.SmartCV.modules.subscription.dto.PublicLinkResponseDTO;
 import com.example.SmartCV.modules.cv.repository.CVRepository;
 import com.example.SmartCV.modules.subscription.domain.*;
+import com.example.SmartCV.modules.subscription.dto.MySubscriptionDTO;
+import com.example.SmartCV.modules.subscription.dto.PublicLinkResponseDTO;
 import com.example.SmartCV.modules.subscription.repository.*;
-import com.example.SmartCV.modules.auth.repository.UserRepository;
-import com.example.SmartCV.modules.auth.domain.User;
-import com.example.SmartCV.modules.auth.service.EmailService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,10 +36,14 @@ public class SubscriptionService {
     private final UserRepository userRepository;
     private final EmailService emailService;
 
+    @Value("${app.public-cv-url:http://localhost:3000}")
+    private String publicCvUrl;
+
     // =========================
-    // INIT FREE SUB
+    // INIT FREE SUB (CALL KHI REGISTER)
     // =========================
     public void initFreeSubscription(Long userId) {
+
         if (userSubscriptionRepository.existsByUserId(userId)) return;
 
         UserSubscription sub = UserSubscription.builder()
@@ -55,9 +60,25 @@ public class SubscriptionService {
     // GET ACTIVE SUB
     // =========================
     public UserSubscription getActiveSubscription(Long userId) {
+
         return userSubscriptionRepository.findByUserId(userId)
                 .filter(UserSubscription::isActive)
-                .orElseThrow(() -> new RuntimeException("No active subscription"));
+                .orElseThrow(() -> new RuntimeException("User has no active subscription"));
+    }
+
+    // =========================
+    // GET MY SUB INFO
+    // =========================
+    public MySubscriptionDTO getMySubscriptionInfo(Long userId) {
+
+        UserSubscription sub = getActiveSubscription(userId);
+
+        return new MySubscriptionDTO(
+                sub.getPlan(),
+                sub.getStatus(),
+                sub.getStartDate(),
+                sub.getEndDate()
+        );
     }
 
     // =========================
@@ -68,51 +89,37 @@ public class SubscriptionService {
         UserSubscription sub = getActiveSubscription(userId);
         PlanDefinition planDef = getPlanDefinition(sub.getPlan());
 
-        // 1. check CV ownership
-        CV cv = cvRepository.findById(cvId)
-                .filter(c -> c.getUserId().equals(userId))
-                .orElseThrow(() -> new RuntimeException("CV not found or not owned"));
+        CV cv = getOwnedCV(userId, cvId);
 
-        // 2. check đã public chưa
-        if (subscriptionUsageRepository.existsByUserIdAndCvIdAndUsageType(
-                userId, cvId, UsageType.SHARE)) {
+        if (isAlreadyShared(userId, cvId)) {
             throw new RuntimeException("This CV is already public");
         }
 
-        // 3. check quota
         checkShareQuota(userId, planDef);
 
-        // 4. tạo link
-        String uuid = UUID.randomUUID().toString();
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expireAt = now.plusDays(planDef.getPublicLinkExpireDays());
+        SubscriptionUsage usage = createShareUsage(
+                userId,
+                cvId,
+                sub.getPlan(),
+                planDef
+        );
 
-        SubscriptionUsage usage = SubscriptionUsage.builder()
-                .userId(userId)
-                .cvId(cvId)
-                .plan(sub.getPlan())
-                .usageType(UsageType.SHARE)
-                .shareUuid(uuid)
-                .createdAt(now)
-                .expireAt(expireAt)
-                .period(currentPeriod())
-                .notifiedBeforeExpire(false)
-                .build();
+        sendMailPublicLink(userId, usage.getShareUuid(), usage.getExpireAt());
 
-        subscriptionUsageRepository.save(usage);
-
-        // 5. gửi mail
-        User user = userRepository.findById(userId).orElse(null);
-        if (user != null) {
-            emailService.sendPublicLinkEmail(user.getEmail(), uuid, expireAt);
-        }
-
-        return new PublicLinkResponseDTO(buildPublicUrl(uuid), expireAt.toString());
+        return new PublicLinkResponseDTO(
+                buildPublicUrl(usage.getShareUuid()),
+                usage.getExpireAt().toString()
+        );
     }
 
     private void checkShareQuota(Long userId, PlanDefinition planDef) {
+
         long used = subscriptionUsageRepository
-                .countByUserIdAndUsageTypeAndPeriod(userId, UsageType.SHARE, currentPeriod());
+                .countByUserIdAndUsageTypeAndPeriod(
+                        userId,
+                        UsageType.SHARE,
+                        currentPeriod()
+                );
 
         if (used >= planDef.getMaxSharePerMonth()) {
             throw new RuntimeException("Share quota exceeded for current plan");
@@ -120,24 +127,70 @@ public class SubscriptionService {
     }
 
     // =========================
-    // DOWNLOAD
+    // DOWNLOAD PERMISSION (NPS)
     // =========================
-    public void checkDownloadPermission(Long userId) {
+   public void checkDownloadPermission(Long userId) {
+
+    UserSubscription sub = getActiveSubscription(userId);
+
+    boolean allowed = planFeatureRepository
+            .findByPlanAndFeatureCode(sub.getPlan(), "DOWNLOAD_CV")
+            .map(PlanFeature::isEnabled)
+            .orElse(false);
+
+    if (!allowed) {
+        throw new RuntimeException("Your plan does not allow downloading CV");
+    }
+
+    // ❗ Không check quota vì PlanDefinition chưa quản lý download limit
+    }
+
+    // =========================
+// CHECK CREATE CV PERMISSION
+// =========================
+// =========================
+// CHECK CREATE CV PERMISSION
+// =========================
+// =========================
+// CHECK CREATE CV PERMISSION
+// =========================
+    public void checkCanCreateCV(Long userId) {
 
         UserSubscription sub = getActiveSubscription(userId);
 
         boolean allowed = planFeatureRepository
-                .findByPlanAndFeatureCode(sub.getPlan(), "DOWNLOAD_CV")
+                .findByPlanAndFeatureCode(sub.getPlan(), "CREATE_CV")
                 .map(PlanFeature::isEnabled)
                 .orElse(false);
 
         if (!allowed) {
-            throw new RuntimeException("Your plan does not allow downloading CV");
+            throw new RuntimeException("Your plan does not allow creating CV");
         }
+
+        // ❗ Không check số lượng ở đây
+    }
+
+
+
+
+    // =========================
+    // RECORD DOWNLOAD USAGE
+    // =========================
+    public void recordDownload(Long userId, Long cvId) {
+
+        SubscriptionUsage usage = SubscriptionUsage.builder()
+                .userId(userId)
+                .cvId(cvId)
+                .usageType(UsageType.DOWNLOAD)
+                .period(currentPeriod())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        subscriptionUsageRepository.save(usage);
     }
 
     // =========================
-    // REVOKE PUBLIC LINK (manual)
+    // REVOKE PUBLIC LINK (MANUAL)
     // =========================
     public void revokePublicLink(Long userId, Long cvId) {
 
@@ -145,27 +198,22 @@ public class SubscriptionService {
                 .findByUserIdAndCvIdAndUsageType(userId, cvId, UsageType.SHARE)
                 .orElseThrow(() -> new RuntimeException("Public link not found"));
 
-        // mail trước
-        User user = userRepository.findById(userId).orElse(null);
-        if (user != null) {
-            emailService.sendPublicLinkRevokedEmail(user.getEmail(), usage.getShareUuid());
-        }
-
+        sendMailRevoked(userId, usage.getShareUuid());
         subscriptionUsageRepository.delete(usage);
     }
 
     // =========================
-    // CRON – EXPIRE + MAIL
+    // CRON – EXPIRE + NOTIFY
     // =========================
     public void handleExpireAndNotify() {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // notify trước 5 ngày
         List<SubscriptionUsage> toNotify =
-                subscriptionUsageRepository.findByExpireAtBeforeAndNotifiedBeforeExpireFalse(
-                        now.plusDays(5)
-                );
+                subscriptionUsageRepository
+                        .findByExpireAtBeforeAndNotifiedBeforeExpireFalse(
+                                now.plusDays(5)
+                        );
 
         for (SubscriptionUsage usage : toNotify) {
             notifyBeforeExpire(usage);
@@ -173,7 +221,6 @@ public class SubscriptionService {
             subscriptionUsageRepository.save(usage);
         }
 
-        // revoke hết hạn
         List<SubscriptionUsage> expired =
                 subscriptionUsageRepository.findByExpireAtBefore(now);
 
@@ -183,6 +230,7 @@ public class SubscriptionService {
     }
 
     private void notifyBeforeExpire(SubscriptionUsage usage) {
+
         User user = userRepository.findById(usage.getUserId()).orElse(null);
         if (user == null) return;
 
@@ -206,25 +254,6 @@ public class SubscriptionService {
 
         subscriptionUsageRepository.delete(usage);
     }
-    // =========================
-// GET MY SUBSCRIPTION INFO
-// =========================
-    public MySubscriptionDTO getMySubscriptionInfo(Long userId) {
-
-        UserSubscription sub = userSubscriptionRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Subscription not found"));
-
-        PlanDefinition planDef = planDefinitionRepository.findByPlan(sub.getPlan())
-                .orElse(null);
-
-        return new MySubscriptionDTO(
-                sub.getPlan(),
-                sub.getStatus(),
-                sub.getStartDate(),
-                sub.getEndDate()
-        );
-    }
-
 
     // =========================
     // ADMIN – UPDATE PLAN
@@ -248,19 +277,77 @@ public class SubscriptionService {
     }
 
     // =========================
-    // Helpers
+    // HELPERS (PRIVATE)
     // =========================
     private PlanDefinition getPlanDefinition(PlanType plan) {
+
         return planDefinitionRepository.findByPlan(plan)
                 .orElseThrow(() -> new RuntimeException("Plan definition not found"));
     }
 
+    private CV getOwnedCV(Long userId, Long cvId) {
+
+        return cvRepository.findById(cvId)
+                .filter(cv -> cv.getUserId().equals(userId))
+                .orElseThrow(() -> new RuntimeException("CV not found or not owned"));
+    }
+
+    private boolean isAlreadyShared(Long userId, Long cvId) {
+
+        return subscriptionUsageRepository
+                .existsByUserIdAndCvIdAndUsageType(
+                        userId,
+                        cvId,
+                        UsageType.SHARE
+                );
+    }
+
+    private SubscriptionUsage createShareUsage(
+            Long userId,
+            Long cvId,
+            PlanType plan,
+            PlanDefinition planDef
+    ) {
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expireAt = now.plusDays(planDef.getPublicLinkExpireDays());
+
+        SubscriptionUsage usage = SubscriptionUsage.builder()
+                .userId(userId)
+                .cvId(cvId)
+                .plan(plan)
+                .usageType(UsageType.SHARE)
+                .shareUuid(UUID.randomUUID().toString())
+                .createdAt(now)
+                .expireAt(expireAt)
+                .period(currentPeriod())
+                .notifiedBeforeExpire(false)
+                .build();
+
+        return subscriptionUsageRepository.save(usage);
+    }
+
     private String currentPeriod() {
-        return YearMonth.now().toString(); // 2026-01
+        return YearMonth.now().toString(); // yyyy-MM
     }
 
     private String buildPublicUrl(String uuid) {
-        return "https://smartcv.vn/public/" + uuid;
+        return publicCvUrl + "/public/" + uuid;
+    }
+
+    private void sendMailPublicLink(Long userId, String uuid, LocalDateTime expireAt) {
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            emailService.sendPublicLinkEmail(user.getEmail(), uuid, expireAt);
+        }
+    }
+
+    private void sendMailRevoked(Long userId, String uuid) {
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            emailService.sendPublicLinkRevokedEmail(user.getEmail(), uuid);
+        }
     }
 }
-

@@ -37,19 +37,25 @@ public class SecurityConfig {
     private final JWTUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
 
-    // Password encoder
+    // =========================
+    // Password Encoder
+    // =========================
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // Security filter chain
+    // =========================
+    // Security Filter Chain
+    // =========================
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .securityContext(context -> context.requireExplicitSave(false))
+            .anonymous(anon -> anon.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/auth/register",
@@ -73,7 +79,9 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS configuration
+    // =========================
+    // CORS Configuration
+    // =========================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -87,13 +95,17 @@ public class SecurityConfig {
         return source;
     }
 
-    // JWT filter bean
+    // =========================
+    // JWT Filter Bean
+    // =========================
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtUtils, userDetailsService);
     }
 
-    // ===================== JWT Filter =====================
+    // =========================
+    // JWT Filter
+    // =========================
     public static class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         private final JWTUtils jwtUtils;
@@ -105,13 +117,12 @@ public class SecurityConfig {
         }
 
         @Override
-        protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        protected boolean shouldNotFilter(HttpServletRequest request) {
             String path = request.getRequestURI();
             return path.startsWith("/auth");
         }
 
-        
-       @Override
+        @Override
         protected void doFilterInternal(
                 HttpServletRequest request,
                 HttpServletResponse response,
@@ -151,8 +162,9 @@ public class SecurityConfig {
                                     userPrincipal.getAuthorities()
                             );
 
+                    authentication.setDetails(request); // ⭐ RẤT QUAN TRỌNG
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    request.setAttribute("userId", userPrincipal.getId());
+
                 } else {
                     System.out.println("❌ JWT NULL OR INVALID");
                 }
@@ -163,6 +175,5 @@ public class SecurityConfig {
 
             filterChain.doFilter(request, response);
         }
-
     }
 }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        .title {
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<h1 th:text="${cv.title}">CV Title</h1>
+
+<div class="section">
+    <div class="title">Nội dung</div>
+    <div th:utext="${cv.content}">
+        Nội dung CV
+    </div>
+</div>
+
+</body>
+</html>

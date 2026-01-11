@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: "DejaVu Sans", Arial, sans-serif;
+            margin: 40px;
+            color: #222;
+            line-height: 1.5;
+        }
+
+        h1 {
+            margin-bottom: 4px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin-top: 24px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 16px;
+            border-bottom: 2px solid #222;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+        }
+
+        ul {
+            padding-left: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<h1 th:text="${cv.profile.fullName}">Nguyễn Văn A</h1>
+<div class="subtitle">
+    <span th:text="${cv.profile.title}">Backend Developer</span> |
+    <span th:text="${cv.profile.email}">email@gmail.com</span> |
+    <span th:text="${cv.profile.phone}">0123456789</span>
+</div>
+
+<div class="section">
+    <div class="section-title">TÓM TẮT</div>
+    <div th:utext="${cv.profile.summary}">
+        Mô tả ngắn gọn về bản thân
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">KINH NGHIỆM</div>
+    <div th:each="exp : ${cv.experiences}">
+        <b th:text="${exp.position}">Backend Developer</b>
+        - <span th:text="${exp.company}">ABC Company</span>
+        (<span th:text="${exp.startDate}">2023</span> -
+         <span th:text="${exp.endDate}">Now</span>)
+        <ul>
+            <li th:each="item : ${exp.details}" th:text="${item}">
+                Mô tả công việc
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">HỌC VẤN</div>
+    <div th:each="edu : ${cv.educations}">
+        <b th:text="${edu.school}">ĐH CNTT</b> -
+        <span th:text="${edu.degree}">CNTT</span>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">KỸ NĂNG</div>
+    <ul>
+        <li th:each="skill : ${cv.skills}" th:text="${skill}">
+            Java
+        </li>
+    </ul>
+</div>
+
+</body>
+</html>

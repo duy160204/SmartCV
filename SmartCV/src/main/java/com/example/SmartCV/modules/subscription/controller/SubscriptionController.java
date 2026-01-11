@@ -1,8 +1,10 @@
 package com.example.SmartCV.modules.subscription.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.subscription.dto.PublicLinkResponseDTO;
 import com.example.SmartCV.modules.subscription.dto.SimpleResponseDTO;
 import com.example.SmartCV.modules.subscription.service.SubscriptionService;
@@ -20,10 +22,11 @@ public class SubscriptionController {
     // PUBLIC CV (SHARE)
     // =========================
     @PostMapping("/cv/{cvId}/public")
-    public ResponseEntity<?> publicCV(
-            @RequestAttribute("userId") Long userId,
-            @PathVariable Long cvId
+    public ResponseEntity<SimpleResponseDTO> publicCV(
+            @PathVariable Long cvId,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
+        Long userId = principal.getId();
         PublicLinkResponseDTO dto = subscriptionService.publicCV(userId, cvId);
         return ResponseEntity.ok(
                 new SimpleResponseDTO("Public link created", dto)
@@ -34,10 +37,11 @@ public class SubscriptionController {
     // REVOKE PUBLIC LINK
     // =========================
     @DeleteMapping("/cv/{cvId}/public")
-    public ResponseEntity<?> revokePublicLink(
-            @RequestAttribute("userId") Long userId,
-            @PathVariable Long cvId
+    public ResponseEntity<SimpleResponseDTO> revokePublicLink(
+            @PathVariable Long cvId,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
+        Long userId = principal.getId();
         subscriptionService.revokePublicLink(userId, cvId);
         return ResponseEntity.ok(
                 new SimpleResponseDTO("Public link revoked")
@@ -48,9 +52,10 @@ public class SubscriptionController {
     // CHECK DOWNLOAD PERMISSION
     // =========================
     @GetMapping("/download/check")
-    public ResponseEntity<?> checkDownloadPermission(
-            @RequestAttribute("userId") Long userId
+    public ResponseEntity<SimpleResponseDTO> checkDownloadPermission(
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
+        Long userId = principal.getId();
         subscriptionService.checkDownloadPermission(userId);
         return ResponseEntity.ok(
                 new SimpleResponseDTO("Download allowed")
@@ -60,16 +65,16 @@ public class SubscriptionController {
     // =========================
     // GET MY SUBSCRIPTION INFO
     // =========================
-        @GetMapping("/me")
-        public ResponseEntity<SimpleResponseDTO> getMySubscription(
-                @RequestAttribute("userId") Long userId
-        ) {
-        return ResponseEntity
-                .ok()
-                .body(new SimpleResponseDTO(
+    @GetMapping("/me")
+    public ResponseEntity<SimpleResponseDTO> getMySubscription(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        Long userId = principal.getId();
+        return ResponseEntity.ok(
+                new SimpleResponseDTO(
                         "Subscription info",
                         subscriptionService.getMySubscriptionInfo(userId)
-                ));
-        }
-
+                )
+        );
+    }
 }

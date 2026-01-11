@@ -17,6 +17,7 @@ import com.example.SmartCV.modules.auth.dto.RegisterRequestDTO;
 import com.example.SmartCV.modules.auth.repository.OAuthAccountRepository;
 import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
+import com.example.SmartCV.modules.subscription.service.SubscriptionService;
 
 @Service
 public class AuthService {
@@ -42,6 +43,9 @@ public class AuthService {
     @Autowired
     private RefreshTokenService refreshTokenService;
 
+    @Autowired
+    private SubscriptionService subscriptionService;
+
     /**
      * ============================
      * REGISTER
@@ -64,9 +68,14 @@ public class AuthService {
         user.setVerified(false);
         user.setVerifyToken(UUID.randomUUID().toString());
 
-        userRepository.save(user);
+        // 1. Save user
+        User savedUser = userRepository.save(user);
 
-        emailService.sendVerificationEmail(user.getEmail(), user.getVerifyToken());
+        // 2. AUTO INIT FREE SUBSCRIPTION (CỰC KỲ QUAN TRỌNG)
+        subscriptionService.initFreeSubscription(savedUser.getId());
+
+        // 3. Send verify email
+        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerifyToken());
     }
 
     /**
