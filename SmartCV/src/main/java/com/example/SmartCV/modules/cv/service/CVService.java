@@ -34,13 +34,21 @@ public class CVService {
                         new RuntimeException("CV không tồn tại hoặc không thuộc quyền sở hữu"));
     }
 
+    private void checkTemplateStillValid(CV cv) {
+        if (cv.getStatus() == CVStatus.TEMPLATE_LOCKED) {
+            throw new RuntimeException("Template của CV này đã bị khóa, không thể thao tác");
+        }
+        if (cv.getStatus() == CVStatus.TEMPLATE_DELETED) {
+            throw new RuntimeException("Template của CV này đã bị xóa, không thể thao tác");
+        }
+    }
+
     // =========================
     // UC-B01 – Create CV
     // =========================
 
     public CV createCV(Long userId, Long templateId, String title, String content) {
 
-        // 👉 quota được quyết định hoàn toàn bởi SubscriptionService
         subscriptionService.checkCanCreateCV(userId);
 
         Template template = templateRepository.findById(templateId)
@@ -69,6 +77,8 @@ public class CVService {
 
         CV cv = getOwnedCV(cvId, userId);
 
+        checkTemplateStillValid(cv);
+
         if (cv.getStatus() == CVStatus.ARCHIVED) {
             throw new RuntimeException("CV đã archive, không thể chỉnh sửa");
         }
@@ -87,6 +97,8 @@ public class CVService {
 
         CV cv = getOwnedCV(cvId, userId);
 
+        checkTemplateStillValid(cv);
+
         if (cv.getStatus() == CVStatus.ARCHIVED) {
             throw new RuntimeException("CV đã archive, không thể auto-save");
         }
@@ -102,6 +114,8 @@ public class CVService {
     public CV publishCV(Long userId, Long cvId) {
 
         CV cv = getOwnedCV(cvId, userId);
+
+        checkTemplateStillValid(cv);
 
         if (cv.getStatus() == CVStatus.ARCHIVED) {
             throw new RuntimeException("CV đã archive, không thể publish");
@@ -119,10 +133,11 @@ public class CVService {
 
     public byte[] downloadCV(Long userId, Long cvId) {
 
-        // 👉 quyền download do SubscriptionService quyết định
         subscriptionService.checkDownloadPermission(userId);
 
         CV cv = getOwnedCV(cvId, userId);
+
+        checkTemplateStillValid(cv);
 
         cv.setViewCount(cv.getViewCount() + 1);
         cvRepository.save(cv);
@@ -151,7 +166,8 @@ public class CVService {
         }
 
         Template template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new RuntimeException("Template không tồn tại"));
+                .filter(Template::getIsActive)
+                .orElseThrow(() -> new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
 
         CVFavorite favorite = CVFavorite.builder()
                 .userId(userId)

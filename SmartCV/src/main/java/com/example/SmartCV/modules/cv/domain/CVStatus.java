@@ -5,4 +5,5 @@ public enum CVStatus {
     PUBLISHED,   // đã publish
     SHARED,      // đang được share
     ARCHIVED     // lưu trữ (sau này dùng)
+, TEMPLATE_DELETED, TEMPLATE_LOCKED
 }

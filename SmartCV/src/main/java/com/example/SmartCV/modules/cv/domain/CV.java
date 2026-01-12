@@ -40,6 +40,10 @@ public class CV {
     @Column(name = "is_public")
     private Boolean isPublic = false;
 
+    // 👉 THÊM DÒNG NÀY
+    @Column(name = "is_locked")
+    private Boolean isLocked = false;
+
     @Column(name = "view_count")
     private Long viewCount = 0L;
 

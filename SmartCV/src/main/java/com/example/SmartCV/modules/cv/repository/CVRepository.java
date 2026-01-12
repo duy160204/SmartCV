@@ -16,4 +16,8 @@ public interface CVRepository extends JpaRepository<CV, Long> {
     boolean existsByIdAndUserId(Long id, Long userId);
 
     long countByUserId(Long userId);
+
+    List<CV> findByTemplateId(Long id);
+
+    long countByIsPublicTrue();
 }

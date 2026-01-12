@@ -2,12 +2,7 @@ package com.example.SmartCV.modules.auth.domain;
 
 import java.time.LocalDate;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +11,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true, nullable = false)
@@ -26,21 +23,22 @@ public class User {
     private String password;
     private String avatarURL;
 
-    @Column(name="role_id")
+    @Column(name = "role_id")
     private Long roleId;
 
+    // ===== QUAN TRỌNG =====
     @Column(nullable = false)
-    private boolean isVerified=false;
+    private boolean verified = false;
+
+    @Column(nullable = false)
+    private boolean locked = true;
 
     @Column(name = "verify_token")
     private String verifyToken;
 
     @Column(name = "created_at")
-    private LocalDate created_at = LocalDate.now();
+    private LocalDate createdAt = LocalDate.now();
 
     @Column(name = "updated_at")
-    private LocalDate updated_at = LocalDate.now();
-
-
-
+    private LocalDate updatedAt = LocalDate.now();
 }

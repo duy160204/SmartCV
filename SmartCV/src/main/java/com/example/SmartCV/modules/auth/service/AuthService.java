@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.modules.auth.domain.RefreshToken;
@@ -51,6 +52,7 @@ public class AuthService {
      * REGISTER
      * ============================
      */
+    @Transactional
     public void register(RegisterRequestDTO request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -65,13 +67,16 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setUsername(request.getName());
         user.setRoleId(defaultRole.getId());
+
+        // ===== CORE STATUS =====
         user.setVerified(false);
+        user.setLocked(true); // 🔒 KHÓA cho tới khi verify mail
         user.setVerifyToken(UUID.randomUUID().toString());
 
         // 1. Save user
         User savedUser = userRepository.save(user);
 
-        // 2. AUTO INIT FREE SUBSCRIPTION (CỰC KỲ QUAN TRỌNG)
+        // 2. AUTO INIT FREE SUBSCRIPTION
         subscriptionService.initFreeSubscription(savedUser.getId());
 
         // 3. Send verify email
@@ -90,6 +95,10 @@ public class AuthService {
 
         if (!user.isVerified()) {
             throw new RuntimeException("Email not verified");
+        }
+
+        if (user.isLocked()) {
+            throw new RuntimeException("Account is locked");
         }
 
         if (user.getPassword() == null) {
@@ -149,19 +158,28 @@ public class AuthService {
 
     /**
      * ============================
-     * VERIFY EMAIL
+     * VERIFY EMAIL (FIRST TIME → UNLOCK)
      * ============================
      */
-    public String verifyEmail(String token) {
+    @Transactional
+    public void verifyEmail(String token) {
 
         User user = userRepository.findByVerifyToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid verify token"));
+                .orElseThrow(() -> new RuntimeException("Invalid or expired verify token"));
 
-        user.setVerified(true);
+        if (user.isVerified()) {
+            throw new RuntimeException("Email already verified");
+        }
+
+        // ===== CORE LOGIC =====
+        user.setVerified(true);   // đánh dấu đã verify
+        user.setLocked(false);    // 🔓 MỞ KHÓA TÀI KHOẢN
         user.setVerifyToken(null);
+
         userRepository.save(user);
 
-        return "Email verified successfully";
+        // Gửi mail xác nhận kích hoạt
+        emailService.sendAccountUnlockedEmail(user.getEmail());
     }
 
     /**
@@ -169,6 +187,7 @@ public class AuthService {
      * FORGOT PASSWORD (SIMPLE MODE)
      * ============================
      */
+    @Transactional
     public void forgotPassword(String email) {
 
         Optional<User> optionalUser = userRepository.findByEmail(email);

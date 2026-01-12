@@ -4,6 +4,8 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.example.SmartCV.modules.subscription.domain.PlanType;
+import com.example.SmartCV.modules.subscription.domain.SubscriptionStatus;
 import com.example.SmartCV.modules.subscription.domain.UserSubscription;
 
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
@@ -11,4 +13,8 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
     Optional<UserSubscription> findByUserId(Long userId);
 
     boolean existsByUserId(Long userId);
+
+    long countByPlan(PlanType free);
+
+    long countByStatus(SubscriptionStatus active);
 }

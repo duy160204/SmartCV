@@ -23,8 +23,14 @@ public class Template {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
+    private String code; // VD: MODERN_01
+
     @Column(nullable = false)
     private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
@@ -39,7 +45,7 @@ public class Template {
     @Column(name = "plan_required", nullable = false)
     private PlanType planRequired;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     @CreationTimestamp
@@ -50,3 +56,4 @@ public class Template {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }
+

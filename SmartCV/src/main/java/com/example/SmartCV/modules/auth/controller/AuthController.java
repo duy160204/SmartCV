@@ -23,40 +23,42 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequestDTO request) {
         authService.register(request);
-        return ResponseEntity.ok("Register successful! Check email to verify.");
+        return ResponseEntity.ok("Register successful! Please check your email to verify account.");
     }
 
     // =================== VERIFY EMAIL =================== //
     @GetMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        String msg = authService.verifyEmail(token);
-        return ResponseEntity.ok(msg);
+        authService.verifyEmail(token);
+        return ResponseEntity.ok("Email verified successfully. Your account has been activated.");
     }
 
     // =================== LOGIN =================== //
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO request, HttpServletResponse response) {
+
         AuthResponseDTO auth = authService.login(request);
 
-        // Tạo cookie JWT từ accessToken
+        // Set JWT vào cookie
         ResponseCookie cookie = ResponseCookie.from("jwt", auth.getAccessToken())
                 .httpOnly(true)
-                .secure(true) // HTTPS
+                .secure(false) // ⚠️ dev thì false, production mới true
                 .path("/")
-                .maxAge(24 * 60 * 60) // 1 ngày
+                .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
                 .build();
+
         response.addHeader("Set-Cookie", cookie.toString());
 
-        // Trả JSON chỉ gồm refresh token + thông tin user
+        // Trả body KHÔNG có accessToken (chuẩn bảo mật)
         AuthResponseDTO responseBody = new AuthResponseDTO(
                 auth.getEmail(),
                 auth.getName(),
                 auth.getProvider(),
                 auth.isVerified(),
                 auth.getRole(),
-                null,                   // không trả accessToken trong body
-                auth.getRefreshToken()  // refreshToken
+                null,                    // không trả accessToken
+                auth.getRefreshToken()   // chỉ trả refreshToken
         );
 
         return ResponseEntity.ok(responseBody);
@@ -65,16 +67,17 @@ public class AuthController {
     // =================== REFRESH TOKEN =================== //
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestParam String refreshToken, HttpServletResponse response) {
+
         String newAccessToken = authService.refreshToken(refreshToken);
 
-        // Cập nhật cookie JWT mới
         ResponseCookie cookie = ResponseCookie.from("jwt", newAccessToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false) // dev = false
                 .path("/")
                 .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
                 .build();
+
         response.addHeader("Set-Cookie", cookie.toString());
 
         return ResponseEntity.ok("Access token refreshed successfully");
@@ -83,28 +86,27 @@ public class AuthController {
     // =================== LOGOUT =================== //
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestParam String refreshToken, HttpServletResponse response) {
+
         authService.logout(refreshToken);
 
-        // Xóa cookie JWT
+        // clear cookie
         ResponseCookie cookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Strict")
                 .build();
+
         response.addHeader("Set-Cookie", cookie.toString());
 
         return ResponseEntity.ok("Logout successful");
     }
 
-
-    // ===================== RESET PASSWORD =====================
+    // =================== FORGOT PASSWORD =================== //
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         authService.forgotPassword(email);
-        return ResponseEntity.ok("Nếu email tồn tại, mật khẩu mới đã được gửi");
+        return ResponseEntity.ok("If email exists, a new password has been sent.");
     }
 }
-
-                

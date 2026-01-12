@@ -1,15 +1,10 @@
 package com.example.SmartCV.modules.subscription.domain;
 
-import com.example.SmartCV.modules.subscription.domain.PlanType;
-
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(
-    name = "plan_features",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"plan", "featureCode"})
-)
+@Table(name = "plan_feature")
 @Getter
 @Setter
 @NoArgsConstructor

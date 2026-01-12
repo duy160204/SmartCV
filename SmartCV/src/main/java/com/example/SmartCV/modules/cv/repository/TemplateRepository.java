@@ -12,4 +12,10 @@ public interface TemplateRepository extends JpaRepository<Template, Long> {
     List<Template> findByIsActiveTrue();
 
     List<Template> findByIsActiveTrueAndPlanRequiredIn(List<PlanType> plans);
+
+    List<Template> findByIsActiveTrueAndPlanRequired(PlanType planRequired);
+
+    List<Template> findByIsActiveTrueOrderByCreatedAtDesc();
+
+    long countByIsActiveTrue();
 }

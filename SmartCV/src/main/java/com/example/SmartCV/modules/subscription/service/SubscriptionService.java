@@ -40,7 +40,7 @@ public class SubscriptionService {
     private String publicCvUrl;
 
     // =========================
-    // INIT FREE SUB (CALL KHI REGISTER)
+    // INIT FREE SUB (KHI REGISTER)
     // =========================
     public void initFreeSubscription(Long userId) {
 
@@ -127,33 +127,25 @@ public class SubscriptionService {
     }
 
     // =========================
-    // DOWNLOAD PERMISSION (NPS)
+    // DOWNLOAD PERMISSION
     // =========================
-   public void checkDownloadPermission(Long userId) {
+    public void checkDownloadPermission(Long userId) {
 
-    UserSubscription sub = getActiveSubscription(userId);
+        UserSubscription sub = getActiveSubscription(userId);
 
-    boolean allowed = planFeatureRepository
-            .findByPlanAndFeatureCode(sub.getPlan(), "DOWNLOAD_CV")
-            .map(PlanFeature::isEnabled)
-            .orElse(false);
+        boolean allowed = planFeatureRepository
+                .findByPlanAndFeatureCode(sub.getPlan(), "DOWNLOAD_CV")
+                .map(PlanFeature::isEnabled)
+                .orElse(false);
 
-    if (!allowed) {
-        throw new RuntimeException("Your plan does not allow downloading CV");
-    }
-
-    // ❗ Không check quota vì PlanDefinition chưa quản lý download limit
+        if (!allowed) {
+            throw new RuntimeException("Your plan does not allow downloading CV");
+        }
     }
 
     // =========================
-// CHECK CREATE CV PERMISSION
-// =========================
-// =========================
-// CHECK CREATE CV PERMISSION
-// =========================
-// =========================
-// CHECK CREATE CV PERMISSION
-// =========================
+    // CREATE CV PERMISSION
+    // =========================
     public void checkCanCreateCV(Long userId) {
 
         UserSubscription sub = getActiveSubscription(userId);
@@ -166,12 +158,7 @@ public class SubscriptionService {
         if (!allowed) {
             throw new RuntimeException("Your plan does not allow creating CV");
         }
-
-        // ❗ Không check số lượng ở đây
     }
-
-
-
 
     // =========================
     // RECORD DOWNLOAD USAGE
@@ -256,28 +243,39 @@ public class SubscriptionService {
     }
 
     // =========================
-    // ADMIN – UPDATE PLAN
+    // ADMIN – UPDATE PLAN (HỆ THỐNG TÍNH NGÀY)
     // =========================
-    public void updatePlanManually(Long userId, PlanType newPlan, int months) {
+    public void updatePlanManually(Long userId, PlanType newPlan) {
 
         UserSubscription sub = userSubscriptionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User subscription not found"));
 
+        PlanType oldPlan = sub.getPlan();
+
+        PlanDefinition planDef = getPlanDefinition(newPlan);
+
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusDays(planDef.getDurationDays());
+
         sub.setPlan(newPlan);
         sub.setStatus(SubscriptionStatus.ACTIVE);
-        sub.setStartDate(LocalDate.now());
-        sub.setEndDate(LocalDate.now().plusMonths(months));
+        sub.setStartDate(start);
+        sub.setEndDate(end);
 
         userSubscriptionRepository.save(sub);
 
         User user = userRepository.findById(userId).orElse(null);
         if (user != null) {
-            emailService.sendPlanUpdatedEmail(user.getEmail(), newPlan.name());
+            emailService.sendPlanUpdatedEmail(
+                    user.getEmail(),
+                    oldPlan.name(),
+                    newPlan.name()
+            );
         }
     }
 
     // =========================
-    // HELPERS (PRIVATE)
+    // HELPERS
     // =========================
     private PlanDefinition getPlanDefinition(PlanType plan) {
 

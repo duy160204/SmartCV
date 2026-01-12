@@ -29,4 +29,9 @@ public class PlanDefinition {
     // số ngày link public tồn tại
     @Column(name = "public_link_expire_days", nullable = false)
     private int publicLinkExpireDays;
+
+    public long getDurationDays() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getDurationDays'");
+    }
 }

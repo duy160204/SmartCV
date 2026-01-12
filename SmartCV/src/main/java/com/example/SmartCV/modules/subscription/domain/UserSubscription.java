@@ -1,24 +1,12 @@
 package com.example.SmartCV.modules.subscription.domain;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import com.example.SmartCV.modules.subscription.domain.PlanType;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(
-    name = "user_subscriptions",
-    indexes = {
-        @Index(name = "idx_user_subscription_user", columnList = "user_id"),
-        @Index(name = "idx_user_subscription_plan", columnList = "plan")
-    }
-)
+@Table(name = "user_subscription")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -47,21 +35,14 @@ public class UserSubscription {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    // ===== Helpers =====
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    // ===== Business helpers =====
     public boolean isActive() {
-        return status == SubscriptionStatus.ACTIVE
-                && (endDate == null || !endDate.isBefore(LocalDate.now()));
+        return status == SubscriptionStatus.ACTIVE;
     }
 
     public boolean isExpired() {
-        return endDate != null && endDate.isBefore(LocalDate.now());
+        return status == SubscriptionStatus.EXPIRED
+                || (endDate != null && endDate.isBefore(LocalDate.now()));
     }
 }
