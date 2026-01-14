@@ -1,9 +1,10 @@
 package com.example.SmartCV.common.utils;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import lombok.AllArgsConstructor;
@@ -18,12 +19,20 @@ public class UserPrincipal implements UserDetails {
     private Long id;
     private String email;
     private String password;
-    private Long roleId; // dùng roleId trực tiếp
+    private Long roleId; // 1 = ADMIN, 2 = USER
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Hiện tại chưa dùng phân quyền -> để trống
-        return Collections.emptyList();
+
+        String roleName;
+
+        if (roleId == 1L) {
+            roleName = "ROLE_ADMIN";
+        } else {
+            roleName = "ROLE_USER";
+        }
+
+        return List.of(new SimpleGrantedAuthority(roleName));
     }
 
     @Override

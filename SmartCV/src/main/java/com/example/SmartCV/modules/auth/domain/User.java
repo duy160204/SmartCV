@@ -20,25 +20,28 @@ public class User {
     private String email;
 
     private String username;
+
+    @Column(nullable = false)
     private String password;
+
     private String avatarURL;
 
     @Column(name = "role_id")
     private Long roleId;
 
-    // ===== QUAN TRỌNG =====
-    @Column(nullable = false)
-    private boolean verified = false;
+    // ===== CORE STATUS =====
+    @Column(name = "is_verified", nullable = false)
+    private boolean verified = false;  // mặc định false khi tạo mới
 
-    @Column(nullable = false)
-    private boolean locked = true;
+    @Column(name = "locked", nullable = false)
+    private boolean locked = true;     // mặc định khóa tài khoản
 
     @Column(name = "verify_token")
     private String verifyToken;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDate createdAt = LocalDate.now();
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDate updatedAt = LocalDate.now();
 }

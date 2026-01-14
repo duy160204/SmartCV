@@ -55,26 +55,38 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .securityContext(context -> context.requireExplicitSave(false))
-            .anonymous(anon -> anon.disable())
+
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/auth/register",
-                    "/auth/login",
-                    "/auth/verify-email",
-                    "/auth/oauth/**",
-                    "/auth/refresh-token",
-                    "/auth/logout",
-                    "/auth/forgot-password"
-                ).permitAll()
+
+                // ========= PUBLIC =========
+                .requestMatchers("/auth/**").permitAll()
+
+                // ========= PAYMENT CALLBACK (NO JWT) =========
+                .requestMatchers("/api/payments/vnpay/callback").permitAll()
+
+                // ========= ADMIN =========
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                // ========= USER (JWT REQUIRED) =========
+                .requestMatchers("/api/**").hasAnyRole("USER", "ADMIN")
+
+                // ========= FALLBACK =========
                 .anyRequest().authenticated()
             )
+
             .httpBasic(httpBasic -> httpBasic.disable())
             .formLogin(form -> form.disable())
+
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .authenticationEntryPoint(
+                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+                )
             );
 
-        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(
+            jwtAuthenticationFilter(),
+            UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }
@@ -86,11 +98,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowCredentials(true);
+        config.setAllowedMethods(
+            List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        );
         config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
@@ -111,15 +126,21 @@ public class SecurityConfig {
         private final JWTUtils jwtUtils;
         private final CustomUserDetailsService userDetailsService;
 
-        public JwtAuthenticationFilter(JWTUtils jwtUtils, CustomUserDetailsService userDetailsService) {
+        public JwtAuthenticationFilter(
+                JWTUtils jwtUtils,
+                CustomUserDetailsService userDetailsService
+        ) {
             this.jwtUtils = jwtUtils;
             this.userDetailsService = userDetailsService;
         }
 
         @Override
         protected boolean shouldNotFilter(HttpServletRequest request) {
-            String path = request.getRequestURI();
-            return path.startsWith("/auth");
+            String uri = request.getRequestURI();
+
+            // ❗ CHỈ SKIP JWT CHO AUTH + CALLBACK
+            return uri.startsWith("/auth")
+                || uri.equals("/api/payments/vnpay/callback");
         }
 
         @Override
@@ -129,44 +150,35 @@ public class SecurityConfig {
                 FilterChain filterChain
         ) throws ServletException, IOException {
 
-            System.out.println("➡️ JWT FILTER RUNNING, URI = " + request.getRequestURI());
-
             try {
                 String token = null;
 
                 if (request.getCookies() != null) {
-                    System.out.println("🍪 Cookies:");
                     for (Cookie cookie : request.getCookies()) {
-                        System.out.println(" - " + cookie.getName());
                         if ("jwt".equals(cookie.getName())) {
                             token = cookie.getValue();
+                            break;
                         }
                     }
-                } else {
-                    System.out.println("❌ NO COOKIES AT ALL");
                 }
 
                 if (token != null && jwtUtils.validateToken(token)) {
-                    System.out.println("✅ JWT VALID");
-
                     String email = jwtUtils.getEmailFromToken(token);
-                    System.out.println("👤 Email from token = " + email);
 
                     UserPrincipal userPrincipal =
-                            (UserPrincipal) userDetailsService.loadUserByUsername(email);
+                        (UserPrincipal) userDetailsService
+                            .loadUserByUsername(email);
 
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    userPrincipal,
-                                    null,
-                                    userPrincipal.getAuthorities()
-                            );
+                        new UsernamePasswordAuthenticationToken(
+                            userPrincipal,
+                            null,
+                            userPrincipal.getAuthorities()
+                        );
 
-                    authentication.setDetails(request); // ⭐ RẤT QUAN TRỌNG
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                } else {
-                    System.out.println("❌ JWT NULL OR INVALID");
+                    authentication.setDetails(request);
+                    SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
                 }
 
             } catch (Exception e) {

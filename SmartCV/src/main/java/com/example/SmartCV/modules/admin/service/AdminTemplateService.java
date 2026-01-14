@@ -38,6 +38,7 @@ public class AdminTemplateService {
             PlanType planRequired
     ) {
         Template template = Template.builder()
+                .code(generateTemplateCode(name))
                 .name(name)
                 .thumbnailUrl(thumbnailUrl)
                 .previewContent(previewContent)
@@ -48,6 +49,14 @@ public class AdminTemplateService {
 
         return templateRepository.save(template);
     }
+
+    private String generateTemplateCode(String name) {
+    return "TPL_" + name
+            .toUpperCase()
+            .replaceAll("\\s+", "_")
+            + "_" + System.currentTimeMillis();
+}
+
 
     // =========================
     // UPDATE TEMPLATE
