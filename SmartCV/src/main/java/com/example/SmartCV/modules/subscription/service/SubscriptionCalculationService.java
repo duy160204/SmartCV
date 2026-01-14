@@ -12,23 +12,41 @@ import com.example.SmartCV.modules.subscription.domain.UserSubscription;
 public class SubscriptionCalculationService {
 
     /**
-     * Tính start/end cho plan mới.
-     * Admin không set ngày, system tự tính.
+     * Tính chu kỳ subscription dựa trên:
+     * - Subscription hiện tại
+     * - Gói mới
+     * - Số tháng mua (từ payment)
      */
-    public SubscriptionPeriod calculatePeriod(UserSubscription current, PlanType newPlan) {
+    public SubscriptionPeriod calculatePeriod(
+            UserSubscription current,
+            PlanType newPlan,
+            int months
+    ) {
+        if (months <= 0) {
+            throw new IllegalArgumentException("Months must be > 0");
+        }
 
         LocalDate startDate;
-        LocalDate endDate;
 
+        // ===== CASE 1: chưa có hoặc đã hết hạn =====
         if (current == null || current.isExpired()) {
-            startDate = LocalDate.now();
-        } else {
-            // có thể chọn nối tiếp hoặc ghi đè – ở đây chọn ghi đè từ hôm nay
             startDate = LocalDate.now();
         }
 
-        // mặc định 1 tháng, sau này payment truyền số tháng vào
-        endDate = startDate.plusMonths(1);
+        // ===== CASE 2: gia hạn cùng plan =====
+        else if (current.getPlan() == newPlan) {
+            startDate = current.getEndDate() != null
+                    ? current.getEndDate()
+                    : LocalDate.now();
+        }
+
+        // ===== CASE 3: upgrade / downgrade plan =====
+        else {
+            // ghi đè từ hôm nay (an toàn – dễ kiểm soát)
+            startDate = LocalDate.now();
+        }
+
+        LocalDate endDate = startDate.plusMonths(months);
 
         return new SubscriptionPeriod(startDate, endDate);
     }
