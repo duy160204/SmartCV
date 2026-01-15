@@ -1,6 +1,7 @@
 package com.example.SmartCV.modules.auth.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Value("${app.security.cookie-secure}")
+    private boolean cookieSecure;
 
     // =================== REGISTER =================== //
     @PostMapping("/register")
@@ -42,7 +46,7 @@ public class AuthController {
         // Set JWT vào cookie
         ResponseCookie cookie = ResponseCookie.from("jwt", auth.getAccessToken())
                 .httpOnly(true)
-                .secure(false) // ⚠️ dev thì false, production mới true
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
@@ -57,8 +61,8 @@ public class AuthController {
                 auth.getProvider(),
                 auth.isVerified(),
                 auth.getRole(),
-                null,                    // không trả accessToken
-                auth.getRefreshToken()   // chỉ trả refreshToken
+                null, // không trả accessToken
+                auth.getRefreshToken() // chỉ trả refreshToken
         );
 
         return ResponseEntity.ok(responseBody);
@@ -72,7 +76,7 @@ public class AuthController {
 
         ResponseCookie cookie = ResponseCookie.from("jwt", newAccessToken)
                 .httpOnly(true)
-                .secure(false) // dev = false
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(24 * 60 * 60)
                 .sameSite("Strict")
@@ -92,7 +96,7 @@ public class AuthController {
         // clear cookie
         ResponseCookie cookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Strict")

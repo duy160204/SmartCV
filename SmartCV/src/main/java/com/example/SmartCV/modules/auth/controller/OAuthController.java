@@ -1,6 +1,7 @@
 package com.example.SmartCV.modules.auth.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +20,15 @@ public class OAuthController {
     @Autowired
     private OAuthService oauthService;
 
+    @Value("${app.security.cookie-secure}")
+    private boolean cookieSecure;
+
     // =================== CALLBACK =================== //
     @GetMapping("/{provider}/callback")
     public ResponseEntity<?> oauthCallback(
             @PathVariable String provider,
             @RequestParam String code,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response) {
         try {
             AuthResponseDTO auth;
             switch (provider.toLowerCase()) {
@@ -51,7 +54,7 @@ public class OAuthController {
             // =================== TẠO COOKIE JWT =================== //
             ResponseCookie cookie = ResponseCookie.from("jwt", auth.getAccessToken())
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(cookieSecure)
                     .path("/")
                     .maxAge(24 * 60 * 60) // 1 ngày
                     .sameSite("Strict")
@@ -67,8 +70,8 @@ public class OAuthController {
                     auth.getProvider(),
                     auth.isVerified(),
                     auth.getRole(),
-                    null,                   // Không trả lại accessToken trong body
-                    auth.getRefreshToken()   // Trả refreshToken
+                    null, // Không trả lại accessToken trong body
+                    auth.getRefreshToken() // Trả refreshToken
             );
 
             return ResponseEntity.ok(responseBody);

@@ -30,8 +30,7 @@ public class CVService {
     private CV getOwnedCV(Long cvId, Long userId) {
         return cvRepository.findById(cvId)
                 .filter(cv -> cv.getUserId().equals(userId))
-                .orElseThrow(() ->
-                        new RuntimeException("CV không tồn tại hoặc không thuộc quyền sở hữu"));
+                .orElseThrow(() -> new RuntimeException("CV không tồn tại hoặc không thuộc quyền sở hữu"));
     }
 
     private void checkTemplateStillValid(CV cv) {
@@ -53,8 +52,7 @@ public class CVService {
 
         Template template = templateRepository.findById(templateId)
                 .filter(Template::getIsActive)
-                .orElseThrow(() ->
-                        new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
+                .orElseThrow(() -> new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
 
         CV cv = CV.builder()
                 .userId(userId)
@@ -191,6 +189,10 @@ public class CVService {
 
     public List<CV> getMyCVs(Long userId) {
         return cvRepository.findByUserId(userId);
+    }
+
+    public List<com.example.SmartCV.modules.cv.dto.projection.CVListProjection> getMyCVProjections(Long userId) {
+        return cvRepository.findProjectionsByUserId(userId);
     }
 
     public CV getMyCVDetail(Long userId, Long cvId) {

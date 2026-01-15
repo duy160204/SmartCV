@@ -20,4 +20,7 @@ public interface CVRepository extends JpaRepository<CV, Long> {
     List<CV> findByTemplateId(Long id);
 
     long countByIsPublicTrue();
+
+    // PROJECTION
+    List<com.example.SmartCV.modules.cv.dto.projection.CVListProjection> findProjectionsByUserId(Long userId);
 }
