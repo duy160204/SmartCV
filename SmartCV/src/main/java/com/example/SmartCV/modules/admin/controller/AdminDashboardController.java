@@ -9,14 +9,19 @@ import com.example.SmartCV.modules.admin.service.AdminDashboardService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/admin/dashboard")
+@RequestMapping("/api/admin/dashboard")
 @RequiredArgsConstructor
 public class AdminDashboardController {
 
     private final AdminDashboardService dashboardService;
 
+    // ==================================================
+    // DASHBOARD OVERVIEW (CARDS)
+    // ==================================================
     @GetMapping
-    public ResponseEntity<AdminDashboardResponse> getDashboard() {
-        return ResponseEntity.ok(dashboardService.getDashboardOverview());
+    public ResponseEntity<AdminDashboardResponse> overview() {
+        return ResponseEntity.ok(
+                dashboardService.getDashboardOverview()
+        );
     }
 }

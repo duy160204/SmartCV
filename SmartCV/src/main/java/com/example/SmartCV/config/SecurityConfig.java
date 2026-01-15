@@ -49,7 +49,8 @@ public class SecurityConfig {
     // Security Filter Chain
     // =========================
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
 
         http
             .csrf(csrf -> csrf.disable())
@@ -61,14 +62,19 @@ public class SecurityConfig {
                 // ========= PUBLIC =========
                 .requestMatchers("/auth/**").permitAll()
 
-                // ========= PAYMENT CALLBACK (NO JWT) =========
-                .requestMatchers("/api/payments/vnpay/callback").permitAll()
+                // ========= PAYMENT (PUBLIC CALLBACK / RETURN) =========
+                .requestMatchers(
+                    "/api/payments/vnpay/callback",
+                    "/api/payments/vnpay/return"
+                ).permitAll()
 
                 // ========= ADMIN =========
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**")
+                    .hasRole("ADMIN")
 
-                // ========= USER (JWT REQUIRED) =========
-                .requestMatchers("/api/**").hasAnyRole("USER", "ADMIN")
+                // ========= USER =========
+                .requestMatchers("/api/**")
+                    .hasAnyRole("USER", "ADMIN")
 
                 // ========= FALLBACK =========
                 .anyRequest().authenticated()
@@ -96,13 +102,31 @@ public class SecurityConfig {
     // =========================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        // ✅ FE USER + ADMIN (DEV)
+        config.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:5173",
+            "http://localhost:5174"
+        ));
+
         config.setAllowedMethods(
             List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")
         );
-        config.setAllowedHeaders(List.of("*"));
+
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With"
+        ));
+
+        // 🔥 BẮT BUỘC để gửi cookie JWT
         config.setAllowCredentials(true);
+
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
             new UrlBasedCorsConfigurationSource();
@@ -115,13 +139,17 @@ public class SecurityConfig {
     // =========================
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtils, userDetailsService);
+        return new JwtAuthenticationFilter(
+                jwtUtils,
+                userDetailsService
+        );
     }
 
     // =========================
     // JWT Filter
     // =========================
-    public static class JwtAuthenticationFilter extends OncePerRequestFilter {
+    public static class JwtAuthenticationFilter
+            extends OncePerRequestFilter {
 
         private final JWTUtils jwtUtils;
         private final CustomUserDetailsService userDetailsService;
@@ -135,12 +163,15 @@ public class SecurityConfig {
         }
 
         @Override
-        protected boolean shouldNotFilter(HttpServletRequest request) {
+        protected boolean shouldNotFilter(
+                HttpServletRequest request
+        ) {
             String uri = request.getRequestURI();
 
-            // ❗ CHỈ SKIP JWT CHO AUTH + CALLBACK
+            // ❗ SKIP JWT cho AUTH + PAYMENT CALLBACK/RETURN
             return uri.startsWith("/auth")
-                || uri.equals("/api/payments/vnpay/callback");
+                || uri.equals("/api/payments/vnpay/callback")
+                || uri.equals("/api/payments/vnpay/return");
         }
 
         @Override
@@ -163,11 +194,13 @@ public class SecurityConfig {
                 }
 
                 if (token != null && jwtUtils.validateToken(token)) {
-                    String email = jwtUtils.getEmailFromToken(token);
+                    String email =
+                        jwtUtils.getEmailFromToken(token);
 
                     UserPrincipal userPrincipal =
-                        (UserPrincipal) userDetailsService
-                            .loadUserByUsername(email);
+                        (UserPrincipal)
+                            userDetailsService
+                                .loadUserByUsername(email);
 
                     UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -177,7 +210,8 @@ public class SecurityConfig {
                         );
 
                     authentication.setDetails(request);
-                    SecurityContextHolder.getContext()
+                    SecurityContextHolder
+                        .getContext()
                         .setAuthentication(authentication);
                 }
 

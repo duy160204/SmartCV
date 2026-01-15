@@ -33,13 +33,14 @@ public class AdminSubscriptionService {
     private final EmailService emailService;
 
     // =========================
-    // PREVIEW – chỉ tính, không ghi DB
+    // PREVIEW – chỉ tính, KHÔNG ghi DB
     // =========================
     @Transactional(readOnly = true)
     public SubscriptionPreviewResponse preview(SubscriptionPreviewRequest request) {
 
         Long userId = request.getUserId();
         PlanType newPlan = request.getNewPlan();
+        int months = request.getMonths();
 
         UserSubscription currentSub =
                 userSubscriptionRepository.findByUserId(userId).orElse(null);
@@ -49,13 +50,18 @@ public class AdminSubscriptionService {
         validatePlanChange(oldPlan, newPlan);
 
         SubscriptionPeriod period =
-                calculationService.calculatePeriod(currentSub, newPlan);
+                calculationService.calculatePeriod(
+                        currentSub,
+                        newPlan,
+                        months
+                );
 
         log.info(
-            "[ADMIN][PREVIEW] userId={} oldPlan={} newPlan={} start={} end={}",
+            "[ADMIN][PREVIEW] userId={} oldPlan={} newPlan={} months={} start={} end={}",
             userId,
             oldPlan,
             newPlan,
+            months,
             period.getStartDate(),
             period.getEndDate()
         );
@@ -71,7 +77,7 @@ public class AdminSubscriptionService {
     }
 
     // =========================
-    // CONFIRM – update thật
+    // CONFIRM – UPDATE THẬT
     // =========================
     public void confirm(
             Long adminId,
@@ -84,6 +90,7 @@ public class AdminSubscriptionService {
 
         Long userId = request.getUserId();
         PlanType newPlan = request.getNewPlan();
+        int months = request.getMonths();
 
         User user = getUserOrThrow(userId);
 
@@ -95,23 +102,32 @@ public class AdminSubscriptionService {
         validatePlanChange(oldPlan, newPlan);
 
         SubscriptionPeriod period =
-                calculationService.calculatePeriod(currentSub, newPlan);
+                calculationService.calculatePeriod(
+                        currentSub,
+                        newPlan,
+                        months
+                );
 
         // ===== UPSERT UserSubscription =====
         UserSubscription updatedSub =
-                upsertSubscription(currentSub, userId, newPlan, period);
+                upsertSubscription(
+                        currentSub,
+                        userId,
+                        newPlan,
+                        period
+                );
 
         userSubscriptionRepository.save(updatedSub);
 
-        // ===== SAVE HISTORY (FIX LỖI Ở ĐÂY) =====
+        // ===== SAVE HISTORY =====
         historyService.saveHistory(
                 userId,
                 oldPlan,
                 newPlan,
                 SubscriptionChangeType.ADMIN_UPDATE,
                 ChangeReason.ADMIN,
-                adminId,   // 👈 operator
-                null       // 👈 paymentId (admin thao tác)
+                adminId,   // operator
+                null       // paymentId (admin thao tác)
         );
 
         // ===== SEND EMAIL =====
@@ -122,11 +138,12 @@ public class AdminSubscriptionService {
         );
 
         log.info(
-            "[ADMIN][CONFIRM] adminId={} userId={} oldPlan={} newPlan={} start={} end={}",
+            "[ADMIN][CONFIRM] adminId={} userId={} oldPlan={} newPlan={} months={} start={} end={}",
             adminId,
             userId,
             oldPlan,
             newPlan,
+            months,
             period.getStartDate(),
             period.getEndDate()
         );

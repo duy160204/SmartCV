@@ -10,4 +10,8 @@ import lombok.Setter;
 public class SubscriptionPreviewRequest {
     private Long userId;
     private PlanType newPlan;
+    public int getMonths() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getMonths'");
+    }
 }

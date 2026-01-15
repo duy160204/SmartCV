@@ -11,4 +11,8 @@ public class SubscriptionConfirmRequest {
     private Long userId;
     private PlanType newPlan;
     private boolean confirm;
+    public int getMonths() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getMonths'");
+    }
 }
