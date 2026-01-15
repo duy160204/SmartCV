@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/cv")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminCVController {
 
     private final AdminCVService adminCVService;
@@ -40,8 +41,7 @@ public class AdminCVController {
     @PostMapping("/{cvId}/lock")
     public ResponseEntity<?> lockCV(
             @PathVariable Long cvId,
-            @RequestParam(required = false) String reason
-    ) {
+            @RequestParam(required = false) String reason) {
         adminCVService.lockCV(cvId, reason != null ? reason : "Admin locked this CV");
         return ResponseEntity.ok("CV locked successfully");
     }
@@ -52,8 +52,7 @@ public class AdminCVController {
     @PostMapping("/{cvId}/unlock")
     public ResponseEntity<?> unlockCV(
             @PathVariable Long cvId,
-            @RequestParam(required = false) String reason
-    ) {
+            @RequestParam(required = false) String reason) {
         adminCVService.unlockCV(cvId, reason != null ? reason : "Admin unlocked this CV");
         return ResponseEntity.ok("CV unlocked successfully");
     }
@@ -64,8 +63,7 @@ public class AdminCVController {
     @DeleteMapping("/{cvId}")
     public ResponseEntity<?> deleteCV(
             @PathVariable Long cvId,
-            @RequestParam(required = false) String reason
-    ) {
+            @RequestParam(required = false) String reason) {
         adminCVService.deleteCV(cvId, reason != null ? reason : "Admin deleted this CV");
         return ResponseEntity.ok("CV deleted successfully");
     }

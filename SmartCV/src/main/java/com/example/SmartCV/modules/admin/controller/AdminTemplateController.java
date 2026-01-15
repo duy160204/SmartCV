@@ -10,8 +10,9 @@ import com.example.SmartCV.modules.subscription.domain.PlanType;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/admin/templates")
+@RequestMapping("/api/admin/templates")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminTemplateController {
 
     private final AdminTemplateService adminTemplateService;
@@ -25,15 +26,13 @@ public class AdminTemplateController {
             @RequestParam(required = false) String thumbnailUrl,
             @RequestParam String previewContent,
             @RequestParam String fullContent,
-            @RequestParam PlanType planRequired
-    ) {
+            @RequestParam PlanType planRequired) {
         Template template = adminTemplateService.createTemplate(
                 name,
                 thumbnailUrl,
                 previewContent,
                 fullContent,
-                planRequired
-        );
+                planRequired);
 
         return ResponseEntity.ok(template);
     }
@@ -48,16 +47,14 @@ public class AdminTemplateController {
             @RequestParam(required = false) String thumbnailUrl,
             @RequestParam String previewContent,
             @RequestParam String fullContent,
-            @RequestParam PlanType planRequired
-    ) {
+            @RequestParam PlanType planRequired) {
         Template template = adminTemplateService.updateTemplate(
                 id,
                 name,
                 thumbnailUrl,
                 previewContent,
                 fullContent,
-                planRequired
-        );
+                planRequired);
 
         return ResponseEntity.ok(template);
     }

@@ -56,7 +56,8 @@ public class OAuthService {
             String accessToken = GoogleVerifier.exchangeCodeForAccessToken(code, oauthProperties.getGoogle());
             GoogleIdToken.Payload payload = GoogleVerifier.getPayload(accessToken);
 
-            if (payload == null) throw new OAuthException("Invalid Google payload");
+            if (payload == null)
+                throw new OAuthException("Invalid Google payload");
 
             String email = payload.getEmail();
             String name = (String) payload.get("name");
@@ -72,10 +73,12 @@ public class OAuthService {
     public AuthResponseDTO loginWithGitHub(String code) throws OAuthException {
         try {
             GitHubUserDTO user = GitHubVerifier.getUserFromCode(code, oauthProperties.getGithub());
-            if (user == null) throw new OAuthException("Invalid GitHub user");
+            if (user == null)
+                throw new OAuthException("Invalid GitHub user");
 
             String email = user.getEmail();
-            if (email == null) email = "github_" + user.getId() + "@github-user.com";
+            if (email == null)
+                email = "github_" + user.getId() + "@github-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "github", user.getId());
 
@@ -88,10 +91,12 @@ public class OAuthService {
     public AuthResponseDTO loginWithFacebook(String code) throws OAuthException {
         try {
             FacebookUserDTO user = FacebookVerifier.getUserFromCode(code, oauthProperties.getFacebook());
-            if (user == null) throw new OAuthException("Invalid Facebook user");
+            if (user == null)
+                throw new OAuthException("Invalid Facebook user");
 
             String email = user.getEmail();
-            if (email == null) email = "facebook_" + user.getId() + "@facebook-user.com";
+            if (email == null)
+                email = "facebook_" + user.getId() + "@facebook-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "facebook", user.getId());
 
@@ -104,10 +109,12 @@ public class OAuthService {
     public AuthResponseDTO loginWithLinkedIn(String code) throws OAuthException {
         try {
             LinkedInUserDTO user = LinkedInVerifier.getUserFromCode(code, oauthProperties.getLinkedin());
-            if (user == null) throw new OAuthException("Invalid LinkedIn user");
+            if (user == null)
+                throw new OAuthException("Invalid LinkedIn user");
 
             String email = user.getEmail();
-            if (email == null) email = "linkedin_" + user.getId() + "@linkedin-user.com";
+            if (email == null)
+                email = "linkedin_" + user.getId() + "@linkedin-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "linkedin", user.getId());
 
@@ -120,10 +127,12 @@ public class OAuthService {
     public AuthResponseDTO loginWithZalo(String code) throws OAuthException {
         try {
             ZaloUserDTO user = ZaloVerifier.getUserFromCode(code, oauthProperties.getZalo());
-            if (user == null) throw new OAuthException("Invalid Zalo user");
+            if (user == null)
+                throw new OAuthException("Invalid Zalo user");
 
             String email = user.getEmail();
-            if (email == null) email = "zalo_" + user.getId() + "@zalo-user.com";
+            if (email == null)
+                email = "zalo_" + user.getId() + "@zalo-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "zalo", user.getId());
 
@@ -133,7 +142,8 @@ public class OAuthService {
     }
 
     // =================== LOGIC CHUNG =================== //
-    private AuthResponseDTO loginOrCreateOAuthUser(String email, String name, String provider, String providerUserId) throws OAuthException {
+    private AuthResponseDTO loginOrCreateOAuthUser(String email, String name, String provider, String providerUserId)
+            throws OAuthException {
         Optional<User> existingUser = userRepository.findByEmail(email);
         User user;
 
@@ -143,8 +153,8 @@ public class OAuthService {
                 throw new OAuthException("Email already registered with password");
             }
         } else {
-            Role defaultRole = roleRepository.findByName("guest")
-                    .orElseThrow(() -> new OAuthException("Default role not found"));
+            Role defaultRole = roleRepository.findByName("user")
+                    .orElseThrow(() -> new OAuthException("Default role 'user' not found"));
 
             user = new User();
             user.setEmail(email);
@@ -166,7 +176,7 @@ public class OAuthService {
         // Lấy role name
         String role = roleRepository.findById(user.getRoleId())
                 .map(Role::getName)
-                .orElse("guest");
+                .orElse("user");
 
         // Tạo access token
         String accessToken = jwtUtils.generateToken(user);
@@ -181,8 +191,7 @@ public class OAuthService {
                 user.isVerified(),
                 role,
                 accessToken,
-                refreshToken.getToken()
-        );
+                refreshToken.getToken());
     }
 
     // =================== EXCEPTION =================== //

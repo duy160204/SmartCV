@@ -17,104 +17,84 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/payments")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminPaymentController {
 
-    private final AdminPaymentService adminPaymentService;
+        private final AdminPaymentService adminPaymentService;
 
-    // ==================================================
-    // LIST ALL PAYMENTS
-    // ==================================================
-    @GetMapping
-    public ResponseEntity<List<PaymentTransaction>> listAll() {
-        return ResponseEntity.ok(
-                adminPaymentService.findAll()
-        );
-    }
+        // ==================================================
+        // LIST ALL PAYMENTS
+        // ==================================================
+        @GetMapping
+        public ResponseEntity<List<PaymentTransaction>> listAll() {
+                return ResponseEntity.ok(
+                                adminPaymentService.findAll());
+        }
 
-    // ==================================================
-    // VIEW PAYMENT DETAIL (🔥 MỚI – XEM RIÊNG 1 PAYMENT)
-    // ==================================================
-    @GetMapping("/{paymentId}")
-    public ResponseEntity<PaymentTransaction> getDetail(
-            @PathVariable Long paymentId
-    ) {
-        return ResponseEntity.ok(
-                adminPaymentService.findById(paymentId)
-        );
-    }
+        // ==================================================
+        // VIEW PAYMENT DETAIL (🔥 MỚI – XEM RIÊNG 1 PAYMENT)
+        // ==================================================
+        @GetMapping("/{paymentId}")
+        public ResponseEntity<PaymentTransaction> getDetail(
+                        @PathVariable Long paymentId) {
+                return ResponseEntity.ok(
+                                adminPaymentService.findById(paymentId));
+        }
 
-    // ==================================================
-    // FILTER BY USER
-    // ==================================================
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<PaymentTransaction>> byUser(
-            @PathVariable Long userId
-    ) {
-        return ResponseEntity.ok(
-                adminPaymentService.findByUserId(userId)
-        );
-    }
+        // ==================================================
+        // FILTER BY USER
+        // ==================================================
+        @GetMapping("/user/{userId}")
+        public ResponseEntity<List<PaymentTransaction>> byUser(
+                        @PathVariable Long userId) {
+                return ResponseEntity.ok(
+                                adminPaymentService.findByUserId(userId));
+        }
 
-    // ==================================================
-    // FILTER BY STATUS
-    // ==================================================
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<PaymentTransaction>> byStatus(
-            @PathVariable PaymentStatus status
-    ) {
-        return ResponseEntity.ok(
-                adminPaymentService.findByStatus(status)
-        );
-    }
+        // ==================================================
+        // FILTER BY STATUS
+        // ==================================================
+        @GetMapping("/status/{status}")
+        public ResponseEntity<List<PaymentTransaction>> byStatus(
+                        @PathVariable PaymentStatus status) {
+                return ResponseEntity.ok(
+                                adminPaymentService.findByStatus(status));
+        }
 
-    // ==================================================
-    // FILTER BY PROVIDER
-    // ==================================================
-    @GetMapping("/provider/{provider}")
-    public ResponseEntity<List<PaymentTransaction>> byProvider(
-            @PathVariable PaymentProvider provider
-    ) {
-        return ResponseEntity.ok(
-                adminPaymentService.findByProvider(provider)
-        );
-    }
+        // ==================================================
+        // FILTER BY PROVIDER
+        // ==================================================
+        @GetMapping("/provider/{provider}")
+        public ResponseEntity<List<PaymentTransaction>> byProvider(
+                        @PathVariable PaymentProvider provider) {
+                return ResponseEntity.ok(
+                                adminPaymentService.findByProvider(provider));
+        }
 
-    // ==================================================
-    // FILTER BY DATE RANGE
-    // ==================================================
-    @GetMapping("/date-range")
-    public ResponseEntity<List<PaymentTransaction>> byDateRange(
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate from,
+        // ==================================================
+        // FILTER BY DATE RANGE
+        // ==================================================
+        @GetMapping("/date-range")
+        public ResponseEntity<List<PaymentTransaction>> byDateRange(
+                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate to
-    ) {
-        return ResponseEntity.ok(
-                adminPaymentService.findByDateRange(from, to)
-        );
-    }
+                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+                return ResponseEntity.ok(
+                                adminPaymentService.findByDateRange(from, to));
+        }
 
-    // ==================================================
-    // USER + DATE RANGE
-    // ==================================================
-    @GetMapping("/search")
-    public ResponseEntity<List<PaymentTransaction>> search(
-            @RequestParam Long userId,
+        // ==================================================
+        // USER + DATE RANGE
+        // ==================================================
+        @GetMapping("/search")
+        public ResponseEntity<List<PaymentTransaction>> search(
+                        @RequestParam Long userId,
 
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate from,
+                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate to
-    ) {
-        return ResponseEntity.ok(
-                adminPaymentService
-                        .findByUserAndDateRange(userId, from, to)
-        );
-    }
+                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+                return ResponseEntity.ok(
+                                adminPaymentService
+                                                .findByUserAndDateRange(userId, from, to));
+        }
 }

@@ -1,0 +1,19 @@
+{
+  "name": "smartcv-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:user": "npm run dev --workspace=@smartcv/user-app",
+    "dev:admin": "npm run dev --workspace=@smartcv/admin-app",
+    "build": "npm run build --workspaces",
+    "preview": "npm run preview --workspaces"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "vue": "^3.4.0",
+    "vite": "^5.0.0"
+  }
+}
