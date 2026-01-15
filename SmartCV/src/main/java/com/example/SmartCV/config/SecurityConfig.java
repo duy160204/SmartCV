@@ -62,10 +62,11 @@ public class SecurityConfig {
                 // ========= PUBLIC =========
                 .requestMatchers("/auth/**").permitAll()
 
-                // ========= PAYMENT (PUBLIC CALLBACK / RETURN) =========
+                // ========= PAYMENT (CALLBACK / RETURN / IPN) =========
                 .requestMatchers(
                     "/api/payments/vnpay/callback",
-                    "/api/payments/vnpay/return"
+                    "/api/payments/vnpay/return",
+                    "/api/payments/vnpay/ipn"
                 ).permitAll()
 
                 // ========= ADMIN =========
@@ -105,7 +106,7 @@ public class SecurityConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ FE USER + ADMIN (DEV)
+        // FE DEV
         config.setAllowedOrigins(List.of(
             "http://localhost:3000",
             "http://127.0.0.1:3000",
@@ -123,9 +124,7 @@ public class SecurityConfig {
             "X-Requested-With"
         ));
 
-        // 🔥 BẮT BUỘC để gửi cookie JWT
         config.setAllowCredentials(true);
-
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
@@ -163,15 +162,13 @@ public class SecurityConfig {
         }
 
         @Override
-        protected boolean shouldNotFilter(
-                HttpServletRequest request
-        ) {
+        protected boolean shouldNotFilter(HttpServletRequest request) {
             String uri = request.getRequestURI();
 
-            // ❗ SKIP JWT cho AUTH + PAYMENT CALLBACK/RETURN
             return uri.startsWith("/auth")
                 || uri.equals("/api/payments/vnpay/callback")
-                || uri.equals("/api/payments/vnpay/return");
+                || uri.equals("/api/payments/vnpay/return")
+                || uri.equals("/api/payments/vnpay/ipn");
         }
 
         @Override
@@ -184,7 +181,18 @@ public class SecurityConfig {
             try {
                 String token = null;
 
-                if (request.getCookies() != null) {
+                // =========================
+                // 1. LẤY TỪ HEADER
+                // =========================
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    token = authHeader.substring(7);
+                }
+
+                // =========================
+                // 2. NẾU KHÔNG CÓ → LẤY TỪ COOKIE
+                // =========================
+                if (token == null && request.getCookies() != null) {
                     for (Cookie cookie : request.getCookies()) {
                         if ("jwt".equals(cookie.getName())) {
                             token = cookie.getValue();
@@ -193,9 +201,12 @@ public class SecurityConfig {
                     }
                 }
 
+                // =========================
+                // 3. VALIDATE & SET CONTEXT
+                // =========================
                 if (token != null && jwtUtils.validateToken(token)) {
-                    String email =
-                        jwtUtils.getEmailFromToken(token);
+
+                    String email = jwtUtils.getEmailFromToken(token);
 
                     UserPrincipal userPrincipal =
                         (UserPrincipal)
