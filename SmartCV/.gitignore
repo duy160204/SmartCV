@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+# ================== SECRET CONFIG ==================
+application-local.properties
+.env
+*.env

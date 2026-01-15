@@ -13,7 +13,7 @@ import com.example.SmartCV.modules.admin.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/admin/users")
+@RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
