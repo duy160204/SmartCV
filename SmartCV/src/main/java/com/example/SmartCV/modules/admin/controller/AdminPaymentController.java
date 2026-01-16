@@ -76,11 +76,13 @@ public class AdminPaymentController {
         // ==================================================
         @GetMapping("/date-range")
         public ResponseEntity<List<PaymentTransaction>> byDateRange(
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+                // Default to last 30 days if not specified
+                LocalDate effectiveFrom = from != null ? from : LocalDate.now().minusDays(30);
+                LocalDate effectiveTo = to != null ? to : LocalDate.now();
                 return ResponseEntity.ok(
-                                adminPaymentService.findByDateRange(from, to));
+                                adminPaymentService.findByDateRange(effectiveFrom, effectiveTo));
         }
 
         // ==================================================
@@ -88,13 +90,22 @@ public class AdminPaymentController {
         // ==================================================
         @GetMapping("/search")
         public ResponseEntity<List<PaymentTransaction>> search(
-                        @RequestParam Long userId,
+                        @RequestParam(required = false) Long userId,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                // If no userId provided, return all with date filter
+                if (userId == null) {
+                        LocalDate effectiveFrom = from != null ? from : LocalDate.now().minusDays(30);
+                        LocalDate effectiveTo = to != null ? to : LocalDate.now();
+                        return ResponseEntity.ok(
+                                        adminPaymentService.findByDateRange(effectiveFrom, effectiveTo));
+                }
 
-                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+                // Default to last 30 days if not specified
+                LocalDate effectiveFrom = from != null ? from : LocalDate.now().minusDays(30);
+                LocalDate effectiveTo = to != null ? to : LocalDate.now();
                 return ResponseEntity.ok(
-                                adminPaymentService
-                                                .findByUserAndDateRange(userId, from, to));
+                                adminPaymentService.findByUserAndDateRange(userId, effectiveFrom, effectiveTo));
         }
 }

@@ -1,12 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '../api/axios';
-import axios from 'axios';
-
-const authApi = axios.create({
-    headers: { 'Content-Type': 'application/json' },
-    withCredentials: true
-});
+import { authApi } from '../api/auth.api';
 
 export interface User {
     id: number;
@@ -23,17 +18,11 @@ export const useAuthStore = defineStore('auth', () => {
     async function checkAuth() {
         try {
             isLoading.value = true;
-            // Use /users/me to verify session and role
+            // GET /api/users/me - api already has baseURL: '/api'
             const res = await api.get('/users/me');
-            const userData = res.data;
-
-            if (userData.role !== 'ADMIN') {
-                throw new Error("Not authorized");
-            }
-
-            user.value = userData;
+            user.value = res.data;
             isAuthenticated.value = true;
-        } catch (error) {
+        } catch {
             user.value = null;
             isAuthenticated.value = false;
         } finally {
@@ -42,25 +31,40 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function login(payload: any) {
-        const res = await authApi.post('/auth/login', payload);
-        // Login successful, now verify admin access
-        await checkAuth();
-        if (!isAuthenticated.value) {
-            // Logged in but not admin
-            await authApi.post('/auth/logout', null, { params: { refreshToken: 'cookie' } });
-            throw new Error("Access Denied: Admins only");
+        try {
+            // POST /api/auth/login via authApi
+            const res = await authApi.login(payload);
+            // Store refresh token if returned
+            if (res.data?.refreshToken) {
+                localStorage.setItem('refreshToken', res.data.refreshToken);
+            }
+            await checkAuth();
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Login failed';
+            throw new Error(message);
         }
     }
 
     async function logout() {
+        console.log('[FE][LOGOUT] CLICKED');
         try {
-            await authApi.post('/auth/logout', null, { params: { refreshToken: 'cookie' } });
-        } catch (e) {
-            console.error("Logout failed", e);
-        } finally {
+            console.log('[FE][LOGOUT] CALLING API...');
+            await authApi.logout();
+
+            console.log('[FE][LOGOUT] CLEARING AUTH STATE');
+            // Clear Pinia State
             user.value = null;
             isAuthenticated.value = false;
-            window.location.href = '/login';
+
+            // Clear Storage
+            localStorage.clear();
+            sessionStorage.clear();
+
+            console.log('[FE][LOGOUT] REDIRECTING TO LOGIN');
+            window.location.href = '/login'; // FORCE redirect
+        } catch (e) {
+            console.error('[FE][LOGOUT] FAILED', e);
+            alert('Logout failed. Check console.');
         }
     }
 

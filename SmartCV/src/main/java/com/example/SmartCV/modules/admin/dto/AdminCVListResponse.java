@@ -18,4 +18,7 @@ public class AdminCVListResponse {
     private Boolean isPublic;
     private Boolean isLocked;
     private LocalDateTime createdAt;
+
+    // Extracted for Admin Table
+    private String ownerEmail;
 }

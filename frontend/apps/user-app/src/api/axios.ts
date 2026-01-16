@@ -8,13 +8,27 @@ const api = axios.create({
     }
 });
 
+// Pages that should NOT trigger 401 redirect (they handle auth themselves)
+const AUTH_EXEMPT_PATHS = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/oauth/callback',
+    '/auth/callback',
+    '/payment/return'
+];
+
 // Response interceptor
 api.interceptors.response.use(
     response => response,
     error => {
         if (error.response?.status === 401) {
-            // Check if we are already on login to avoid loops
-            if (!window.location.pathname.startsWith('/login')) {
+            const currentPath = window.location.pathname;
+
+            // Check if current page is exempt from 401 redirect
+            const isExempt = AUTH_EXEMPT_PATHS.some(path => currentPath.startsWith(path));
+
+            if (!isExempt) {
                 window.location.href = '/login';
             }
         }

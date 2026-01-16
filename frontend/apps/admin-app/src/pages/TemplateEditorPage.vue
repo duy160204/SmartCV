@@ -16,49 +16,52 @@ onMounted(async () => {
     if (id) {
         // Load template
         const res = await api.get(`/admin/templates/${id}`);
-        const tmpl = res.data;
+        // Fix: Unwrap ApiResponse
+        const tmpl = res.data.data; 
+        
+        if (!tmpl) {
+            alert("Template not found or invalid response");
+            return;
+        }
+
         name.value = tmpl.name;
+        plan.value = tmpl.planRequired || 'FREE';
         
         let fullContent;
-        if(typeof tmpl.fullContent === 'string') {
-             fullContent = JSON.parse(tmpl.fullContent);
-        } else {
-             fullContent = tmpl.fullContent;
+        try {
+            if(typeof tmpl.fullContent === 'string') {
+                 fullContent = JSON.parse(tmpl.fullContent);
+            } else {
+                 fullContent = tmpl.fullContent;
+            }
+            html.value = fullContent.html || '';
+            css.value = fullContent.css || '';
+        } catch (e) {
+            console.error("Failed to parse template content", e);
         }
-        
-        html.value = fullContent.html;
-        css.value = fullContent.css;
     }
 });
 
 const handleSave = async (content: { html: string, css: string }) => {
+    // Controller expects @RequestBody TemplateRequestDTO (JSON)
     const payload = {
         name: name.value,
-        previewContent: JSON.stringify(content), // Simplified for now
-        fullContent: JSON.stringify(content),
+        thumbnailUrl: '', // Add thumbnail if needed, backend requires it in DTO? Check DTO. 
+        // For now leave empty string if validated.
+        previewContent: JSON.stringify(content), 
+        fullContent: JSON.stringify(content), 
         planRequired: plan.value
     };
     
-    // In a real app we need standard form-data or params based on Controller
-    // Controller expects @RequestParam ...
-    // Let's assume we adjusted controller to @RequestBody or we send params.
-    // The Controller: @RequestParam String name, ...
-    
-    const formData = new FormData();
-    formData.append('name', payload.name);
-    formData.append('previewContent', payload.previewContent);
-    formData.append('fullContent', payload.fullContent);
-    formData.append('planRequired', payload.planRequired);
-
     try {
         if (id) {
-            await api.put(`/admin/templates/${id}`, formData);
+            await api.put(`/admin/templates/${id}`, payload);
         } else {
-            await api.post('/admin/templates', formData);
+            await api.post('/admin/templates', payload);
         }
         alert("Template saved!");
     } catch (e: any) {
-        alert("Error: " + e.message);
+        alert("Error: " + (e.response?.data?.message || e.message));
     }
 };
 </script>

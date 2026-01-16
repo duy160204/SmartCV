@@ -1,7 +1,6 @@
 package com.example.SmartCV.modules.cv.controller;
 
 import java.util.List;
-import java.util.Map;
 
 import jakarta.validation.Valid;
 
@@ -58,9 +57,9 @@ public class CVController {
         public ResponseEntity<Void> autoSave(
                         @AuthenticationPrincipal UserPrincipal principal,
                         @PathVariable Long cvId,
-                        @RequestBody Map<String, String> body // Keep Map for partial update or simple structure
+                        @RequestBody com.example.SmartCV.modules.cv.dto.CVAutoSaveDTO body // Use DTO
         ) {
-                String content = body.get("content");
+                String content = body.getContent();
                 if (content == null) {
                         return ResponseEntity.badRequest().build();
                 }

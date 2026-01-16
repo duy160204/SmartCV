@@ -41,22 +41,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function login(payload: any) {
-        // POST /auth/login
-        const res = await authApi.post('/auth/login', payload);
-        // Backend returns user details but NOT token (token is in cookie)
-        // We verify by calling checkAuth() or setting state directly
-        // The response body matches User DTO mostly
-        const data = res.data;
+        try {
+            // POST /auth/login
+            const res = await authApi.post('/auth/login', payload);
+            const data = res.data;
 
-        // STORE REFRESH TOKEN for Logout
-        if (data.refreshToken) {
-            localStorage.setItem('refreshToken', data.refreshToken);
+            // STORE REFRESH TOKEN for Logout
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken);
+            }
+
+            await checkAuth();
+        } catch (error: any) {
+            // Re-throw with user-friendly message for UI to handle
+            const message = error.response?.data?.message || error.message || 'Login failed';
+            throw new Error(message);
         }
-
-        // Transform DTO to User model if needed
-        // Assuming response has: email, name, role...
-        // But better to pull fresh profile from /me to be safe
-        await checkAuth();
     }
 
     async function logout() {
@@ -77,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
             // Ideally logout should just clear cookies.
             const token = localStorage.getItem('refreshToken');
             if (token) {
-                await authApi.post('/auth/logout', null, { params: { refreshToken: token } });
+                await authApi.post('/auth/logout', { refreshToken: token });
                 localStorage.removeItem('refreshToken');
             } else {
                 // Force logout anyway locally if no token

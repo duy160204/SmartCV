@@ -18,7 +18,7 @@ const upgrade = async (plan: string, amount: number) => {
         } else {
             alert("Failed to initiate payment");
         }
-    } catch (e) {
+    } catch (e: any) {
         alert("Payment Error: " + e.message);
     }
 };

@@ -15,35 +15,32 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/subscriptions")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminSubscriptionController {
 
-    private final AdminSubscriptionService adminSubscriptionService;
+        private final AdminSubscriptionService adminSubscriptionService;
 
-    // =========================
-    // PREVIEW – chỉ xem trước, không update DB
-    // =========================
-    @PostMapping("/preview")
-    public ResponseEntity<SubscriptionPreviewResponse> preview(
-            @RequestBody SubscriptionPreviewRequest request
-    ) {
-        return ResponseEntity.ok(
-                adminSubscriptionService.preview(request)
-        );
-    }
+        // =========================
+        // PREVIEW – chỉ xem trước, không update DB
+        // =========================
+        @PostMapping("/preview")
+        public ResponseEntity<SubscriptionPreviewResponse> preview(
+                        @RequestBody SubscriptionPreviewRequest request) {
+                return ResponseEntity.ok(
+                                adminSubscriptionService.preview(request));
+        }
 
-    // =========================
-    // CONFIRM – admin xác nhận update thật
-    // =========================
-    @PostMapping("/confirm")
-    public ResponseEntity<?> confirm(
-            @AuthenticationPrincipal UserPrincipal admin,
-            @RequestBody SubscriptionConfirmRequest request
-    ) {
-        adminSubscriptionService.confirm(
-                admin.getId(), // ✅ adminId lấy từ JWT
-                request
-        );
+        // =========================
+        // CONFIRM – admin xác nhận update thật
+        // =========================
+        @PostMapping("/confirm")
+        public ResponseEntity<?> confirm(
+                        @AuthenticationPrincipal UserPrincipal admin,
+                        @RequestBody SubscriptionConfirmRequest request) {
+                adminSubscriptionService.confirm(
+                                admin.getId(), // ✅ adminId lấy từ JWT
+                                request);
 
-        return ResponseEntity.ok("Subscription updated successfully");
-    }
+                return ResponseEntity.ok("Subscription updated successfully");
+        }
 }

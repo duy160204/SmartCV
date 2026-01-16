@@ -2,9 +2,11 @@ package com.example.SmartCV.modules.cv.service;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.SmartCV.common.exception.BusinessException;
 import com.example.SmartCV.modules.cv.domain.*;
 import com.example.SmartCV.modules.cv.repository.*;
 import com.example.SmartCV.modules.subscription.service.SubscriptionService;
@@ -30,15 +32,15 @@ public class CVService {
     private CV getOwnedCV(Long cvId, Long userId) {
         return cvRepository.findById(cvId)
                 .filter(cv -> cv.getUserId().equals(userId))
-                .orElseThrow(() -> new RuntimeException("CV không tồn tại hoặc không thuộc quyền sở hữu"));
+                .orElseThrow(() -> new BusinessException("CV not found or access denied", HttpStatus.NOT_FOUND));
     }
 
     private void checkTemplateStillValid(CV cv) {
         if (cv.getStatus() == CVStatus.TEMPLATE_LOCKED) {
-            throw new RuntimeException("Template của CV này đã bị khóa, không thể thao tác");
+            throw new BusinessException("Template is locked, operation not allowed", HttpStatus.FORBIDDEN);
         }
         if (cv.getStatus() == CVStatus.TEMPLATE_DELETED) {
-            throw new RuntimeException("Template của CV này đã bị xóa, không thể thao tác");
+            throw new BusinessException("Template has been deleted, operation not allowed", HttpStatus.FORBIDDEN);
         }
     }
 
@@ -52,7 +54,7 @@ public class CVService {
 
         Template template = templateRepository.findById(templateId)
                 .filter(Template::getIsActive)
-                .orElseThrow(() -> new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
+                .orElseThrow(() -> new BusinessException("Template not found or disabled", HttpStatus.NOT_FOUND));
 
         CV cv = CV.builder()
                 .userId(userId)
@@ -78,7 +80,7 @@ public class CVService {
         checkTemplateStillValid(cv);
 
         if (cv.getStatus() == CVStatus.ARCHIVED) {
-            throw new RuntimeException("CV đã archive, không thể chỉnh sửa");
+            throw new BusinessException("CV is archived, cannot edit", HttpStatus.FORBIDDEN);
         }
 
         cv.setTitle(title);
@@ -98,7 +100,7 @@ public class CVService {
         checkTemplateStillValid(cv);
 
         if (cv.getStatus() == CVStatus.ARCHIVED) {
-            throw new RuntimeException("CV đã archive, không thể auto-save");
+            throw new BusinessException("CV is archived, cannot auto-save", HttpStatus.FORBIDDEN);
         }
 
         cv.setContent(content);
@@ -116,7 +118,7 @@ public class CVService {
         checkTemplateStillValid(cv);
 
         if (cv.getStatus() == CVStatus.ARCHIVED) {
-            throw new RuntimeException("CV đã archive, không thể publish");
+            throw new BusinessException("CV is archived, cannot publish", HttpStatus.FORBIDDEN);
         }
 
         cv.setStatus(CVStatus.PUBLISHED);
@@ -165,7 +167,7 @@ public class CVService {
 
         Template template = templateRepository.findById(templateId)
                 .filter(Template::getIsActive)
-                .orElseThrow(() -> new RuntimeException("Template không tồn tại hoặc đã bị vô hiệu hóa"));
+                .orElseThrow(() -> new BusinessException("Template not found or disabled", HttpStatus.NOT_FOUND));
 
         CVFavorite favorite = CVFavorite.builder()
                 .userId(userId)

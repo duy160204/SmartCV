@@ -28,7 +28,9 @@ const handleAIApply = async (instruction: string) => {
             // Simple approach for specific known fields, generic is harder without lodash set
             // For now, implementing map for Profile Summary as primary use case
             if (aiTargetField.value === 'profile.summary') {
-                store.currentCV.content.profile.summary = improved;
+                if (store.currentCV?.content?.profile) {
+                    store.currentCV.content.profile.summary = improved;
+                }
             } else if (aiTargetField.value.startsWith('experience')) {
                 // e.g. experience[0].description
                 // Parse index
@@ -40,8 +42,8 @@ const handleAIApply = async (instruction: string) => {
              // But wait, the previous code doesn't do deep set helper. 
              // We'll update manually based on bindings.
         }
-    } catch (e) {
-        alert("AI Failed: " +  e.message);
+    } catch (e: any) {
+        alert("AI Failed: " +  (e.message || e));
     } finally {
         aiLoading.value = false;
     }
@@ -49,12 +51,13 @@ const handleAIApply = async (instruction: string) => {
 
 // Add item
 const addItem = (section: string) => {
+    if (!store.currentCV?.content) return;
     if (!store.currentCV.content[section]) store.currentCV.content[section] = [];
     store.currentCV.content[section].push({});
 };
 
 const removeItem = (section: string, index: number) => {
-    if (store.currentCV.content[section]) store.currentCV.content[section].splice(index, 1);
+    if (store.currentCV?.content?.[section]) store.currentCV.content[section].splice(index, 1);
 };
 </script>
 

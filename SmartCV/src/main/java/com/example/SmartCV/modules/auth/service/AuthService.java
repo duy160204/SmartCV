@@ -4,10 +4,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.SmartCV.common.exception.BusinessException;
 import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.modules.auth.domain.RefreshToken;
 import com.example.SmartCV.modules.auth.domain.Role;
@@ -56,11 +58,11 @@ public class AuthService {
     public void register(RegisterRequestDTO request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already in use");
+            throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
         }
 
         Role defaultRole = roleRepository.findByName("user")
-                .orElseThrow(() -> new RuntimeException("Default role not found"));
+                .orElseThrow(() -> new BusinessException("Default role not found", HttpStatus.INTERNAL_SERVER_ERROR));
 
         User user = new User();
         user.setEmail(request.getEmail());
@@ -91,22 +93,23 @@ public class AuthService {
     public AuthResponseDTO login(LoginRequestDTO request) {
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new BusinessException("Invalid email or password", HttpStatus.UNAUTHORIZED));
 
         if (!user.isVerified()) {
-            throw new RuntimeException("Email not verified");
+            throw new BusinessException("Email not verified", HttpStatus.FORBIDDEN);
         }
 
         if (user.isLocked()) {
-            throw new RuntimeException("Account is locked");
+            throw new BusinessException("Account is locked", HttpStatus.FORBIDDEN);
         }
 
         if (user.getPassword() == null) {
-            throw new RuntimeException("This email is registered with OAuth — please login with OAuth.");
+            throw new BusinessException("This email is registered with OAuth — please login with OAuth.",
+                    HttpStatus.BAD_REQUEST);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Wrong password");
+            throw new BusinessException("Invalid email or password", HttpStatus.UNAUTHORIZED);
         }
 
         String accessToken = jwtUtils.generateToken(user);
@@ -124,8 +127,7 @@ public class AuthService {
                 user.isVerified(),
                 role,
                 accessToken,
-                refreshToken.getToken()
-        );
+                refreshToken.getToken());
     }
 
     /**
@@ -138,7 +140,7 @@ public class AuthService {
         RefreshToken oldToken = refreshTokenService.verifyRefreshToken(refreshTokenString);
 
         User user = userRepository.findById(oldToken.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
 
         String newAccessToken = jwtUtils.generateToken(user);
 
@@ -165,15 +167,15 @@ public class AuthService {
     public void verifyEmail(String token) {
 
         User user = userRepository.findByVerifyToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid or expired verify token"));
+                .orElseThrow(() -> new BusinessException("Invalid or expired verify token", HttpStatus.BAD_REQUEST));
 
         if (user.isVerified()) {
-            throw new RuntimeException("Email already verified");
+            throw new BusinessException("Email already verified", HttpStatus.CONFLICT);
         }
 
         // ===== CORE LOGIC =====
-        user.setVerified(true);   // đánh dấu đã verify
-        user.setLocked(false);    // 🔓 MỞ KHÓA TÀI KHOẢN
+        user.setVerified(true); // đánh dấu đã verify
+        user.setLocked(false); // 🔓 MỞ KHÓA TÀI KHOẢN
         user.setVerifyToken(null);
 
         userRepository.save(user);

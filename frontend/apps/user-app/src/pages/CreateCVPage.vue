@@ -1,23 +1,56 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
 
 const router = useRouter();
 const templates = ref<any[]>([]);
+const favorites = ref<any[]>([]);
 const isLoading = ref(true);
 const selectedTemplateId = ref<number | null>(null);
 const title = ref('Untitled CV');
+const showFavoritesOnly = ref(false);
 
 onMounted(async () => {
     try {
-        const res = await api.get('/templates');
-        templates.value = res.data;
+        const [templatesRes, favoritesRes] = await Promise.all([
+            api.get('/templates'),
+            api.get('/cv/favorites')
+        ]);
+        templates.value = templatesRes.data;
+        favorites.value = favoritesRes.data;
     } catch (e) {
         console.error(e);
     } finally {
         isLoading.value = false;
     }
+});
+
+const isFavorite = (templateId: number) => {
+    return favorites.value.some(f => f.templateId === templateId);
+};
+
+const toggleFavorite = async (templateId: number, event: Event) => {
+    event.stopPropagation();
+    try {
+        if (isFavorite(templateId)) {
+            await api.delete(`/cv/template/${templateId}/favorite`);
+            favorites.value = favorites.value.filter(f => f.templateId !== templateId);
+        } else {
+            await api.post(`/cv/template/${templateId}/favorite`);
+            favorites.value.push({ templateId });
+        }
+    } catch (e: any) {
+        alert('Failed to update favorite: ' + (e.response?.data?.message || e.message));
+    }
+};
+
+const displayedTemplates = computed(() => {
+    if (showFavoritesOnly.value) {
+        const favIds = favorites.value.map(f => f.templateId);
+        return templates.value.filter(t => favIds.includes(t.id));
+    }
+    return templates.value;
 });
 
 const createCV = async () => {
@@ -27,7 +60,7 @@ const createCV = async () => {
         const res = await api.post('/cv', {
             title: title.value,
             templateId: selectedTemplateId.value,
-            content: { profile: { name: "", summary: "" }, education: [], experience: [], skills: [] } // Init empty structure
+            content: { profile: { name: "", summary: "" }, education: [], experience: [], skills: [] }
         });
         router.push(`/cv/editor/${res.data.id}`);
     } catch (e: any) {
@@ -49,17 +82,32 @@ const createCV = async () => {
               <input v-model="title" class="w-full border p-2 rounded text-lg" placeholder="e.g. Software Engineer 2024" />
           </div>
 
-          <h2 class="text-xl font-bold mb-4">Select a Template</h2>
+          <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold">Select a Template</h2>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" v-model="showFavoritesOnly" class="form-checkbox" />
+                  <span>Show Favorites Only</span>
+              </label>
+          </div>
           
           <div v-if="isLoading">Loading templates...</div>
           
           <div v-else class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
               <div 
-                v-for="tmpl in templates" 
+                v-for="tmpl in displayedTemplates" 
                 :key="tmpl.id"
                 @click="selectedTemplateId = tmpl.id"
                 :class="['border-2 rounded p-4 cursor-pointer transition relative', selectedTemplateId === tmpl.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white']"
               >
+                  <!-- Favorite Heart Button -->
+                  <button 
+                    @click="toggleFavorite(tmpl.id, $event)" 
+                    class="absolute top-2 left-2 z-10 text-2xl transition"
+                    :class="isFavorite(tmpl.id) ? 'text-red-500' : 'text-gray-300 hover:text-red-300'"
+                  >
+                      {{ isFavorite(tmpl.id) ? '❤️' : '🤍' }}
+                  </button>
+                  
                   <div class="aspect-[210/297] bg-gray-200 mb-4 rounded overflow-hidden relative">
                       <img v-if="tmpl.thumbnailUrl" :src="tmpl.thumbnailUrl" class="w-full h-full object-cover">
                       <div v-else class="flex items-center justify-center h-full text-gray-400">Preview</div>

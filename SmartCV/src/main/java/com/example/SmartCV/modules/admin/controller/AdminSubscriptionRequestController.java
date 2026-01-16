@@ -20,77 +20,67 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/subscription-requests")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminSubscriptionRequestController {
 
-    private final AdminSubscriptionRequestService requestService;
-    private final AdminSubscriptionService subscriptionService;
+        private final AdminSubscriptionRequestService requestService;
+        private final AdminSubscriptionService subscriptionService;
 
-    // ==================================================
-    // LIST ALL REQUESTS
-    // ==================================================
-    @GetMapping
-    public ResponseEntity<List<AdminSubscriptionRequest>> listAll() {
-        return ResponseEntity.ok(
-                requestService.findAll()
-        );
-    }
+        // ==================================================
+        // LIST ALL REQUESTS
+        // ==================================================
+        @GetMapping
+        public ResponseEntity<List<AdminSubscriptionRequest>> listAll() {
+                return ResponseEntity.ok(
+                                requestService.findAll());
+        }
 
-    // ==================================================
-    // LIST BY STATUS
-    // ==================================================
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<AdminSubscriptionRequest>> listByStatus(
-            @PathVariable AdminSubscriptionRequestStatus status
-    ) {
-        return ResponseEntity.ok(
-                requestService.findByStatus(status)
-        );
-    }
+        // ==================================================
+        // LIST BY STATUS
+        // ==================================================
+        @GetMapping("/status/{status}")
+        public ResponseEntity<List<AdminSubscriptionRequest>> listByStatus(
+                        @PathVariable AdminSubscriptionRequestStatus status) {
+                return ResponseEntity.ok(
+                                requestService.findByStatus(status));
+        }
 
-    // ==================================================
-    // PREVIEW (ADMIN)
-    // ==================================================
-    @PostMapping("/{id}/preview")
-    public ResponseEntity<SubscriptionPreviewResponse> preview(
-            @AuthenticationPrincipal UserPrincipal admin,
-            @PathVariable("id") Long requestId
-    ) {
-        AdminSubscriptionRequest req =
-                requestService.markPreviewed(requestId, admin.getId());
+        // ==================================================
+        // PREVIEW (ADMIN)
+        // ==================================================
+        @PostMapping("/{id}/preview")
+        public ResponseEntity<SubscriptionPreviewResponse> preview(
+                        @AuthenticationPrincipal UserPrincipal admin,
+                        @PathVariable("id") Long requestId) {
+                AdminSubscriptionRequest req = requestService.markPreviewed(requestId, admin.getId());
 
-        // 🔥 build DTO ĐÚNG CÁCH (KHÔNG new constructor)
-        SubscriptionPreviewRequest previewRequest =
-                new SubscriptionPreviewRequest();
-        previewRequest.setUserId(req.getUserId());
-        previewRequest.setNewPlan(req.getRequestedPlan());
+                // 🔥 build DTO ĐÚNG CÁCH (KHÔNG new constructor)
+                SubscriptionPreviewRequest previewRequest = new SubscriptionPreviewRequest();
+                previewRequest.setUserId(req.getUserId());
+                previewRequest.setNewPlan(req.getRequestedPlan());
 
-        return ResponseEntity.ok(
-                subscriptionService.preview(previewRequest)
-        );
-    }
+                return ResponseEntity.ok(
+                                subscriptionService.preview(previewRequest));
+        }
 
-    // ==================================================
-    // CONFIRM (ADMIN)
-    // ==================================================
-    @PostMapping("/{id}/confirm")
-    public ResponseEntity<?> confirm(
-            @AuthenticationPrincipal UserPrincipal admin,
-            @PathVariable("id") Long requestId
-    ) {
-        AdminSubscriptionRequest req =
-                requestService.markConfirmed(requestId, admin.getId());
+        // ==================================================
+        // CONFIRM (ADMIN)
+        // ==================================================
+        @PostMapping("/{id}/confirm")
+        public ResponseEntity<?> confirm(
+                        @AuthenticationPrincipal UserPrincipal admin,
+                        @PathVariable("id") Long requestId) {
+                AdminSubscriptionRequest req = requestService.markConfirmed(requestId, admin.getId());
 
-        SubscriptionConfirmRequest confirmRequest =
-                new SubscriptionConfirmRequest();
-        confirmRequest.setUserId(req.getUserId());
-        confirmRequest.setNewPlan(req.getRequestedPlan());
-        confirmRequest.setConfirm(true);
+                SubscriptionConfirmRequest confirmRequest = new SubscriptionConfirmRequest();
+                confirmRequest.setUserId(req.getUserId());
+                confirmRequest.setNewPlan(req.getRequestedPlan());
+                confirmRequest.setConfirm(true);
 
-        subscriptionService.confirm(
-                admin.getId(),
-                confirmRequest
-        );
+                subscriptionService.confirm(
+                                admin.getId(),
+                                confirmRequest);
 
-        return ResponseEntity.ok("Subscription activated successfully");
-    }
+                return ResponseEntity.ok("Subscription activated successfully");
+        }
 }

@@ -14,7 +14,7 @@ import com.example.SmartCV.modules.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
@@ -70,9 +70,11 @@ public class AuthController {
 
     // =================== REFRESH TOKEN =================== //
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestParam String refreshToken, HttpServletResponse response) {
+    public ResponseEntity<?> refreshToken(
+            @RequestBody @jakarta.validation.Valid com.example.SmartCV.modules.auth.dto.RefreshTokenRequestDTO request,
+            HttpServletResponse response) {
 
-        String newAccessToken = authService.refreshToken(refreshToken);
+        String newAccessToken = authService.refreshToken(request.getRefreshToken());
 
         ResponseCookie cookie = ResponseCookie.from("jwt", newAccessToken)
                 .httpOnly(true)
@@ -88,29 +90,35 @@ public class AuthController {
     }
 
     // =================== LOGOUT =================== //
+    // =================== LOGOUT =================== //
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestParam String refreshToken, HttpServletResponse response) {
+    public ResponseEntity<Void> logout(jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
+        // Log request (Strict Requirement)
+        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
+        log.info("[BE] LOGOUT REQUEST from {}", request.getUserPrincipal());
 
-        authService.logout(refreshToken);
+        // Invalidate session
+        request.getSession().invalidate();
 
-        // clear cookie
+        // Clear cookie (Blacklist equivalent for stateless JWT in cookie)
         ResponseCookie cookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/")
-                .maxAge(0)
+                .maxAge(0) // Expire immediately
                 .sameSite("Strict")
                 .build();
 
         response.addHeader("Set-Cookie", cookie.toString());
 
-        return ResponseEntity.ok("Logout successful");
+        return ResponseEntity.ok().build();
     }
 
     // =================== FORGOT PASSWORD =================== //
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
-        authService.forgotPassword(email);
+    public ResponseEntity<?> forgotPassword(
+            @RequestBody @jakarta.validation.Valid com.example.SmartCV.modules.auth.dto.ForgotPasswordRequestDTO request) {
+        authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok("If email exists, a new password has been sent.");
     }
 }

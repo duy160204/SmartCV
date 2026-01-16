@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/dashboard")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminDashboardController {
 
     private final AdminDashboardService dashboardService;
@@ -21,7 +22,6 @@ public class AdminDashboardController {
     @GetMapping
     public ResponseEntity<AdminDashboardResponse> overview() {
         return ResponseEntity.ok(
-                dashboardService.getDashboardOverview()
-        );
+                dashboardService.getDashboardOverview());
     }
 }

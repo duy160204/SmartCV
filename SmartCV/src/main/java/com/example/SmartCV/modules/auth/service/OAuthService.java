@@ -5,10 +5,12 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import com.example.SmartCV.config.OAuthProperties;
 import com.example.SmartCV.common.utils.JWTUtils;
+import com.example.SmartCV.config.OAuthProperties;
 import com.example.SmartCV.modules.auth.domain.OAuthAccount;
 import com.example.SmartCV.modules.auth.domain.RefreshToken;
 import com.example.SmartCV.modules.auth.domain.Role;
@@ -21,13 +23,15 @@ import com.example.SmartCV.modules.auth.dto.ZaloUserDTO;
 import com.example.SmartCV.modules.auth.repository.OAuthAccountRepository;
 import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
-import com.example.SmartCV.modules.auth.service.RefreshTokenService;
 import com.example.SmartCV.modules.auth.verifier.FacebookVerifier;
 import com.example.SmartCV.modules.auth.verifier.GitHubVerifier;
 import com.example.SmartCV.modules.auth.verifier.GoogleVerifier;
 import com.example.SmartCV.modules.auth.verifier.LinkedInVerifier;
 import com.example.SmartCV.modules.auth.verifier.ZaloVerifier;
+import com.example.SmartCV.modules.subscription.service.SubscriptionService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class OAuthService {
@@ -50,7 +54,74 @@ public class OAuthService {
     @Autowired
     private RefreshTokenService refreshTokenService;
 
-    // =================== GOOGLE =================== //
+    @Autowired
+    private SubscriptionService subscriptionService;
+
+    // ================= AUTHORIZATION URL =================
+
+    public String getGoogleAuthorizationUrl(String state) {
+        return UriComponentsBuilder
+                .fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
+                .queryParam("client_id", oauthProperties.getGoogle().getClientId())
+                .queryParam("redirect_uri", oauthProperties.getGoogle().getRedirectUri())
+                .queryParam("response_type", "code")
+                .queryParam("scope", "openid email profile")
+                .queryParam("access_type", "offline")
+                .queryParam("prompt", "consent")
+                .queryParam("state", state)
+                .build()
+                .toUriString();
+    }
+
+    public String getGithubAuthorizationUrl(String state) {
+        return UriComponentsBuilder
+                .fromUriString("https://github.com/login/oauth/authorize")
+                .queryParam("client_id", oauthProperties.getGithub().getClientId())
+                .queryParam("redirect_uri", oauthProperties.getGithub().getRedirectUri())
+                .queryParam("scope", "read:user user:email")
+                .queryParam("state", state)
+                .build()
+                .toUriString();
+    }
+
+    public String getFacebookAuthorizationUrl(String state) {
+        return UriComponentsBuilder
+                .fromUriString("https://www.facebook.com/v18.0/dialog/oauth")
+                .queryParam("client_id", oauthProperties.getFacebook().getClientId())
+                .queryParam("redirect_uri", oauthProperties.getFacebook().getRedirectUri())
+                .queryParam("response_type", "code")
+                .queryParam("scope", "email,public_profile")
+                .queryParam("state", state)
+                .build()
+                .toUriString();
+    }
+
+    public String getLinkedInAuthorizationUrl(String state) {
+        return UriComponentsBuilder
+                .fromUriString("https://www.linkedin.com/oauth/v2/authorization")
+                .queryParam("response_type", "code")
+                .queryParam("client_id", oauthProperties.getLinkedin().getClientId())
+                .queryParam("redirect_uri", oauthProperties.getLinkedin().getRedirectUri())
+                .queryParam("scope", "openid profile email")
+                .queryParam("state", state)
+                .build()
+                .toUriString();
+    }
+
+    public String getZaloAuthorizationUrl(String state) {
+        return UriComponentsBuilder
+                .fromUriString("https://oauth.zaloapp.com/v4/permission")
+                .queryParam("app_id", oauthProperties.getZalo().getClientId())
+                .queryParam("redirect_uri", oauthProperties.getZalo().getRedirectUri())
+                .queryParam("state", state)
+                .build()
+                .toUriString();
+    }
+
+    // ==================================================
+    // ================= OAUTH LOGIN ====================
+    // ==================================================
+
     public AuthResponseDTO loginWithGoogle(String code) throws OAuthException {
         try {
             String accessToken = GoogleVerifier.exchangeCodeForAccessToken(code, oauthProperties.getGoogle());
@@ -59,129 +130,141 @@ public class OAuthService {
             if (payload == null)
                 throw new OAuthException("Invalid Google payload");
 
-            String email = payload.getEmail();
-            String name = (String) payload.get("name");
-
-            return loginOrCreateOAuthUser(email, name, "google", email);
-
+            return loginOrCreateOAuthUser(
+                    payload.getEmail(),
+                    (String) payload.get("name"),
+                    "google",
+                    payload.getSubject());
         } catch (Exception e) {
             throw new OAuthException("Google login failed: " + e.getMessage());
         }
     }
 
-    // =================== GITHUB =================== //
     public AuthResponseDTO loginWithGitHub(String code) throws OAuthException {
         try {
             GitHubUserDTO user = GitHubVerifier.getUserFromCode(code, oauthProperties.getGithub());
             if (user == null)
                 throw new OAuthException("Invalid GitHub user");
 
-            String email = user.getEmail();
-            if (email == null)
-                email = "github_" + user.getId() + "@github-user.com";
+            String email = user.getEmail() != null
+                    ? user.getEmail()
+                    : "github_" + user.getId() + "@github-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "github", user.getId());
-
         } catch (Exception e) {
             throw new OAuthException("GitHub login failed: " + e.getMessage());
         }
     }
 
-    // =================== FACEBOOK =================== //
     public AuthResponseDTO loginWithFacebook(String code) throws OAuthException {
         try {
             FacebookUserDTO user = FacebookVerifier.getUserFromCode(code, oauthProperties.getFacebook());
             if (user == null)
                 throw new OAuthException("Invalid Facebook user");
 
-            String email = user.getEmail();
-            if (email == null)
-                email = "facebook_" + user.getId() + "@facebook-user.com";
+            String email = user.getEmail() != null
+                    ? user.getEmail()
+                    : "facebook_" + user.getId() + "@facebook-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "facebook", user.getId());
-
         } catch (Exception e) {
             throw new OAuthException("Facebook login failed: " + e.getMessage());
         }
     }
 
-    // =================== LINKEDIN =================== //
     public AuthResponseDTO loginWithLinkedIn(String code) throws OAuthException {
         try {
             LinkedInUserDTO user = LinkedInVerifier.getUserFromCode(code, oauthProperties.getLinkedin());
             if (user == null)
                 throw new OAuthException("Invalid LinkedIn user");
 
-            String email = user.getEmail();
-            if (email == null)
-                email = "linkedin_" + user.getId() + "@linkedin-user.com";
+            String email = user.getEmail() != null
+                    ? user.getEmail()
+                    : "linkedin_" + user.getId() + "@linkedin-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "linkedin", user.getId());
-
         } catch (Exception e) {
             throw new OAuthException("LinkedIn login failed: " + e.getMessage());
         }
     }
 
-    // =================== ZALO =================== //
     public AuthResponseDTO loginWithZalo(String code) throws OAuthException {
         try {
             ZaloUserDTO user = ZaloVerifier.getUserFromCode(code, oauthProperties.getZalo());
             if (user == null)
                 throw new OAuthException("Invalid Zalo user");
 
-            String email = user.getEmail();
-            if (email == null)
-                email = "zalo_" + user.getId() + "@zalo-user.com";
+            String email = user.getEmail() != null
+                    ? user.getEmail()
+                    : "zalo_" + user.getId() + "@zalo-user.com";
 
             return loginOrCreateOAuthUser(email, user.getName(), "zalo", user.getId());
-
         } catch (Exception e) {
             throw new OAuthException("Zalo login failed: " + e.getMessage());
         }
     }
 
-    // =================== LOGIC CHUNG =================== //
-    private AuthResponseDTO loginOrCreateOAuthUser(String email, String name, String provider, String providerUserId)
-            throws OAuthException {
-        Optional<User> existingUser = userRepository.findByEmail(email);
-        User user;
+    // ==================================================
+    // ================= CORE LOGIC =====================
+    // ==================================================
 
-        if (existingUser.isPresent()) {
-            user = existingUser.get();
-            if (user.getPassword() != null) {
-                throw new OAuthException("Email already registered with password");
-            }
-        } else {
-            Role defaultRole = roleRepository.findByName("user")
-                    .orElseThrow(() -> new OAuthException("Default role 'user' not found"));
+    private AuthResponseDTO loginOrCreateOAuthUser(
+            String email,
+            String name,
+            String provider,
+            String providerUserId) throws OAuthException {
 
-            user = new User();
-            user.setEmail(email);
-            user.setUsername(name != null ? name : "User" + new Random().nextInt(1000));
-            user.setRoleId(defaultRole.getId());
+        // Track if this is a new user for subscription init
+        final boolean[] isNewUser = { false };
+
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            Role role = roleRepository.findByName("user")
+                    .orElseThrow(() -> new RuntimeException("Role user not found"));
+
+            User u = new User();
+            u.setEmail(email);
+            u.setUsername(name != null ? name : "User" + new Random().nextInt(1000));
+            u.setRoleId(role.getId());
+
+            // ===== CORE STATUS FOR OAUTH =====
+            u.setVerified(true); // OAuth provider already verified email
+            u.setLocked(false); // 🔓 UNLOCK - OAuth users don't need email verification
+
+            isNewUser[0] = true;
+            return userRepository.save(u);
+        });
+
+        // ===== INIT FREE SUBSCRIPTION FOR NEW OAUTH USERS =====
+        if (isNewUser[0]) {
+            subscriptionService.initFreeSubscription(user.getId());
+        }
+
+        if (user.getPassword() != null) {
+            throw new OAuthException("Email already registered with password");
+        }
+
+        // ===== ENSURE ACCOUNT IS UNLOCKED (for returning OAuth users) =====
+        if (user.isLocked()) {
+            user.setLocked(false);
             user.setVerified(true);
             userRepository.save(user);
         }
 
-        Optional<OAuthAccount> oauthOpt = oauthAccountRepository.findByUserIdAndProvider(user.getId(), provider);
-        if (oauthOpt.isEmpty()) {
-            OAuthAccount oauth = new OAuthAccount();
-            oauth.setUserId(user.getId());
-            oauth.setProvider(provider);
-            oauth.setProviderUserId(providerUserId);
-            oauthAccountRepository.save(oauth);
-        }
+        oauthAccountRepository
+                .findByUserIdAndProvider(user.getId(), provider)
+                .orElseGet(() -> {
+                    OAuthAccount oa = new OAuthAccount();
+                    oa.setUserId(user.getId());
+                    oa.setProvider(provider);
+                    oa.setProviderUserId(providerUserId);
+                    return oauthAccountRepository.save(oa);
+                });
 
-        // Lấy role name
         String role = roleRepository.findById(user.getRoleId())
                 .map(Role::getName)
                 .orElse("user");
 
-        // Tạo access token
         String accessToken = jwtUtils.generateToken(user);
-
-        // Tạo refresh token
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return new AuthResponseDTO(
@@ -194,7 +277,29 @@ public class OAuthService {
                 refreshToken.getToken());
     }
 
-    // =================== EXCEPTION =================== //
+    // ==================================================
+    // ================== STATE COOKIE ==================
+    // ==================================================
+
+    public String generateState(HttpServletResponse response) {
+        String state = UUID.randomUUID().toString();
+
+        ResponseCookie cookie = ResponseCookie.from("oauth_state", state)
+                .httpOnly(true)
+                .secure(false) // true khi HTTPS
+                .path("/")
+                .maxAge(300)
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+        return state;
+    }
+
+    // ==================================================
+    // ================== EXCEPTION =====================
+    // ==================================================
+
     public static class OAuthException extends Exception {
         public OAuthException(String message) {
             super(message);

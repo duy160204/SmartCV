@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -8,28 +8,38 @@ const router = useRouter();
 const auth = useAuthStore();
 const status = ref('processing'); // processing, success, failed
 
+let pollInterval: ReturnType<typeof setInterval> | null = null;
+
 onMounted(async () => {
     // VNPay returns: vnp_ResponseCode=00 (Success)
     const code = route.query.vnp_ResponseCode;
     
     if (code === '00') {
         status.value = 'processing';
-        // Poll for role update
         let retries = 5;
-        const interval = setInterval(async () => {
-            await auth.checkAuth();
-            // Check if role/subscription updated? 
-            // Ideally backend updates immediately on callback, but frontend might lag or cache
-            // We just assume success if API call works
+        pollInterval = setInterval(async () => {
+            try {
+                await auth.checkAuth();
+            } catch (e) {
+                console.error('Auth check failed:', e);
+            }
             retries--;
             if (retries <= 0) {
-                 clearInterval(interval);
+                 if (pollInterval) clearInterval(pollInterval);
                  status.value = 'success';
-                 setTimeout(() => router.push('/'), 2000);
+                 setTimeout(() => router.push('/dashboard'), 2000);
             }
         }, 1000);
     } else {
         status.value = 'failed';
+    }
+});
+
+// Cleanup interval on unmount to prevent memory leak
+onUnmounted(() => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
     }
 });
 </script>

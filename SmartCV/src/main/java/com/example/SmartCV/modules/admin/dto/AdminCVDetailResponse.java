@@ -24,4 +24,8 @@ public class AdminCVDetailResponse {
     private Long viewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // For Renderer
+    private String templateHtml;
+    private String templateCss;
 }
