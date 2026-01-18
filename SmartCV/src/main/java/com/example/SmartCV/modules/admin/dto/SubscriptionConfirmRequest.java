@@ -8,11 +8,14 @@ import lombok.Setter;
 @Getter
 @Setter
 public class SubscriptionConfirmRequest {
+    @jakarta.validation.constraints.NotNull
     private Long userId;
+
+    @jakarta.validation.constraints.NotNull
     private PlanType newPlan;
+
+    @jakarta.validation.constraints.Min(1)
+    private int durationMonths;
+
     private boolean confirm;
-    public int getMonths() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getMonths'");
-    }
 }

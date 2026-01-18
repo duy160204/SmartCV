@@ -5,7 +5,6 @@ import com.example.SmartCV.modules.payment.domain.*;
 import com.example.SmartCV.modules.payment.dto.CreatePaymentRequest;
 import com.example.SmartCV.modules.payment.repository.PaymentTransactionRepository;
 import com.example.SmartCV.modules.payment.service.VNPayClientService;
-import com.example.SmartCV.modules.subscription.domain.PlanType;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,41 +20,40 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentController {
 
+    private final com.example.SmartCV.modules.subscription.repository.PlanDefinitionRepository planDefinitionRepository;
     private final PaymentTransactionRepository paymentRepo;
     private final VNPayClientService vnpayClientService;
 
     @PostMapping
     public ResponseEntity<?> createPayment(
             @AuthenticationPrincipal UserPrincipal user,
-            @RequestBody CreatePaymentRequest request
-    ) {
+            @RequestBody CreatePaymentRequest request) {
         if (user == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
 
-        if (request.getPlan() == null || request.getMonths() == null) {
-            return ResponseEntity.badRequest().body("Plan and months are required");
-        }
-
-        if (request.getMonths() <= 0) {
-            return ResponseEntity.badRequest().body("Months must be greater than 0");
+        if (request.getPlanCode() == null || request.getPlanCode().isEmpty()) {
+            return ResponseEntity.badRequest().body("Plan code is required");
         }
 
         if (request.getProvider() == null) {
             return ResponseEntity.badRequest().body("Payment provider is required");
         }
 
-        long amount;
-        try {
-            amount = calculateAmount(request.getPlan(), request.getMonths());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        // LOOKUP PLAN
+        var planDef = planDefinitionRepository.findByCode(request.getPlanCode())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid plan code: " + request.getPlanCode()));
+
+        if (!planDef.isActive()) {
+            return ResponseEntity.badRequest().body("Plan is currently inactive");
         }
+
+        long amount = planDef.getPrice().longValue();
 
         PaymentTransaction tx = PaymentTransaction.builder()
                 .userId(user.getId())
-                .plan(request.getPlan())
-                .months(request.getMonths())
+                .plan(planDef.getPlan()) // ENUM
+                .months(planDef.getDurationMonths())
                 .amount(amount)
                 .provider(request.getProvider())
                 .status(PaymentStatus.PENDING)
@@ -79,18 +77,6 @@ public class PaymentController {
         return ResponseEntity.ok(
                 Map.of(
                         "paymentUrl", paymentUrl,
-                        "transactionCode", tx.getTransactionCode()
-                )
-        );
-    }
-
-    /* ================= PRICING ================= */
-
-    private long calculateAmount(PlanType plan, int months) {
-        return switch (plan) {
-            case PRO -> 99_000L * months;
-            case PREMIUM -> 199_000L * months;
-            default -> throw new IllegalArgumentException("Unsupported plan: " + plan);
-        };
+                        "transactionCode", tx.getTransactionCode()));
     }
 }

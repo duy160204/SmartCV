@@ -14,6 +14,7 @@ const menuItems = [
     { path: '/templates', label: 'Templates', icon: '🎨' },
     { path: '/payments', label: 'Payments', icon: '💳' },
     { path: '/subscriptions', label: 'Subscriptions', icon: '⭐' },
+    { path: '/plans', label: 'Plans', icon: '📝' },
 ];
 
 const isActive = (path: string) => {

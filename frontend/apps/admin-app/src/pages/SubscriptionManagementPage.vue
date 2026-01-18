@@ -17,6 +17,7 @@ const activeTab = ref('all');
 // Direct subscription preview
 const previewUserId = ref<number | null>(null);
 const previewPlan = ref('PRO');
+const previewDuration = ref(1);
 const previewResult = ref<any>(null);
 
 onMounted(async () => {
@@ -75,7 +76,8 @@ const directPreview = async () => {
     try {
         const res = await api.post('/admin/subscriptions/preview', {
             userId: previewUserId.value,
-            newPlan: previewPlan.value
+            newPlan: previewPlan.value,
+            durationMonths: previewDuration.value
         });
         previewResult.value = res.data;
         alert('Preview:\n' + JSON.stringify(res.data, null, 2));
@@ -86,11 +88,12 @@ const directPreview = async () => {
 
 const directConfirm = async () => {
     if (!previewUserId.value) return;
-    if (!confirm(`Confirm subscription change for user ${previewUserId.value} to ${previewPlan.value}?`)) return;
+    if (!confirm(`Confirm subscription change for user ${previewUserId.value} to ${previewPlan.value} (${previewDuration.value} months)?`)) return;
     try {
         await api.post('/admin/subscriptions/confirm', {
             userId: previewUserId.value,
             newPlan: previewPlan.value,
+            durationMonths: previewDuration.value,
             confirm: true
         });
         alert('Subscription updated!');
@@ -128,6 +131,10 @@ const getStatusClass = (status: string) => {
                       <option value="PRO">PRO</option>
                       <option value="PREMIUM">PREMIUM</option>
                   </select>
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Months</label>
+                  <input v-model.number="previewDuration" type="number" min="1" class="border p-2 rounded w-20" />
               </div>
               <button @click="directPreview" class="bg-blue-600 text-white px-4 py-2 rounded">Preview</button>
               <button @click="directConfirm" class="bg-green-600 text-white px-4 py-2 rounded">Confirm</button>

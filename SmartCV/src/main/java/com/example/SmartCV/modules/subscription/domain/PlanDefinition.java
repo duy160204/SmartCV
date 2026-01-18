@@ -19,8 +19,30 @@ public class PlanDefinition {
     private Long id;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false) // NO unique=true here! Multiple plans can be PRO.
+    private PlanType plan; // Determines feature set (FREE, PRO, PREMIUM)
+
     @Column(nullable = false, unique = true)
-    private PlanType plan;
+    private String code; // e.g. "PRO_MONTHLY"
+
+    @Column(nullable = false)
+    private String name; // e.g. "Pro Monthly"
+
+    @Column(nullable = false)
+    private java.math.BigDecimal price;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String currency = "VND";
+
+    @Column(nullable = false)
+    private int durationMonths;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
+
+    private String description;
 
     // FREE = 1, PRO = 5, PREMIUM = 999
     @Column(name = "max_share_per_month", nullable = false)
@@ -31,7 +53,6 @@ public class PlanDefinition {
     private int publicLinkExpireDays;
 
     public long getDurationDays() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getDurationDays'");
+        return (long) durationMonths * 30;
     }
 }

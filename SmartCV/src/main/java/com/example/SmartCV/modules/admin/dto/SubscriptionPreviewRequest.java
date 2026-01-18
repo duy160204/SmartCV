@@ -8,10 +8,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class SubscriptionPreviewRequest {
+    @jakarta.validation.constraints.NotNull
     private Long userId;
+
+    @jakarta.validation.constraints.NotNull
     private PlanType newPlan;
-    public int getMonths() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getMonths'");
-    }
+
+    @jakarta.validation.constraints.Min(1)
+    private int durationMonths;
 }

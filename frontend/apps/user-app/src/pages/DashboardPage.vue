@@ -4,10 +4,29 @@ import api from '@/api/axios';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
+import { computed } from 'vue';
+
 const auth = useAuthStore();
 const router = useRouter();
 const cvs = ref<any[]>([]);
 const isLoading = ref(true);
+
+// Hardcoded limits based on PlanType unless we fetch full plan details
+// Safe Fallback: FREE=1, PRO=5, PREMIUM=Infinity
+const PLAN_LIMITS: Record<string, number> = {
+    'FREE': 1,
+    'PRO': 5,
+    'PREMIUM': 999
+};
+
+const maxCVs = computed(() => {
+    const planName = auth.user?.plan || 'FREE';
+    return PLAN_LIMITS[planName] || 1;
+});
+
+const canCreateCV = computed(() => {
+    return cvs.value.length < maxCVs.value;
+});
 
 onMounted(async () => {
     try {
@@ -21,6 +40,11 @@ onMounted(async () => {
 });
 
 const createCV = () => {
+    if (!canCreateCV.value) {
+        // Redundant check if UI disabled properly, but safely blocks logic
+        alert(`You have reached the limit of ${maxCVs.value} CVs for your ${auth.user?.plan || 'FREE'} plan.`);
+        return;
+    }
     router.push('/cv/create');
 };
 
@@ -61,8 +85,14 @@ const goSettings = () => router.push('/settings');
                   <h2 class="text-3xl font-bold text-gray-800">My CVs</h2>
                   <p class="text-gray-500 mt-1">Manage and edit your professional resumes</p>
               </div>
-              <button @click="createCV" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold shadow hover:bg-blue-700 transition flex items-center gap-2">
-                  <span>+</span> Create New CV
+              <button 
+                  @click="createCV" 
+                  :disabled="!canCreateCV"
+                  :class="['px-6 py-3 rounded-lg font-bold shadow transition flex items-center gap-2', 
+                    canCreateCV ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed']"
+              >
+                  <span v-if="canCreateCV">+ Create New CV</span>
+                  <span v-else>Limit Reached ({{ cvs.length }}/{{ maxCVs }})</span>
               </button>
           </div>
 

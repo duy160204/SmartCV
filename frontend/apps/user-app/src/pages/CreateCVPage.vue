@@ -3,7 +3,10 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
 
+import { useAuthStore } from '@/stores/auth';
+
 const router = useRouter();
+const auth = useAuthStore();
 const templates = ref<any[]>([]);
 const favorites = ref<any[]>([]);
 const isLoading = ref(true);
@@ -53,6 +56,23 @@ const displayedTemplates = computed(() => {
     return templates.value;
 });
 
+// Helper to check if template is locked for current user
+const isLocked = (tmpl: any) => {
+    const userPlan = auth.user?.plan || 'FREE';
+    if (tmpl.planRequired === 'FREE') return false;
+    if (userPlan === 'PREMIUM') return false;
+    if (userPlan === 'PRO' && tmpl.planRequired === 'PRO') return false;
+    return true; // e.g. Free user trying Pro template
+};
+
+const selectTemplate = (tmpl: any) => {
+    if (isLocked(tmpl)) {
+        // Optional: Trigger upgrade modal here if we had one
+        return;
+    }
+    selectedTemplateId.value = tmpl.id;
+};
+
 const createCV = async () => {
     if (!selectedTemplateId.value) return;
     
@@ -96,11 +116,16 @@ const createCV = async () => {
               <div 
                 v-for="tmpl in displayedTemplates" 
                 :key="tmpl.id"
-                @click="selectedTemplateId = tmpl.id"
-                :class="['border-2 rounded p-4 cursor-pointer transition relative', selectedTemplateId === tmpl.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white']"
+                @click="selectTemplate(tmpl)"
+                :class="[
+                    'border-2 rounded p-4 transition relative', 
+                    isLocked(tmpl) ? 'opacity-70 cursor-not-allowed bg-gray-50' : 'cursor-pointer',
+                    selectedTemplateId === tmpl.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white'
+                ]"
               >
                   <!-- Favorite Heart Button -->
                   <button 
+                    v-if="!isLocked(tmpl)"
                     @click="toggleFavorite(tmpl.id, $event)" 
                     class="absolute top-2 left-2 z-10 text-2xl transition"
                     :class="isFavorite(tmpl.id) ? 'text-red-500' : 'text-gray-300 hover:text-red-300'"
@@ -112,8 +137,16 @@ const createCV = async () => {
                       <img v-if="tmpl.thumbnailUrl" :src="tmpl.thumbnailUrl" class="w-full h-full object-cover">
                       <div v-else class="flex items-center justify-center h-full text-gray-400">Preview</div>
 
-                      <div v-if="tmpl.planRequired !== 'FREE'" class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded">
+                      <div v-if="tmpl.planRequired !== 'FREE'" class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm z-20">
                           {{ tmpl.planRequired }}
+                          <span v-if="isLocked(tmpl)" class="ml-1">🔒</span>
+                      </div>
+                      
+                      <!-- Lock Overlay -->
+                      <div v-if="isLocked(tmpl)" class="absolute inset-0 bg-gray-900 bg-opacity-10 flex items-center justify-center z-10">
+                          <div class="bg-white/90 px-3 py-1 rounded text-xs font-bold text-gray-700 shadow">
+                              Upgrade to Unlock
+                          </div>
                       </div>
                   </div>
                   <h3 class="font-bold text-center">{{ tmpl.name }}</h3>

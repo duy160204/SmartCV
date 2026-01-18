@@ -31,6 +31,7 @@ public class SubscriptionService {
     private final PlanDefinitionRepository planDefinitionRepository;
     private final SubscriptionUsageRepository subscriptionUsageRepository;
     private final PlanFeatureRepository planFeatureRepository;
+    private final SubscriptionHistoryService subscriptionHistoryService;
 
     private final CVRepository cvRepository;
     private final UserRepository userRepository;
@@ -44,7 +45,8 @@ public class SubscriptionService {
     // =========================
     public void initFreeSubscription(Long userId) {
 
-        if (userSubscriptionRepository.existsByUserId(userId)) return;
+        if (userSubscriptionRepository.existsByUserId(userId))
+            return;
 
         UserSubscription sub = UserSubscription.builder()
                 .userId(userId)
@@ -77,8 +79,7 @@ public class SubscriptionService {
                 sub.getPlan(),
                 sub.getStatus(),
                 sub.getStartDate(),
-                sub.getEndDate()
-        );
+                sub.getEndDate());
     }
 
     // =========================
@@ -101,15 +102,13 @@ public class SubscriptionService {
                 userId,
                 cvId,
                 sub.getPlan(),
-                planDef
-        );
+                planDef);
 
         sendMailPublicLink(userId, usage.getShareUuid(), usage.getExpireAt());
 
         return new PublicLinkResponseDTO(
                 buildPublicUrl(usage.getShareUuid()),
-                usage.getExpireAt().toString()
-        );
+                usage.getExpireAt().toString());
     }
 
     private void checkShareQuota(Long userId, PlanDefinition planDef) {
@@ -118,8 +117,7 @@ public class SubscriptionService {
                 .countByUserIdAndUsageTypeAndPeriod(
                         userId,
                         UsageType.SHARE,
-                        currentPeriod()
-                );
+                        currentPeriod());
 
         if (used >= planDef.getMaxSharePerMonth()) {
             throw new RuntimeException("Share quota exceeded for current plan");
@@ -196,11 +194,9 @@ public class SubscriptionService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        List<SubscriptionUsage> toNotify =
-                subscriptionUsageRepository
-                        .findByExpireAtBeforeAndNotifiedBeforeExpireFalse(
-                                now.plusDays(5)
-                        );
+        List<SubscriptionUsage> toNotify = subscriptionUsageRepository
+                .findByExpireAtBeforeAndNotifiedBeforeExpireFalse(
+                        now.plusDays(5));
 
         for (SubscriptionUsage usage : toNotify) {
             notifyBeforeExpire(usage);
@@ -208,8 +204,7 @@ public class SubscriptionService {
             subscriptionUsageRepository.save(usage);
         }
 
-        List<SubscriptionUsage> expired =
-                subscriptionUsageRepository.findByExpireAtBefore(now);
+        List<SubscriptionUsage> expired = subscriptionUsageRepository.findByExpireAtBefore(now);
 
         for (SubscriptionUsage usage : expired) {
             revokeAndNotifyExpired(usage);
@@ -219,13 +214,13 @@ public class SubscriptionService {
     private void notifyBeforeExpire(SubscriptionUsage usage) {
 
         User user = userRepository.findById(usage.getUserId()).orElse(null);
-        if (user == null) return;
+        if (user == null)
+            return;
 
         emailService.sendPublicLinkExpiringSoonEmail(
                 user.getEmail(),
                 usage.getShareUuid(),
-                usage.getExpireAt()
-        );
+                usage.getExpireAt());
     }
 
     private void revokeAndNotifyExpired(SubscriptionUsage usage) {
@@ -235,11 +230,76 @@ public class SubscriptionService {
         if (user != null) {
             emailService.sendPublicLinkExpiredEmail(
                     user.getEmail(),
-                    usage.getShareUuid()
-            );
+                    usage.getShareUuid());
         }
 
         subscriptionUsageRepository.delete(usage);
+    }
+
+    // =========================
+    // ACTIVATE SUBSCRIPTION (AUTO)
+    // =========================
+    public void activateSubscription(com.example.SmartCV.modules.payment.domain.PaymentTransaction tx) {
+
+        if (tx.getStatus() != com.example.SmartCV.modules.payment.domain.PaymentStatus.SUCCESS) {
+            throw new RuntimeException("Payment is not successful");
+        }
+
+        PlanDefinition planDef = planDefinitionRepository
+                .findByPlanAndDurationMonths(tx.getPlan(), tx.getMonths())
+                .orElseThrow(() -> new RuntimeException(
+                        "Plan not found for type=" + tx.getPlan() + " months=" + tx.getMonths()));
+
+        UserSubscription sub = userSubscriptionRepository.findByUserId(tx.getUserId())
+                .orElseThrow(() -> new RuntimeException("User subscription not found"));
+
+        PlanType oldPlanType = sub.getPlan();
+
+        // --- AUDIT HISTORY START ---
+        // Use available Enums: PAYMENT_SUCCESS covers New, Renew, Upgrade triggered by
+        // payment.
+        SubscriptionChangeType changeType = SubscriptionChangeType.PAYMENT_SUCCESS;
+        // --- AUDIT HISTORY END ---
+
+        LocalDate start = LocalDate.now();
+        LocalDate end;
+
+        // LIFECYCLE LOGIC:
+        // 1. Same Plan (Renewal) -> Extend endDate
+        // 2. Different Plan (Upgrade/Downgrade/New) -> New Start Date
+        if (sub.isActive() && sub.getPlan() == tx.getPlan()) {
+            LocalDate baseDate = sub.getEndDate().isBefore(start) ? start : sub.getEndDate();
+            end = baseDate.plusDays(planDef.getDurationDays());
+        } else {
+            // OVERRIDE
+            sub.setStartDate(start);
+            end = start.plusDays(planDef.getDurationDays());
+        }
+
+        sub.setPlan(tx.getPlan());
+        sub.setStatus(SubscriptionStatus.ACTIVE);
+        sub.setEndDate(end);
+
+        userSubscriptionRepository.save(sub);
+
+        // RECORD HISTORY
+        subscriptionHistoryService.saveHistory(
+                tx.getUserId(),
+                oldPlanType,
+                tx.getPlan(),
+                changeType,
+                ChangeReason.PAYMENT,
+                tx.getId(),
+                null);
+
+        // Notify
+        User user = userRepository.findById(tx.getUserId()).orElse(null);
+        if (user != null) {
+            emailService.sendPlanUpdatedEmail(
+                    user.getEmail(),
+                    oldPlanType.name(),
+                    tx.getPlan().name());
+        }
     }
 
     // =========================
@@ -269,8 +329,7 @@ public class SubscriptionService {
             emailService.sendPlanUpdatedEmail(
                     user.getEmail(),
                     oldPlan.name(),
-                    newPlan.name()
-            );
+                    newPlan.name());
         }
     }
 
@@ -296,16 +355,14 @@ public class SubscriptionService {
                 .existsByUserIdAndCvIdAndUsageType(
                         userId,
                         cvId,
-                        UsageType.SHARE
-                );
+                        UsageType.SHARE);
     }
 
     private SubscriptionUsage createShareUsage(
             Long userId,
             Long cvId,
             PlanType plan,
-            PlanDefinition planDef
-    ) {
+            PlanDefinition planDef) {
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expireAt = now.plusDays(planDef.getPublicLinkExpireDays());

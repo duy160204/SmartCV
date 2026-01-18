@@ -113,7 +113,7 @@ export const templateApi = {
 // =========================
 export const paymentApi = {
     // POST /api/payments
-    create: (data: { plan: string; months: number; provider: string }) =>
+    create: (data: { planCode: string; provider: string }) =>
         api.post('/payments', data),
 };
 
@@ -141,4 +141,12 @@ export const aiApi = {
     // POST /api/ai/cv/chat
     chat: (cvId: number, message: string) =>
         api.post('/ai/cv/chat', { cvId, message }),
+};
+
+// =========================
+// PUBLIC PLAN ENDPOINTS
+// =========================
+export const publicPlanApi = {
+    // GET /api/plans
+    getAll: () => api.get('/plans'),
 };

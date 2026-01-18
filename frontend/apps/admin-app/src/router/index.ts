@@ -64,6 +64,16 @@ const router = createRouter({
                     path: 'subscriptions',
                     name: 'subscription-management',
                     component: SubscriptionManagement
+                },
+                {
+                    path: 'plans',
+                    name: 'plan-list',
+                    component: () => import('../pages/PlanListPage.vue')
+                },
+                {
+                    path: 'plans/create',
+                    name: 'plan-create',
+                    component: () => import('../pages/PlanCreatePage.vue')
                 }
             ]
         }

@@ -18,6 +18,7 @@ export interface User {
     avatarURL: string | null;
     role: string;
     isVerified: boolean;
+    plan?: string; // e.g. FREE, PRO
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -61,26 +62,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function logout() {
         try {
-            // POST /auth/logout requires refresh token?
-            // User requested logout doesn't usually carry refresh token in body
-            // Backend Controller: logout(@RequestParam String refreshToken)
-            // Wait, if refreshToken is also HttpOnly cookie (if designed so), we might not have access.
-            // But if current implementation expects param, we might fail if we don't have it in storage.
-            // Let's check backend implementation..
-            // Backend AuthController: logout(@RequestParam String refreshToken)
-            // The login response returned `refreshToken` in body?
-            // "AuthResponseDTO responseBody = ... getRefreshToken()..." YES.
-            // So we should have stored refreshToken in localStorage or memory?
-            // Security wise, refresh token in memory is safer.
-            // For now, let's assume we might need to send a dummy or if we stored it.
-            // Ideally logout should just clear cookies.
-            // Ideally logout should just clear cookies.
             const token = localStorage.getItem('refreshToken');
             if (token) {
                 await authApi.post('/auth/logout', { refreshToken: token });
                 localStorage.removeItem('refreshToken');
             } else {
-                // Force logout anyway locally if no token
                 console.warn("No refresh token found for logout");
             }
         } catch (e) {
@@ -88,7 +74,9 @@ export const useAuthStore = defineStore('auth', () => {
         } finally {
             user.value = null;
             isAuthenticated.value = false;
-            window.location.href = '/login';
+            // Dynamic import to avoid circular dependency
+            const { default: router } = await import('../router');
+            router.push('/login');
         }
     }
 

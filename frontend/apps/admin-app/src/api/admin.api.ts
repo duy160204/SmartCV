@@ -120,11 +120,11 @@ export const adminPaymentApi = {
 // =========================
 export const adminSubscriptionApi = {
     // POST /api/admin/subscriptions/preview
-    preview: (data: { userId: number; newPlan: string }) =>
+    preview: (data: { userId: number; newPlan: string; durationMonths: number }) =>
         api.post('/admin/subscriptions/preview', data),
 
     // POST /api/admin/subscriptions/confirm
-    confirm: (data: { userId: number; newPlan: string; confirm: boolean }) =>
+    confirm: (data: { userId: number; newPlan: string; durationMonths: number; confirm: boolean }) =>
         api.post('/admin/subscriptions/confirm', data),
 };
 
@@ -144,4 +144,24 @@ export const adminSubscriptionRequestApi = {
 
     // POST /api/admin/subscription-requests/{id}/confirm
     confirm: (id: number) => api.post(`/admin/subscription-requests/${id}/confirm`),
+};
+
+// =========================
+// ADMIN PLAN MANAGEMENT
+// =========================
+export const adminPlanApi = {
+    // GET /api/admin/plans
+    getAll: () => api.get('/admin/plans'),
+
+    // POST /api/admin/plans
+    create: (data: any) => {
+        console.log('[API] adminPlanApi.create called', data);
+        return api.post('/admin/plans', data);
+    },
+
+    // PUT /api/admin/plans/{id}
+    update: (id: number, data: any) => api.put(`/admin/plans/${id}`, data),
+
+    // PATCH /api/admin/plans/{id}/status
+    toggleStatus: (id: number) => api.patch(`/admin/plans/${id}/status`),
 };

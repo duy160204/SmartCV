@@ -25,7 +25,7 @@ public class AdminSubscriptionController {
         // =========================
         @PostMapping("/preview")
         public ResponseEntity<SubscriptionPreviewResponse> preview(
-                        @RequestBody SubscriptionPreviewRequest request) {
+                        @RequestBody @jakarta.validation.Valid SubscriptionPreviewRequest request) {
                 return ResponseEntity.ok(
                                 adminSubscriptionService.preview(request));
         }
@@ -36,7 +36,7 @@ public class AdminSubscriptionController {
         @PostMapping("/confirm")
         public ResponseEntity<?> confirm(
                         @AuthenticationPrincipal UserPrincipal admin,
-                        @RequestBody SubscriptionConfirmRequest request) {
+                        @RequestBody @jakarta.validation.Valid SubscriptionConfirmRequest request) {
                 adminSubscriptionService.confirm(
                                 admin.getId(), // ✅ adminId lấy từ JWT
                                 request);

@@ -25,7 +25,7 @@ public class AuthController {
 
     // =================== REGISTER =================== //
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequestDTO request) {
+    public ResponseEntity<?> register(@RequestBody @jakarta.validation.Valid RegisterRequestDTO request) {
         authService.register(request);
         return ResponseEntity.ok("Register successful! Please check your email to verify account.");
     }
@@ -39,7 +39,8 @@ public class AuthController {
 
     // =================== LOGIN =================== //
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDTO request, HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody @jakarta.validation.Valid LoginRequestDTO request,
+            HttpServletResponse response) {
 
         AuthResponseDTO auth = authService.login(request);
 
