@@ -85,4 +85,47 @@ public class PublicCVService {
                 .css(css)
                 .build();
     }
+
+    public byte[] downloadPublicCV(String token) {
+        // 1. Reuse existing logic to fetch data
+        PublicCVResponseDTO cvData = getPublicCV(token);
+
+        try {
+            // 2. Compile Template with Handlebars
+            com.github.jknack.handlebars.Handlebars handlebars = new com.github.jknack.handlebars.Handlebars();
+            com.github.jknack.handlebars.Template template = handlebars.compileInline(cvData.getHtml());
+
+            // Render HTML body
+            String bodyHtml = template.apply(cvData.getContent());
+
+            // 3. Construct Full HTML for PDF
+            String fullHtml = String.format("""
+                    <html>
+                    <head>
+                        <style>
+                            @page { margin: 0; }
+                            body { margin: 0; font-family: sans-serif; }
+                            %s
+                        </style>
+                    </head>
+                    <body>
+                        %s
+                    </body>
+                    </html>
+                    """, cvData.getCss(), bodyHtml);
+
+            // 4. Convert to PDF
+            try (java.io.ByteArrayOutputStream os = new java.io.ByteArrayOutputStream()) {
+                com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder = new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
+                builder.useFastMode();
+                builder.withHtmlContent(fullHtml, "");
+                builder.toStream(os);
+                builder.run();
+                return os.toByteArray();
+            }
+
+        } catch (Exception e) {
+            throw new BusinessException("Failed to generate PDF: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

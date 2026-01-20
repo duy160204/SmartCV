@@ -22,4 +22,14 @@ public class PublicCVController {
     public ResponseEntity<PublicCVResponseDTO> getPublicCV(@PathVariable String token) {
         return ResponseEntity.ok(publicCVService.getPublicCV(token));
     }
+
+    @GetMapping("/{token}/download")
+    public ResponseEntity<byte[]> downloadPublicCV(@PathVariable String token) {
+        byte[] pdfContent = publicCVService.downloadPublicCV(token);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE,
+                        org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"cv.pdf\"")
+                .body(pdfContent);
+    }
 }

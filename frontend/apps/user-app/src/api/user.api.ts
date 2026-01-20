@@ -155,10 +155,16 @@ export const aiApi = {
         api.post('/ai/cv/chat', { cvId, message }),
 };
 
-// =========================
-// PUBLIC PLAN ENDPOINTS
-// =========================
 export const publicPlanApi = {
     // GET /api/plans
     getAll: () => api.get('/plans'),
 };
+
+// =========================
+// PUBLIC CV ENDPOINTS
+// =========================
+export const publicCVApi = {
+    // GET /api/public/cv/{token}
+    getPublicCV: (token: string) => api.get(`/public/cv/${token}`),
+};
+

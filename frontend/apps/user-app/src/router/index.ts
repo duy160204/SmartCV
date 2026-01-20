@@ -60,6 +60,12 @@ const router = createRouter({
             meta: { bypassAuth: true }  // ← CRITICAL: Bypass auth check
         },
         {
+            path: '/public/:token',
+            name: 'public-cv',
+            component: () => import('../pages/PublicCVPage.vue'),
+            meta: { bypassAuth: true }
+        },
+        {
             path: '/cv/create',
             name: 'create-cv',
             component: CreateCV,
