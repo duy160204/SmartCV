@@ -48,10 +48,14 @@ const createCV = () => {
     router.push('/cv/create');
 };
 
+import { cvApi } from '@/api/user.api';
+
+// ...
+
 const deleteCV = async (id: number) => {
     if (!confirm("Are you sure you want to delete this CV?")) return;
     try {
-        await api.delete(`/cv/${id}`);
+        await cvApi.delete(id);
         cvs.value = cvs.value.filter(cv => cv.id !== id);
     } catch (e: any) {
         alert("Failed to delete: " + e.message);

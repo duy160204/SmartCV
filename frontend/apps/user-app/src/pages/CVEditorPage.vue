@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useCVStore } from '@/stores/cv';
 import CVRenderer from '@/components/core/CVRenderer.vue';
 import CVForm from '@/components/core/CVForm.vue';
-import api from '@/api/axios'; // Added import
+import AIChatSidebar from '@/components/core/AIChatSidebar.vue';
+import { cvApi } from '@/api/user.api';
 
 const route = useRoute();
+const router = useRouter();
 const store = useCVStore();
 
 onMounted(() => {
@@ -16,12 +18,21 @@ onMounted(() => {
     }
 });
 
+const deleteCV = async () => {
+    if (!store.currentCV?.id) return;
+    if (!confirm("Are you sure you want to delete this CV? This cannot be undone.")) return;
+    try {
+        await cvApi.delete(store.currentCV.id);
+        router.push('/dashboard');
+    } catch (e: any) {
+        alert("Failed to delete: " + e.message);
+    }
+};
+
 const downloadCV = async () => {
     if (!store.currentCV?.id) return;
     try {
-        const response = await api.get(`/cv/${store.currentCV.id}/download`, {
-            responseType: 'blob'
-        });
+        const response = await cvApi.download(store.currentCV.id);
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -69,6 +80,8 @@ const downloadCV = async () => {
                     </div>
                 </div>
 
+                <button @click="deleteCV" class="text-gray-500 hover:text-red-600 font-medium">Delete</button>
+
                 <button @click="downloadCV" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">Download PDF</button>
             </div>
         </header>
@@ -87,6 +100,9 @@ const downloadCV = async () => {
                     :css="store.currentTemplate.css"
                     :data="store.currentCV.content"
                 />
+                
+                <!-- AI Chat Sidebar -->
+                <AIChatSidebar />
             </div>
         </div>
     </div>

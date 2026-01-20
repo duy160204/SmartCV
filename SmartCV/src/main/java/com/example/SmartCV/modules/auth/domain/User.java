@@ -21,7 +21,7 @@ public class User {
 
     private String username;
 
-    @Column(nullable = false)
+    // Password is nullable to support OAuth users who don't have passwords
     private String password;
 
     private String avatarURL;
@@ -31,10 +31,10 @@ public class User {
 
     // ===== CORE STATUS =====
     @Column(name = "is_verified", nullable = false)
-    private boolean verified = false;  // mặc định false khi tạo mới
+    private boolean verified = false; // mặc định false khi tạo mới
 
     @Column(name = "locked", nullable = false)
-    private boolean locked = true;     // mặc định khóa tài khoản
+    private boolean locked = true; // mặc định khóa tài khoản
 
     @Column(name = "verify_token")
     private String verifyToken;

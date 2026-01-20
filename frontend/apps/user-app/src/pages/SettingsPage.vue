@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth';
 import api from '@/api/axios';
+import { paymentApi } from '@/api/user.api'; // Import paymentApi
 import { ref, onMounted } from 'vue';
 
 const auth = useAuthStore();
@@ -40,6 +41,25 @@ const loadSubscription = async () => {
         subscription.value = { plan: 'FREE', status: 'ACTIVE' };
     } finally {
         subscriptionLoading.value = false;
+    }
+};
+
+const initiatePayment = async (planCode: string) => {
+    try {
+        // Default to VNPAY for now as it's the only one implemented in backend
+        const res = await paymentApi.create({
+            planCode: planCode,
+            provider: 'VNPAY'
+        });
+        
+        // Backend returns { paymentUrl: "...", ... }
+        if (res.data?.paymentUrl) {
+           window.location.href = res.data.paymentUrl;
+        } else {
+            alert("Failed to initiate payment: No URL returned");
+        }
+    } catch (e: any) {
+        alert("Payment Error: " + (e.response?.data?.message || e.message));
     }
 };
 
@@ -164,7 +184,8 @@ const formatDate = (dateStr: string) => {
                               <li>✓ PDF Download</li>
                           </ul>
                           <button v-if="subscription.plan !== 'PRO' && subscription.plan !== 'PREMIUM'" 
-                                  class="mt-4 w-full bg-blue-600 text-white py-2 rounded text-sm">
+                                  @click="initiatePayment('PRO')"
+                                  class="mt-4 w-full bg-blue-600 text-white py-2 rounded text-sm hover:bg-blue-700 transition">
                               Upgrade
                           </button>
                       </div>
@@ -177,7 +198,8 @@ const formatDate = (dateStr: string) => {
                               <li>✓ AI Assistant</li>
                           </ul>
                           <button v-if="subscription.plan !== 'PREMIUM'" 
-                                  class="mt-4 w-full bg-indigo-600 text-white py-2 rounded text-sm">
+                                  @click="initiatePayment('PREMIUM')"
+                                  class="mt-4 w-full bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700 transition">
                               Upgrade
                           </button>
                       </div>

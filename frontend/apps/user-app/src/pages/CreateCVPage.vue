@@ -5,6 +5,7 @@ import api from '@/api/axios';
 import { cvApi } from '@/api/user.api';
 
 import { useAuthStore } from '@/stores/auth';
+import UpgradeModal from '@/components/ui/UpgradeModal.vue';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -14,6 +15,7 @@ const isLoading = ref(true);
 const selectedTemplateId = ref<number | null>(null);
 const title = ref('Untitled CV');
 const showFavoritesOnly = ref(false);
+const showUpgradeModal = ref(false);
 
 onMounted(async () => {
     try {
@@ -68,7 +70,8 @@ const isLocked = (tmpl: any) => {
 
 const selectTemplate = (tmpl: any) => {
     if (isLocked(tmpl)) {
-        // Optional: Trigger upgrade modal here if we had one
+        // Trigger upgrade modal for locked templates
+        showUpgradeModal.value = true;
         return;
     }
     selectedTemplateId.value = tmpl.id;
@@ -177,5 +180,8 @@ const createCV = async () => {
              </button>
           </div>
       </div>
+      
+      <!-- Upgrade Modal -->
+      <UpgradeModal :isOpen="showUpgradeModal" @close="showUpgradeModal = false" />
   </div>
 </template>

@@ -103,10 +103,6 @@ export const cvApi = {
 
     // GET /api/cv/favorites
     getFavorites: () => api.get('/cv/favorites'),
-
-    // GET /api/cv/export/{id}/pdf
-    exportPdf: (id: number) =>
-        api.get(`/cv/export/${id}/pdf`, { responseType: 'blob' }),
 };
 
 // =========================
