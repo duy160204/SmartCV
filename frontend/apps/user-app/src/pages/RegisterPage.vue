@@ -35,7 +35,7 @@ const handleRegister = async () => {
     
     try {
         isLoading.value = true;
-        await authApi.post('/auth/register', {
+        await authApi.post('/api/auth/register', {
             name: form.value.name,
             email: form.value.email,
             password: form.value.password

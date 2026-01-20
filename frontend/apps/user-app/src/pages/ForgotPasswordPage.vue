@@ -17,8 +17,8 @@ const handleSubmit = async () => {
     
     try {
         isLoading.value = true;
-        await authApi.post('/auth/forgot-password', null, {
-            params: { email: email.value }
+        await authApi.post('/api/auth/forgot-password', {
+            email: email.value 
         });
         success.value = true;
     } catch (e: any) {

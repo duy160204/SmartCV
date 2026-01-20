@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, reactive, watch } from 'vue';
-import api from '@/api/axios';
+import { cvApi, templateApi, aiApi, subscriptionApi } from '@/api/user.api';
 import { useRoute } from 'vue-router';
 
 // Types (Simplified for now)
@@ -32,7 +32,7 @@ export const useCVStore = defineStore('cv', () => {
     async function loadCV(id: number) {
         isLoading.value = true;
         try {
-            const res = await api.get(`/cv/${id}`);
+            const res = await cvApi.getById(id);
             const cvData = res.data;
 
             // Parse content if string, though backend says it stores JSON, 
@@ -55,7 +55,7 @@ export const useCVStore = defineStore('cv', () => {
     // Load Template by ID
     async function loadTemplate(id: number) {
         try {
-            const res = await api.get(`/templates/${id}`);
+            const res = await templateApi.getById(id);
             const tmpl = res.data;
             // Parse fullContent
             if (typeof tmpl.fullContent === 'string') {
@@ -93,15 +93,8 @@ export const useCVStore = defineStore('cv', () => {
         try {
             isSaving.value = true;
             // PATCH /api/cv/{id}/autosave
-            // Body: { content: JSON.stringify(content) } if backend expects string map
-            // Controller: "String content = body.get("content");"
-            // So we must send { "content": JSON.stringify(obj) }
-
-            const payload = {
-                content: JSON.stringify(currentCV.value.content)
-            };
-
-            await api.patch(`/cv/${currentCV.value.id}/autosave`, payload);
+            // Use cvApi which handles serialization automatically
+            await cvApi.autosave(currentCV.value.id, currentCV.value.content);
 
             lastSaved.value = new Date();
         } catch (e) {
@@ -120,10 +113,7 @@ export const useCVStore = defineStore('cv', () => {
 
         try {
             isSaving.value = true; // reusing saving indicator or add isProcessingAI
-            const res = await api.post('/ai/cv/chat', {
-                cvId: currentCV.value.id,
-                message: `Original text: "${text}". Instruction: ${instruction}. Return ONLY the improved text.`
-            });
+            const res = await aiApi.chat(currentCV.value.id, `Original text: "${text}". Instruction: ${instruction}. Return ONLY the improved text.`);
 
             return res.data.message; // Assume response wrapper
         } finally {
@@ -135,7 +125,7 @@ export const useCVStore = defineStore('cv', () => {
     async function publishCV() {
         if (!currentCV.value) return;
         try {
-            const res = await api.post(`/subscription/cv/${currentCV.value.id}/public`);
+            const res = await subscriptionApi.publicCV(currentCV.value.id);
             // Assume response returns { token: "...", publicUrl: "..." }
             // Or just success and we construct url. 
             // Let's assume backend updates CV object or returns token.
@@ -151,7 +141,7 @@ export const useCVStore = defineStore('cv', () => {
     async function unpublishCV() {
         if (!currentCV.value) return;
         try {
-            await api.delete(`/subscription/cv/${currentCV.value.id}/public`);
+            await subscriptionApi.revokePublicLink(currentCV.value.id);
             currentCV.value.isPublic = false;
             currentCV.value.publicToken = undefined;
         } catch (e: any) {

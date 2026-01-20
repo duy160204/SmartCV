@@ -81,8 +81,15 @@ public class AuthService {
         // 2. AUTO INIT FREE SUBSCRIPTION
         subscriptionService.initFreeSubscription(savedUser.getId());
 
-        // 3. Send verify email
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerifyToken());
+        // 3. Send verify email (Async to prevent blocking)
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerifyToken());
+            } catch (Exception e) {
+                // Log but don't fail the registration
+                System.err.println("WARNING: Failed to send verification email: " + e.getMessage());
+            }
+        });
     }
 
     /**

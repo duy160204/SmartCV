@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
+import { cvApi } from '@/api/user.api';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -73,14 +74,24 @@ const selectTemplate = (tmpl: any) => {
     selectedTemplateId.value = tmpl.id;
 };
 
+
 const createCV = async () => {
     if (!selectedTemplateId.value) return;
     
     try {
-        const res = await api.post('/cv', {
+        const res = await cvApi.create({
             title: title.value,
             templateId: selectedTemplateId.value,
-            content: { profile: { name: "", summary: "" }, education: [], experience: [], skills: [] }
+            content: { 
+                profile: { name: "", title: "", email: "", phone: "", summary: "", location: "", website: "" }, 
+                education: [], 
+                experience: [], 
+                skills: [],
+                projects: [],
+                languages: [],
+                certifications: [],
+                awards: []
+            }
         });
         router.push(`/cv/editor/${res.data.id}`);
     } catch (e: any) {

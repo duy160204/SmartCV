@@ -20,4 +20,6 @@ public interface SubscriptionUsageRepository extends JpaRepository<SubscriptionU
     List<SubscriptionUsage> findByExpireAtBefore(LocalDateTime time);
 
     List<SubscriptionUsage> findByExpireAtBeforeAndNotifiedBeforeExpireFalse(LocalDateTime time);
+
+    Optional<SubscriptionUsage> findByShareUuid(String shareUuid);
 }

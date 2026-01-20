@@ -25,7 +25,7 @@ public class EmailService {
     // =================================================
 
     public void sendVerificationEmail(String toEmail, String verifyToken) {
-        String verifyLink = BASE_BACKEND_URL + "/auth/verify-email?token=" + verifyToken;
+        String verifyLink = BASE_BACKEND_URL + "/api/auth/verify-email?token=" + verifyToken;
 
         sendToSingleUser(
                 toEmail,

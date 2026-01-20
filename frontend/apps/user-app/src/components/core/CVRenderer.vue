@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, toRaw } from 'vue';
 import Handlebars from 'handlebars';
 import DOMPurify from 'dompurify';
 
@@ -20,7 +20,18 @@ const render = () => {
     try {
         // Safe Compile
         const template = Handlebars.compile(props.html);
-        const result = template(props.data);
+        
+        console.warn('-------- CVRenderer Debug --------');
+        console.warn('HTML Template Sample:', props.html.substring(0, 500));
+        console.warn('Data Received:', props.data);
+        console.warn('Has Profile Name?', props.data?.profile?.name);
+        
+        // 2️⃣ Sanitize Reactive Data Before Handlebars (CRITICAL)
+        // Convert Vue Proxy -> Plain Object snapshot to ensure Handlebars receives clean data
+        // structuredClone ensures a deep copy without Vue reactivity pointers
+        const rawData = props.data ? structuredClone(toRaw(props.data)) : {};
+        
+        const result = template(rawData);
         
         // Sanitize HTML (Allowing style attributes might be needed for some templates, but safer to block scripts)
         // DOMPurify defaults are good (no <script>, no onerror, etc)
@@ -54,7 +65,19 @@ onMounted(() => {
     }
 });
 
-watch(() => [props.html, props.css, props.data], render, { deep: true });
+// 1️⃣ Fix Watch Strategy (CRITICAL)
+// Watch data deeply and explicitly to catch nested changes
+watch(
+  () => props.data,
+  render,
+  { deep: true }
+);
+
+// Watch templates separately (shallow change is enough for strings)
+watch(
+  () => [props.html, props.css],
+  render
+);
 </script>
 
 <template>

@@ -10,27 +10,27 @@ import api from './axios';
 export const authApi = {
     // POST /auth/register
     register: (data: { name: string; email: string; password: string }) =>
-        api.post('/auth/register', data, { baseURL: '' }),
+        api.post('/auth/register', data),
 
     // GET /auth/verify-email
     verifyEmail: (token: string) =>
-        api.get('/auth/verify-email', { params: { token }, baseURL: '' }),
+        api.get('/auth/verify-email', { params: { token } }),
 
     // POST /auth/login
     login: (data: { email: string; password: string }) =>
-        api.post('/auth/login', data, { baseURL: '' }),
+        api.post('/auth/login', data),
 
     // POST /auth/refresh-token
     refreshToken: (refreshToken: string) =>
-        api.post('/auth/refresh-token', { refreshToken }, { baseURL: '' }),
+        api.post('/auth/refresh-token', { refreshToken }),
 
     // POST /auth/logout
     logout: (refreshToken: string) =>
-        api.post('/auth/logout', { refreshToken }, { baseURL: '' }),
+        api.post('/auth/logout', { refreshToken }),
 
     // POST /auth/forgot-password
     forgotPassword: (email: string) =>
-        api.post('/auth/forgot-password', { email }, { baseURL: '' }),
+        api.post('/auth/forgot-password', { email }),
 };
 
 // =========================
@@ -60,16 +60,28 @@ export const cvApi = {
     getById: (id: number) => api.get(`/cv/${id}`),
 
     // POST /api/cv
-    create: (data: { title: string; templateId: number; content: object }) =>
-        api.post('/cv', data),
+    create: (data: { title: string; templateId: number; content: any }) => {
+        const payload = { ...data };
+        if (typeof payload.content !== 'string') {
+            payload.content = JSON.stringify(payload.content);
+        }
+        return api.post('/cv', payload);
+    },
 
     // PUT /api/cv/{id}
-    update: (id: number, data: { title: string; content: object }) =>
-        api.put(`/cv/${id}`, data),
+    update: (id: number, data: { title: string; content: any }) => {
+        const payload = { ...data };
+        if (typeof payload.content !== 'string') {
+            payload.content = JSON.stringify(payload.content);
+        }
+        return api.put(`/cv/${id}`, payload);
+    },
 
     // PATCH /api/cv/{id}/autosave
-    autosave: (id: number, content: string) =>
-        api.patch(`/cv/${id}/autosave`, { content }),
+    autosave: (id: number, content: any) => {
+        const finalContent = typeof content === 'string' ? content : JSON.stringify(content);
+        return api.patch(`/cv/${id}/autosave`, { content: finalContent });
+    },
 
     // POST /api/cv/{id}/publish
     publish: (id: number) => api.post(`/cv/${id}/publish`),

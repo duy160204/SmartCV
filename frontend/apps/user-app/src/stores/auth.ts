@@ -43,8 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function login(payload: any) {
         try {
-            // POST /auth/login
-            const res = await authApi.post('/auth/login', payload);
+            // POST /api/auth/login
+            const res = await authApi.post('/api/auth/login', payload);
             const data = res.data;
 
             // STORE REFRESH TOKEN for Logout
@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const token = localStorage.getItem('refreshToken');
             if (token) {
-                await authApi.post('/auth/logout', { refreshToken: token });
+                await authApi.post('/api/auth/logout', { refreshToken: token });
                 localStorage.removeItem('refreshToken');
             } else {
                 console.warn("No refresh token found for logout");
