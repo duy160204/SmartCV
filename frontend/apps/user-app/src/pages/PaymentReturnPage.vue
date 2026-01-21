@@ -84,7 +84,7 @@ onUnmounted(() => {
               <p class="mb-4 text-gray-600">We couldn't confirm your payment. If you were charged, please contact support.</p>
               <div class="flex justify-center gap-4">
                   <router-link to="/" class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Go Home</router-link>
-                  <router-link to="/upgrade" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Try Again</router-link>
+                  <router-link to="/pricing" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Try Again</router-link>
               </div>
           </div>
       </div>

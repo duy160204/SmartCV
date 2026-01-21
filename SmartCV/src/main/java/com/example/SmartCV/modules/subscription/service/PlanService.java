@@ -81,7 +81,39 @@ public class PlanService {
         planRepository.save(plan);
     }
 
+    private final com.example.SmartCV.modules.subscription.repository.PlanFeatureRepository featureRepository;
+
     private PlanDefinitionDTO toDTO(PlanDefinition plan) {
+
+        // 1. Base Limits
+        java.util.List<String> features = new java.util.ArrayList<>();
+
+        // Share Limit
+        if (plan.getMaxSharePerMonth() == -1) {
+            features.add("Unlimited Public Shares");
+        } else {
+            features.add("Up to " + plan.getMaxSharePerMonth() + " Public Shares/Month");
+        }
+
+        // Link Expiry
+        features.add("Links valid for " + plan.getPublicLinkExpireDays() + " days");
+
+        // 2. Dynamic Features from DB
+        featureRepository.findByPlan(plan.getPlan())
+                .forEach(f -> {
+                    if (f.isEnabled()) {
+                        switch (f.getFeatureCode()) {
+                            case "DOWNLOAD_CV" -> features.add("Download CV as PDF");
+                            case "CREATE_CV" -> features.add("Create Unlimited CVs");
+                            // Add more mapings as needed or use DB name if available
+                            default -> features.add(convertToTitleCase(f.getFeatureCode()));
+                        }
+                    }
+                });
+
+        // 3. Static/Common (Example)
+        features.add("Professional Templates");
+
         return PlanDefinitionDTO.builder()
                 .id(plan.getId())
                 .code(plan.getCode())
@@ -94,6 +126,30 @@ public class PlanService {
                 .publicLinkExpireDays(plan.getPublicLinkExpireDays())
                 .description(plan.getDescription())
                 .active(plan.isActive())
+                .features(features)
                 .build();
+    }
+
+    private String convertToTitleCase(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+
+        StringBuilder converted = new StringBuilder();
+
+        boolean convertNext = true;
+        for (char ch : text.replace('_', ' ').toCharArray()) {
+            if (Character.isSpaceChar(ch)) {
+                convertNext = true;
+            } else if (convertNext) {
+                ch = Character.toTitleCase(ch);
+                convertNext = false;
+            } else {
+                ch = Character.toLowerCase(ch);
+            }
+            converted.append(ch);
+        }
+
+        return converted.toString();
     }
 }

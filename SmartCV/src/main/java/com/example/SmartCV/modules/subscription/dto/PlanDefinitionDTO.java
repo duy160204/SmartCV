@@ -19,4 +19,5 @@ public class PlanDefinitionDTO {
     private int publicLinkExpireDays;
     private String description;
     private boolean active;
+    private java.util.List<String> features;
 }

@@ -13,6 +13,7 @@ export interface PlanDefinition {
     description: string;
     maxSharePerMonth: number;
     publicLinkExpireDays: number;
+    features: string[];
 }
 
 export interface MySubscription {
@@ -65,6 +66,36 @@ export const useUserPlanStore = defineStore('user-plan', () => {
         }
     }
 
+    async function upgradePlan(planCode: string) {
+        try {
+            isLoading.value = true;
+            error.value = null;
+
+            // Assume VNPAY for now as per requirements
+            // Ideally backend could default provider if not sent, 
+            // but api requires it.
+            const res = await import('@/api/user.api').then(m => m.paymentApi.create({
+                planCode: planCode,
+                provider: 'VNPAY'
+            }));
+
+            // Response: { paymentUrl: "...", transactionCode: "..." }
+            const { paymentUrl } = res.data;
+            if (paymentUrl) {
+                window.location.href = paymentUrl;
+            } else {
+                throw new Error("No payment URL received");
+            }
+
+        } catch (e: any) {
+            console.error("Payment creation failed", e);
+            error.value = e.response?.data?.message || e.message || "Failed to initiate payment";
+            throw e; // Re-throw for UI to handle
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
     async function init() {
         await Promise.all([fetchPlans(), fetchSubscription()]);
     }
@@ -77,6 +108,7 @@ export const useUserPlanStore = defineStore('user-plan', () => {
         error,
         fetchPlans,
         fetchSubscription,
+        upgradePlan,
         init
     };
 });

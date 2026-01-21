@@ -10,23 +10,21 @@ onMounted(() => {
     planStore.fetchPlans();
 });
 
-const handlePlanAction = (plan: any) => {
+const handlePlanAction = async (plan: any) => {
     if (!auth.isAuthenticated) {
-        // Prompt login if guest
-        // Ideally emit an event or use a global bus to open AuthModal
-        // For now, redirect to register logic or use specific query param to trigger modal on Landing
-        // But since we have a modal, maybe we can inject 'openAuth' if provided or just alert/redirect
-        // Let's rely on a helper or redirect to login page if modal isn't globally available here easily without props props. 
-        // Actually, Navbar handles modal. PricingPage is a route.
-        // We can just redirect to /register
-        window.location.href = '/register'; 
+        window.location.href = '/register';
         return;
     }
 
-    // User is logged in -> Upgrade Flow
-    // Since payment integration is "User -> Upgrade plan", likely involves selecting plan
-    alert(`Upgrade to ${plan.name} coming soon!`);
-    // Real implementation would be: router.push(`/checkout/${plan.code}`) or similar
+    try {
+        await planStore.upgradePlan(plan.code);
+    } catch (e: any) {
+        // Error is handled in store (setting error state) or we can alert specific failure
+        // But per rules, we just want flow to work. 
+        // Showing extensive error UI is not "mocking" but "error handling". 
+        // We will just let the store handle internal state or console error.
+        console.error("Upgrade failed", e);
+    }
 };
 </script>
 
@@ -65,17 +63,13 @@ const handlePlanAction = (plan: any) => {
 
                     <div class="p-8 bg-gray-50 flex-1">
                         <ul class="space-y-4 mb-8">
-                             <li class="flex items-center gap-3 text-sm text-gray-700">
+                            <li 
+                                v-for="(feature, index) in plan.features" 
+                                :key="index"
+                                class="flex items-center gap-3 text-sm text-gray-700"
+                            >
                                 <span class="text-green-500 font-bold">✓</span>
-                                <span>{{ plan.maxSharePerMonth === -1 ? 'Unlimited' : plan.maxSharePerMonth }} Public Shares</span>
-                            </li>
-                             <li class="flex items-center gap-3 text-sm text-gray-700">
-                                <span class="text-green-500 font-bold">✓</span>
-                                <span>{{ plan.publicLinkExpireDays }} Days Link Validity</span>
-                            </li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700">
-                                <span class="text-green-500 font-bold">✓</span>
-                                <span>Professional Templates</span> // Hardcoded feature example
+                                <span>{{ feature }}</span>
                             </li>
                         </ul>
                         
