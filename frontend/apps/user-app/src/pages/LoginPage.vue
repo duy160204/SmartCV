@@ -13,7 +13,7 @@ const error = ref('');
 const handleLogin = async () => {
     try {
         await auth.login({ email: email.value, password: password.value });
-        router.push('/dashboard');
+        router.push('/');
     } catch (e: any) {
         error.value = "Login failed";
     }

@@ -25,28 +25,37 @@ export const useCVStore = defineStore('cv', () => {
 
     // UI States
     const isLoading = ref(false);
+    const error = ref<string | null>(null);
     const isSaving = ref(false);
     const lastSaved = ref<Date | null>(null);
 
     // Load CV by ID
     async function loadCV(id: number) {
         isLoading.value = true;
+        error.value = null; // Reset error
         try {
             const res = await cvApi.getById(id);
             const cvData = res.data;
 
-            // Parse content if string, though backend says it stores JSON, 
-            // if it returns object, good. If string, parse.
+            // Parse content if string
             if (typeof cvData.content === 'string') {
-                cvData.content = JSON.parse(cvData.content);
+                try {
+                    cvData.content = JSON.parse(cvData.content);
+                } catch (e) {
+                    console.error("Failed to parse JSON content", e);
+                    // Fallback to empty object or raw string if needed, 
+                    // but usually better to fail safe
+                    cvData.content = {};
+                }
             }
 
             currentCV.value = cvData;
 
             // Load Template
             await loadTemplate(cvData.templateId);
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
+            error.value = e.response?.data?.message || e.message || "Failed to load CV";
         } finally {
             isLoading.value = false;
         }
@@ -153,6 +162,7 @@ export const useCVStore = defineStore('cv', () => {
         currentCV,
         currentTemplate,
         isLoading,
+        error,
         isSaving,
         lastSaved,
         loadCV,

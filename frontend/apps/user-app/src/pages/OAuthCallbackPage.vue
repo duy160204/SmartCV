@@ -39,7 +39,7 @@ onMounted(async () => {
             
             // Small delay for user feedback then redirect
             setTimeout(() => {
-                router.replace('/dashboard');
+                router.replace('/');
             }, 500);
         } else {
             // Auth check passed but no user -> something wrong

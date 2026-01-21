@@ -18,20 +18,7 @@ onMounted(() => {
 });
 
 const upgrade = async (planCode: string) => {
-    try {
-        const res = await paymentApi.create({
-            planCode,
-            provider: 'VNPAY'
-        });
-        
-        if (res.data.paymentUrl) {
-            window.location.href = res.data.paymentUrl;
-        } else {
-            alert("Failed to initiate payment");
-        }
-    } catch (e: any) {
-        alert("Payment Error: " + (e.response?.data || e.message));
-    }
+    alert("Please contact administrator to upgrade to this plan: " + planCode);
 };
 
 const formatCurrency = (val: number, currency: string) => {

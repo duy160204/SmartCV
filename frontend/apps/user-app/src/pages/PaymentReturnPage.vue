@@ -35,7 +35,7 @@ onMounted(async () => {
                      status.value = 'success';
                      if (pollInterval) clearInterval(pollInterval);
                      // Show success message briefly then redirect
-                     setTimeout(() => router.push('/dashboard'), 3000);
+                     setTimeout(() => router.push('/'), 3000);
                 } else {
                     // Still FREE? keep polling
                     console.log('Still FREE, polling...', attempts);
@@ -50,7 +50,7 @@ onMounted(async () => {
                 // Just redirect to dashboard to let user see.
                  if (pollInterval) clearInterval(pollInterval);
                  status.value = 'success'; // Assume success and let dashboard show truth
-                 setTimeout(() => router.push('/dashboard'), 2000);
+                 setTimeout(() => router.push('/'), 2000);
             }
         }, 1000); // Poll every 1s
     } else {
@@ -76,7 +76,7 @@ onUnmounted(() => {
           
           <div v-if="status === 'success'">
               <h1 class="text-2xl font-bold mb-2 text-green-600">Upgrade Successful!</h1>
-              <p>Redirecting to dashboard...</p>
+              <p>Redirecting to home...</p>
           </div>
           
           <div v-if="status === 'failed'">

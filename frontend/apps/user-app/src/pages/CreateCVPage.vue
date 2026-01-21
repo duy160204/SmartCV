@@ -59,21 +59,14 @@ const displayedTemplates = computed(() => {
     return templates.value;
 });
 
-// Helper to check if template is locked for current user
+// Helper to check if template is locked for current user - REMOVED to avoid hardcoded rules.
+// We let the backend validate template access at creation time.
 const isLocked = (tmpl: any) => {
-    const userPlan = auth.user?.plan || 'FREE';
-    if (tmpl.planRequired === 'FREE') return false;
-    if (userPlan === 'PREMIUM') return false;
-    if (userPlan === 'PRO' && tmpl.planRequired === 'PRO') return false;
-    return true; // e.g. Free user trying Pro template
+    return false; // Always allow attempt
 };
 
 const selectTemplate = (tmpl: any) => {
-    if (isLocked(tmpl)) {
-        // Trigger upgrade modal for locked templates
-        showUpgradeModal.value = true;
-        return;
-    }
+    // No frontend blocking
     selectedTemplateId.value = tmpl.id;
 };
 
@@ -98,7 +91,11 @@ const createCV = async () => {
         });
         router.push(`/cv/editor/${res.data.id}`);
     } catch (e: any) {
-        alert("Failed to create: " + (e.response?.data?.message || e.message));
+        if (e.response && e.response.status === 403) {
+            alert("Your current subscription does not allow creating more CVs or using this template.");
+        } else {
+            alert("Failed to create: " + (e.response?.data?.message || e.message));
+        }
     }
 };
 </script>
@@ -132,14 +129,12 @@ const createCV = async () => {
                 :key="tmpl.id"
                 @click="selectTemplate(tmpl)"
                 :class="[
-                    'border-2 rounded p-4 transition relative', 
-                    isLocked(tmpl) ? 'opacity-70 cursor-not-allowed bg-gray-50' : 'cursor-pointer',
+                    'border-2 rounded p-4 transition relative cursor-pointer', 
                     selectedTemplateId === tmpl.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white'
                 ]"
               >
                   <!-- Favorite Heart Button -->
                   <button 
-                    v-if="!isLocked(tmpl)"
                     @click="toggleFavorite(tmpl.id, $event)" 
                     class="absolute top-2 left-2 z-10 text-2xl transition"
                     :class="isFavorite(tmpl.id) ? 'text-red-500' : 'text-gray-300 hover:text-red-300'"
@@ -153,14 +148,6 @@ const createCV = async () => {
 
                       <div v-if="tmpl.planRequired !== 'FREE'" class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm z-20">
                           {{ tmpl.planRequired }}
-                          <span v-if="isLocked(tmpl)" class="ml-1">🔒</span>
-                      </div>
-                      
-                      <!-- Lock Overlay -->
-                      <div v-if="isLocked(tmpl)" class="absolute inset-0 bg-gray-900 bg-opacity-10 flex items-center justify-center z-10">
-                          <div class="bg-white/90 px-3 py-1 rounded text-xs font-bold text-gray-700 shadow">
-                              Upgrade to Unlock
-                          </div>
                       </div>
                   </div>
                   <h3 class="font-bold text-center">{{ tmpl.name }}</h3>

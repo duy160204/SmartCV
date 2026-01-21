@@ -208,6 +208,12 @@ public class AuthService {
 
         User user = optionalUser.get();
 
+        // STRICT SECURITY: Block OAuth users (password is null)
+        if (user.getPassword() == null) {
+            // Silently ignore or throw non-specific error
+            return;
+        }
+
         // 1. Sinh mật khẩu mới
         String newPassword = generateRandomPassword();
 

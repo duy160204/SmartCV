@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCVStore } from '@/stores/cv';
 import CVRenderer from '@/components/core/CVRenderer.vue';
 import CVForm from '@/components/core/CVForm.vue';
 import AIChatSidebar from '@/components/core/AIChatSidebar.vue';
-import { cvApi } from '@/api/user.api';
+import { cvApi, subscriptionApi } from '@/api/user.api';
 
 const route = useRoute();
 const router = useRouter();
 const store = useCVStore();
+const activeMobileTab = ref<'edit' | 'preview'>('edit');
 
 onMounted(() => {
     const id = Number(route.params.id);
@@ -23,7 +24,7 @@ const deleteCV = async () => {
     if (!confirm("Are you sure you want to delete this CV? This cannot be undone.")) return;
     try {
         await cvApi.delete(store.currentCV.id);
-        router.push('/dashboard');
+        router.push('/');
     } catch (e: any) {
         alert("Failed to delete: " + e.message);
     }
@@ -32,6 +33,10 @@ const deleteCV = async () => {
 const downloadCV = async () => {
     if (!store.currentCV?.id) return;
     try {
+        // 1. Check permission FIRST
+        await subscriptionApi.checkDownload();
+
+        // 2. Proceed if success
         const response = await cvApi.download(store.currentCV.id);
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
@@ -41,7 +46,12 @@ const downloadCV = async () => {
         link.click();
         link.remove();
     } catch (e: any) {
-        alert("Download failed: " + e.message);
+        // Handle 403 specially
+        if (e.response && e.response.status === 403) {
+            alert("Feature not available in your plan.");
+        } else {
+            alert("Download failed: " + (e.message || "Unknown error"));
+        }
     }
 };
 </script>
@@ -51,7 +61,7 @@ const downloadCV = async () => {
         <!-- Top Bar -->
         <header class="h-16 bg-white border-b flex items-center px-4 justify-between z-10">
             <div class="flex items-center gap-4">
-                <router-link to="/dashboard" class="text-gray-500 hover:text-black">← Back to Dashboard</router-link>
+                <router-link to="/" class="text-gray-500 hover:text-black">← Back to Home</router-link>
                 <input 
                     v-model="store.currentCV.title" 
                     @blur="store.saveCV()"
@@ -87,18 +97,52 @@ const downloadCV = async () => {
         </header>
 
         <!-- Main Editor Area -->
-        <div class="flex flex-1 overflow-hidden">
+        <div class="flex flex-1 overflow-hidden relative flex-col md:flex-row">
+            
+            <!-- Mobile Tab Controls (Sticky Top) -->
+            <div class="md:hidden flex border-b bg-white z-20 shrink-0">
+                <button 
+                    @click="activeMobileTab = 'edit'"
+                    :class="['flex-1 py-3 font-bold text-center border-b-2 transition', activeMobileTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500']"
+                >
+                    Edit Content
+                </button>
+                <button 
+                     @click="activeMobileTab = 'preview'"
+                     :class="['flex-1 py-3 font-bold text-center border-b-2 transition', activeMobileTab === 'preview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500']"
+                >
+                    Preview Mode
+                </button>
+            </div>
+
             <!-- Left Panel: Form -->
-            <div class="w-1/2 md:w-5/12 lg:w-1/3 bg-white border-r overflow-y-auto">
+            <!-- 
+                Desktop: Always Visible (w-5/12 or w-1/3)
+                Mobile: Visible ONLY if activeMobileTab == 'edit' (using v-show equivalent via classes to keep state)
+             -->
+            <div 
+                class="bg-white border-r overflow-y-auto md:w-5/12 lg:w-1/3 w-full flex-shrink-0"
+                :class="{'hidden md:block': activeMobileTab !== 'edit'}"
+            >
                 <CVForm />
             </div>
 
             <!-- Right Panel: Preview -->
-            <div class="flex-1 bg-gray-100 overflow-hidden relative">
+            <!-- 
+                Desktop: Always Visible (flex-1)
+                Mobile: Visible ONLY if activeMobileTab == 'preview'
+             -->
+            <div 
+                class="bg-gray-100 overflow-hidden relative md:flex-1 w-full flex flex-col"
+                :class="{'hidden md:flex': activeMobileTab !== 'preview', 'flex flex-1': activeMobileTab === 'preview'}"
+            >
+                <!-- Tool Bar for Preview (Scale etc could go here) -->
+                
                 <CVRenderer 
                     :html="store.currentTemplate.html"
                     :css="store.currentTemplate.css"
                     :data="store.currentCV.content"
+                    class="flex-1"
                 />
                 
                 <!-- AI Chat Sidebar -->
@@ -107,7 +151,24 @@ const downloadCV = async () => {
         </div>
     </div>
     
-    <div v-else class="h-screen flex items-center justify-center">
-        Loading Editor...
+    <!-- Loading State -->
+    <div v-else-if="store.isLoading" class="h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-gray-500 font-medium">Loading Editor...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="store.error" class="h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+        <div class="bg-red-100 p-4 rounded-full mb-4 text-red-600 text-3xl">⚠️</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Failed to Load CV</h2>
+        <p class="text-red-500 mb-6 max-w-md">{{ store.error }}</p>
+        <router-link to="/" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+            Return to Dashboard
+        </router-link>
+    </div>
+
+    <!-- Fallback Empty State -->
+    <div v-else class="h-screen flex items-center justify-center bg-gray-50">
+        <p class="text-gray-400">Initializing...</p>
     </div>
 </template>

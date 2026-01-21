@@ -19,6 +19,10 @@ const render = () => {
 
     try {
         // Safe Compile
+        if (!props.html) {
+             contentElement.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No Template Loaded</div>';
+             return;
+        }
         const template = Handlebars.compile(props.html);
         
         console.warn('-------- CVRenderer Debug --------');

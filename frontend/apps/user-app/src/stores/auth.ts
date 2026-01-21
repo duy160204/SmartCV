@@ -60,6 +60,25 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function register(payload: any) {
+        try {
+            // POST /api/auth/register
+            const res = await authApi.post('/api/auth/register', payload);
+            // After register, we might need to login automatically or show success
+            // If backend returns token, we store it. If not, just user data.
+            // Assuming simplified flow: register -> success -> auto-login or prompt login.
+            // If the API returns same structure as login:
+            const data = res.data;
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken);
+            }
+            await checkAuth();
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Registration failed';
+            throw new Error(message);
+        }
+    }
+
     async function logout() {
         try {
             const token = localStorage.getItem('refreshToken');
@@ -86,6 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
         isLoading,
         checkAuth,
         login,
+        register,
         logout
     };
 });

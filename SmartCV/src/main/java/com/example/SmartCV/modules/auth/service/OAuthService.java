@@ -1,7 +1,6 @@
 package com.example.SmartCV.modules.auth.service;
 
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +15,7 @@ import com.example.SmartCV.modules.auth.domain.RefreshToken;
 import com.example.SmartCV.modules.auth.domain.Role;
 import com.example.SmartCV.modules.auth.domain.User;
 import com.example.SmartCV.modules.auth.dto.AuthResponseDTO;
-import com.example.SmartCV.modules.auth.dto.FacebookUserDTO;
-import com.example.SmartCV.modules.auth.dto.GitHubUserDTO;
-import com.example.SmartCV.modules.auth.dto.LinkedInUserDTO;
-import com.example.SmartCV.modules.auth.dto.ZaloUserDTO;
+import com.example.SmartCV.modules.auth.dto.OAuthUserInfo;
 import com.example.SmartCV.modules.auth.repository.OAuthAccountRepository;
 import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
@@ -29,7 +25,6 @@ import com.example.SmartCV.modules.auth.verifier.GoogleVerifier;
 import com.example.SmartCV.modules.auth.verifier.LinkedInVerifier;
 import com.example.SmartCV.modules.auth.verifier.ZaloVerifier;
 import com.example.SmartCV.modules.subscription.service.SubscriptionService;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -124,17 +119,9 @@ public class OAuthService {
 
     public AuthResponseDTO loginWithGoogle(String code) throws OAuthException {
         try {
-            String accessToken = GoogleVerifier.exchangeCodeForAccessToken(code, oauthProperties.getGoogle());
-            GoogleIdToken.Payload payload = GoogleVerifier.getPayload(accessToken);
-
-            if (payload == null)
-                throw new OAuthException("Invalid Google payload");
-
-            return loginOrCreateOAuthUser(
-                    payload.getEmail(),
-                    (String) payload.get("name"),
-                    "google",
-                    payload.getSubject());
+            // Updated to use real exchange
+            OAuthUserInfo userInfo = GoogleVerifier.exchangeCode(code, oauthProperties.getGoogle());
+            return loginOrCreateOAuthUser(userInfo, "google");
         } catch (Exception e) {
             throw new OAuthException("Google login failed: " + e.getMessage());
         }
@@ -142,15 +129,8 @@ public class OAuthService {
 
     public AuthResponseDTO loginWithGitHub(String code) throws OAuthException {
         try {
-            GitHubUserDTO user = GitHubVerifier.getUserFromCode(code, oauthProperties.getGithub());
-            if (user == null)
-                throw new OAuthException("Invalid GitHub user");
-
-            String email = user.getEmail() != null
-                    ? user.getEmail()
-                    : "github_" + user.getId() + "@github-user.com";
-
-            return loginOrCreateOAuthUser(email, user.getName(), "github", user.getId());
+            OAuthUserInfo userInfo = GitHubVerifier.exchangeCode(code, oauthProperties.getGithub());
+            return loginOrCreateOAuthUser(userInfo, "github");
         } catch (Exception e) {
             throw new OAuthException("GitHub login failed: " + e.getMessage());
         }
@@ -158,15 +138,8 @@ public class OAuthService {
 
     public AuthResponseDTO loginWithFacebook(String code) throws OAuthException {
         try {
-            FacebookUserDTO user = FacebookVerifier.getUserFromCode(code, oauthProperties.getFacebook());
-            if (user == null)
-                throw new OAuthException("Invalid Facebook user");
-
-            String email = user.getEmail() != null
-                    ? user.getEmail()
-                    : "facebook_" + user.getId() + "@facebook-user.com";
-
-            return loginOrCreateOAuthUser(email, user.getName(), "facebook", user.getId());
+            OAuthUserInfo userInfo = FacebookVerifier.exchangeCode(code, oauthProperties.getFacebook());
+            return loginOrCreateOAuthUser(userInfo, "facebook");
         } catch (Exception e) {
             throw new OAuthException("Facebook login failed: " + e.getMessage());
         }
@@ -174,15 +147,8 @@ public class OAuthService {
 
     public AuthResponseDTO loginWithLinkedIn(String code) throws OAuthException {
         try {
-            LinkedInUserDTO user = LinkedInVerifier.getUserFromCode(code, oauthProperties.getLinkedin());
-            if (user == null)
-                throw new OAuthException("Invalid LinkedIn user");
-
-            String email = user.getEmail() != null
-                    ? user.getEmail()
-                    : "linkedin_" + user.getId() + "@linkedin-user.com";
-
-            return loginOrCreateOAuthUser(email, user.getName(), "linkedin", user.getId());
+            OAuthUserInfo userInfo = LinkedInVerifier.exchangeCode(code, oauthProperties.getLinkedin());
+            return loginOrCreateOAuthUser(userInfo, "linkedin");
         } catch (Exception e) {
             throw new OAuthException("LinkedIn login failed: " + e.getMessage());
         }
@@ -190,15 +156,8 @@ public class OAuthService {
 
     public AuthResponseDTO loginWithZalo(String code) throws OAuthException {
         try {
-            ZaloUserDTO user = ZaloVerifier.getUserFromCode(code, oauthProperties.getZalo());
-            if (user == null)
-                throw new OAuthException("Invalid Zalo user");
-
-            String email = user.getEmail() != null
-                    ? user.getEmail()
-                    : "zalo_" + user.getId() + "@zalo-user.com";
-
-            return loginOrCreateOAuthUser(email, user.getName(), "zalo", user.getId());
+            OAuthUserInfo userInfo = ZaloVerifier.exchangeCode(code, oauthProperties.getZalo());
+            return loginOrCreateOAuthUser(userInfo, "zalo");
         } catch (Exception e) {
             throw new OAuthException("Zalo login failed: " + e.getMessage());
         }
@@ -209,10 +168,16 @@ public class OAuthService {
     // ==================================================
 
     private AuthResponseDTO loginOrCreateOAuthUser(
-            String email,
-            String name,
-            String provider,
-            String providerUserId) throws OAuthException {
+            OAuthUserInfo oauthInfo,
+            String provider) throws OAuthException {
+
+        // 1. STRICT EMAIL CHECK
+        if (oauthInfo.email() == null || oauthInfo.email().isBlank()) {
+            throw new OAuthException("OAuth provider did not return an email. Login rejected.");
+        }
+
+        String email = oauthInfo.email();
+        String providerUserId = oauthInfo.providerUserId();
 
         // Track if this is a new user for subscription init
         final boolean[] isNewUser = { false };
@@ -223,12 +188,16 @@ public class OAuthService {
 
             User u = new User();
             u.setEmail(email);
-            u.setUsername(name != null ? name : "User" + new Random().nextInt(1000));
+            // 2. RANDOM USERNAME (No Provider Dependency)
+            u.setUsername("user_" + UUID.randomUUID().toString().substring(0, 8));
             u.setRoleId(role.getId());
 
-            // ===== CORE STATUS FOR OAUTH =====
-            u.setVerified(true); // OAuth provider already verified email
-            u.setLocked(false); // 🔓 UNLOCK - OAuth users don't need email verification
+            // 3. VERIFICATION LOGIC (Don't trust blindly)
+            // If provider says verified, mark verified. Else false.
+            u.setVerified(oauthInfo.emailVerified());
+
+            // If verified, unlock. If not verified, keep locked.
+            u.setLocked(!oauthInfo.emailVerified());
 
             isNewUser[0] = true;
             return userRepository.save(u);
@@ -240,14 +209,21 @@ public class OAuthService {
         }
 
         if (user.getPassword() != null) {
-            throw new OAuthException("Email already registered with password");
+            throw new OAuthException(
+                    "Email already registered with password (Local Account). Please login with password.");
         }
 
-        // ===== ENSURE ACCOUNT IS UNLOCKED (for returning OAuth users) =====
+        // ===== ENSURE ACCOUNT IS UNLOCKED (for returning OAuth users ONLY IF VERIFIED)
+        // =====
         if (user.isLocked()) {
-            user.setLocked(false);
-            user.setVerified(true);
-            userRepository.save(user);
+            // If returning user is locked, check if this new login provides verification
+            if (oauthInfo.emailVerified()) {
+                user.setVerified(true);
+                user.setLocked(false);
+                userRepository.save(user);
+            } else {
+                throw new OAuthException("Account is locked and provider did not verify email.");
+            }
         }
 
         oauthAccountRepository

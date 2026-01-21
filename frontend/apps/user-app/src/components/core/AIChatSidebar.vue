@@ -71,14 +71,12 @@ const sendMessage = async () => {
           <!-- Header -->
           <div class="bg-indigo-600 text-white p-3 font-bold flex justify-between items-center">
               <span>Chat with AI Assistant</span>
-              <span class="text-xs bg-green-400 text-green-900 px-2 py-1 rounded font-bold">FREE</span>
           </div>
           
           <!-- Messages -->
           <div class="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
               <div v-if="messages.length === 0" class="text-center text-gray-500 text-sm mt-4">
                   Ask me anything about your CV! <br> I can help improve wording, suggest skills, or spot errors.
-                  <div class="text-xs mt-2 text-gray-400">Limited to 20 requests per day</div>
               </div>
               <div 
                 v-for="(m, i) in messages" 

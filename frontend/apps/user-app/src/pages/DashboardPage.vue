@@ -3,54 +3,41 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/api/axios';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-
-import { computed } from 'vue';
+import { useUserPlanStore } from '@/stores/user-plan.store';
 
 const auth = useAuthStore();
 const router = useRouter();
 const cvs = ref<any[]>([]);
 const isLoading = ref(true);
 
-// Hardcoded limits based on PlanType unless we fetch full plan details
-// Safe Fallback: FREE=1, PRO=5, PREMIUM=Infinity
-const PLAN_LIMITS: Record<string, number> = {
-    'FREE': 1,
-    'PRO': 5,
-    'PREMIUM': 999
-};
-
-const maxCVs = computed(() => {
-    const planName = auth.user?.plan || 'FREE';
-    return PLAN_LIMITS[planName] || 1;
-});
-
-const canCreateCV = computed(() => {
-    return cvs.value.length < maxCVs.value;
-});
+const planStore = useUserPlanStore();
 
 onMounted(async () => {
     try {
-        const res = await api.get('/cv'); 
-        cvs.value = res.data;
-    } catch (e) {
-        console.error(e);
+        await Promise.all([
+            loadCVs(),
+            planStore.init() // Ensure plan data is fresh (though strictly not needed for list)
+        ]);
     } finally {
         isLoading.value = false;
     }
 });
 
-const createCV = () => {
-    if (!canCreateCV.value) {
-        // Redundant check if UI disabled properly, but safely blocks logic
-        alert(`You have reached the limit of ${maxCVs.value} CVs for your ${auth.user?.plan || 'FREE'} plan.`);
-        return;
+const loadCVs = async () => {
+    try {
+        const res = await api.get('/cv'); 
+        cvs.value = res.data;
+    } catch (e) {
+        console.error(e);
     }
+};
+
+const createCV = () => {
+    // We do NOT block in frontend anymore. We let the backend decide.
     router.push('/cv/create');
 };
 
 import { cvApi } from '@/api/user.api';
-
-// ...
 
 const deleteCV = async (id: number) => {
     if (!confirm("Are you sure you want to delete this CV?")) return;
@@ -88,15 +75,15 @@ const goSettings = () => router.push('/settings');
               <div>
                   <h2 class="text-3xl font-bold text-gray-800">My CVs</h2>
                   <p class="text-gray-500 mt-1">Manage and edit your professional resumes</p>
+                  <p class="text-xs text-blue-600 mt-1 font-bold" v-if="planStore.currentSubscription">
+                      Plan: {{ planStore.currentSubscription.plan }}
+                  </p>
               </div>
               <button 
                   @click="createCV" 
-                  :disabled="!canCreateCV"
-                  :class="['px-6 py-3 rounded-lg font-bold shadow transition flex items-center gap-2', 
-                    canCreateCV ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed']"
+                  class="px-6 py-3 rounded-lg font-bold shadow transition flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
               >
-                  <span v-if="canCreateCV">+ Create New CV</span>
-                  <span v-else>Limit Reached ({{ cvs.length }}/{{ maxCVs }})</span>
+                  <span>+ Create New CV</span>
               </button>
           </div>
 

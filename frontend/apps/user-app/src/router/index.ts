@@ -3,7 +3,6 @@ import { useAuthStore } from '../stores/auth'
 
 // Pages (Lazy load)
 const LandingPage = () => import('../pages/LandingPage.vue')
-const Dashboard = () => import('../pages/DashboardPage.vue')
 const Login = () => import('../pages/LoginPage.vue')
 const Register = () => import('../pages/RegisterPage.vue')
 const ForgotPassword = () => import('../pages/ForgotPasswordPage.vue')
@@ -11,7 +10,7 @@ const CreateCV = () => import('../pages/CreateCVPage.vue')
 const CVEditor = () => import('../pages/CVEditorPage.vue')
 const OAuthCallback = () => import('../pages/OAuthCallbackPage.vue')
 const PaymentReturn = () => import('../pages/PaymentReturnPage.vue')
-const Settings = () => import('../pages/SettingsPage.vue')
+const Profile = () => import('../pages/ProfilePage.vue')
 
 const router = createRouter({
     history: createWebHistory((import.meta as any).env.BASE_URL),
@@ -20,13 +19,16 @@ const router = createRouter({
             path: '/',
             name: 'landing',
             component: LandingPage,
-            meta: { guestOnly: true }
         },
         {
-            path: '/dashboard',
-            name: 'dashboard',
-            component: Dashboard,
-            meta: { requiresAuth: true }
+            path: '/ai',
+            name: 'ai',
+            component: () => import('../pages/AIPage.vue'),
+        },
+        {
+            path: '/pricing',
+            name: 'pricing',
+            component: () => import('../pages/PricingPage.vue'),
         },
         {
             path: '/login',
@@ -84,10 +86,20 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
-            path: '/settings',
-            name: 'settings',
-            component: Settings,
+            path: '/profile',
+            name: 'profile',
+            component: Profile,
             meta: { requiresAuth: true }
+        },
+        // Legacy redirect
+        {
+            path: '/settings',
+            redirect: '/profile'
+        },
+        // Catch all - redirect to home
+        {
+            path: '/:pathMatch(.*)*',
+            redirect: '/'
         }
     ]
 })
@@ -111,11 +123,11 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-        return next('/login');
+        return next('/');
     }
 
     if (to.meta.guestOnly && authStore.isAuthenticated) {
-        return next('/dashboard');
+        return next('/');
     }
 
     next();
