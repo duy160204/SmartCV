@@ -29,6 +29,36 @@ export const useCVStore = defineStore('cv', () => {
     const isSaving = ref(false);
     const lastSaved = ref<Date | null>(null);
 
+    // Helper: Normalize CV Data Structure
+    function normalizeCV(cv: any) {
+        if (!cv.content || typeof cv.content !== 'object') {
+            cv.content = {};
+        }
+
+        // Ensure Profile
+        if (!cv.content.profile) {
+            cv.content.profile = {
+                name: '',
+                title: '',
+                email: '',
+                phone: '',
+                website: '',
+                location: '',
+                summary: ''
+            };
+        }
+
+        // Ensure Arrays
+        const arraySections = ['experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards'];
+        arraySections.forEach(sec => {
+            if (!Array.isArray(cv.content[sec])) {
+                cv.content[sec] = [];
+            }
+        });
+
+        return cv;
+    }
+
     // Load CV by ID
     async function loadCV(id: number) {
         isLoading.value = true;
@@ -43,11 +73,12 @@ export const useCVStore = defineStore('cv', () => {
                     cvData.content = JSON.parse(cvData.content);
                 } catch (e) {
                     console.error("Failed to parse JSON content", e);
-                    // Fallback to empty object or raw string if needed, 
-                    // but usually better to fail safe
                     cvData.content = {};
                 }
             }
+
+            // Normalization (CRITICAL FIX)
+            normalizeCV(cvData);
 
             currentCV.value = cvData;
 

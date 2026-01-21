@@ -75,20 +75,62 @@ const createCV = async () => {
     if (!selectedTemplateId.value) return;
     
     try {
-        const res = await cvApi.create({
-            title: title.value,
-            templateId: selectedTemplateId.value,
-            content: { 
-                profile: { name: "", title: "", email: "", phone: "", summary: "", location: "", website: "" }, 
-                education: [], 
-                experience: [], 
-                skills: [],
-                projects: [],
-                languages: [],
-                certifications: [],
-                awards: []
-            }
-        });
+       const res = await cvApi.create({
+  title: title.value,
+  templateId: selectedTemplateId.value,
+  content: {
+    profile: {
+      enabled: true,
+      fullName: "",
+      headline: "",
+      avatarUrl: "",
+      email: "",
+      phone: "",
+      location: "",
+      website: "",
+      linkedin: "",
+      github: "",
+      summary: ""
+    },
+    experience: {
+      enabled: true,
+      items: []
+    },
+    education: {
+      enabled: true,
+      items: []
+    },
+    skills: {
+      enabled: true,
+      items: []
+    },
+    projects: {
+      enabled: false,
+      items: []
+    },
+    certifications: {
+      enabled: false,
+      items: []
+    },
+    languages: {
+      enabled: false,
+      items: []
+    },
+    awards: {
+      enabled: false,
+      items: []
+    },
+    activities: {
+      enabled: false,
+      items: []
+    },
+    interests: {
+      enabled: false,
+      items: []
+    }
+  }
+});
+
         router.push(`/cv/editor/${res.data.id}`);
     } catch (e: any) {
         if (e.response && e.response.status === 403) {

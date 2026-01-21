@@ -85,12 +85,6 @@ onMounted(async () => {
                       >
                           <span>👤</span> Account
                       </button>
-                      <button 
-                        @click="activeTab = 'subscription'"
-                        :class="['w-full text-left px-6 py-4 font-medium transition flex items-center gap-3', activeTab === 'subscription' ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:bg-gray-50']"
-                      >
-                          <span>💎</span> Subscription
-                      </button>
                   </div>
               </div>
 
@@ -161,54 +155,8 @@ onMounted(async () => {
                                    <!-- Real OAuth provider info would come from user object if available -->
                                </div>
                            </div>
-                       </div>
-                  </div>
-
-                  <!-- Subscription Tab -->
-                  <div v-if="activeTab === 'subscription'" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                       <h3 class="text-xl font-bold text-gray-800 mb-6">Subscription Plan</h3>
-                       
-                       <div v-if="planStore.isLoading">Loading details...</div>
-                       <div v-else-if="planStore.currentSubscription">
-                           <!-- Active Plan Card -->
-                           <div class="bg-gradient-to-br from-indigo-600 to-blue-700 text-white p-6 rounded-2xl shadow-lg mb-8 relative overflow-hidden">
-                               <div class="relative z-10">
-                                   <div class="uppercase text-xs font-bold opacity-70 mb-1 tracking-wider">Current Plan</div>
-                                   <div class="text-4xl font-extrabold mb-4">{{ planStore.currentSubscription.plan }}</div>
-                                   
-                                   <div class="flex gap-8">
-                                       <div>
-                                           <div class="text-2xl font-bold">{{ planStore.currentSubscription.cvCount }} / {{ planStore.currentSubscription.maxCVs === -1 ? '∞' : planStore.currentSubscription.maxCVs }}</div>
-                                           <div class="text-xs opacity-70">CVs Created</div>
-                                       </div>
-                                       <div>
-                                           <div class="text-2xl font-bold">{{ planStore.currentSubscription.status }}</div>
-                                           <div class="text-xs opacity-70">Status</div>
-                                       </div>
-                                   </div>
-                               </div>
-                               <!-- Decorative circle -->
-                               <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white opacity-10 rounded-full blur-2xl"></div>
-                           </div>
-                           
-                           <!-- Available Plans (View Only) -->
-                           <h4 class="font-bold text-gray-800 mb-4">Available Plans</h4>
-                           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               <div 
-                                    v-for="plan in planStore.plans" 
-                                    :key="plan.code"
-                                    class="p-4 border rounded-lg flex justify-between items-center opacity-75 grayscale hover:grayscale-0 hover:opacity-100 transition"
-                                >
-                                    <div>
-                                        <div class="font-bold text-gray-800">{{ plan.name }}</div>
-                                        <div class="text-sm text-gray-500">{{ formatCurrency(plan.price, plan.currency) }} / {{ plan.durationMonths }}mo</div>
-                                    </div>
-                                    <div class="text-xs bg-gray-100 px-2 py-1 rounded">View Only</div>
-                                </div>
-                           </div>
-                           <p class="text-xs text-gray-400 mt-4 italic">* Upgrades are currently disabled in this view.</p>
-                       </div>
-                  </div>
+                        </div>
+                   </div>
               </div>
           </div>
       </div>

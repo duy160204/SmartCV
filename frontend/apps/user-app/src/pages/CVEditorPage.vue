@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useCVStore } from '@/stores/cv';
 import CVRenderer from '@/components/core/CVRenderer.vue';
 import CVForm from '@/components/core/CVForm.vue';
-import AIChatSidebar from '@/components/core/AIChatSidebar.vue';
 import { cvApi, subscriptionApi } from '@/api/user.api';
 
 const route = useRoute();
@@ -57,9 +56,26 @@ const downloadCV = async () => {
 </script>
 
 <template>
-    <div class="h-screen flex flex-col" v-if="store.currentCV && store.currentTemplate">
+    <!-- 1. LOADING STATE (Highest Priority) -->
+    <div v-if="store.isLoading || !store.currentCV" class="h-screen flex flex-col items-center justify-center bg-gray-50 z-50 fixed inset-0">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-gray-500 font-medium">Loading Editor...</p>
+    </div>
+
+    <!-- 2. ERROR STATE -->
+    <div v-else-if="store.error" class="h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center z-50 fixed inset-0">
+        <div class="bg-red-100 p-4 rounded-full mb-4 text-red-600 text-3xl">⚠️</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Failed to Load CV</h2>
+        <p class="text-red-500 mb-6 max-w-md">{{ store.error }}</p>
+        <router-link to="/" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+            Return to Dashboard
+        </router-link>
+    </div>
+
+    <!-- 3. MAIN EDITOR CONTENT (Only renders if Loaded & No Error) -->
+    <div v-else class="h-screen flex flex-col">
         <!-- Top Bar -->
-        <header class="h-16 bg-white border-b flex items-center px-4 justify-between z-10">
+        <header class="h-16 bg-white border-b flex items-center px-4 justify-between z-10 shrink-0">
             <div class="flex items-center gap-4">
                 <router-link to="/" class="text-gray-500 hover:text-black">← Back to Home</router-link>
                 <input 
@@ -73,7 +89,7 @@ const downloadCV = async () => {
                 <span v-if="store.isSaving" class="text-sm text-yellow-600">Saving...</span>
                 <span v-else-if="store.lastSaved" class="text-sm text-green-600">Saved {{ store.lastSaved.toLocaleTimeString() }}</span>
                 
-                <!-- Share Button with simple toggle for now -->
+                <!-- Share Button -->
                 <div class="relative group">
                     <button class="text-gray-600 hover:text-blue-600 font-medium">Share</button>
                     <!-- Dropdown -->
@@ -96,7 +112,7 @@ const downloadCV = async () => {
             </div>
         </header>
 
-        <!-- Main Editor Area -->
+        <!-- Editor Workspace (Split View) -->
         <div class="flex flex-1 overflow-hidden relative flex-col md:flex-row">
             
             <!-- Mobile Tab Controls (Sticky Top) -->
@@ -136,39 +152,13 @@ const downloadCV = async () => {
                 class="bg-gray-100 overflow-hidden relative md:flex-1 w-full flex flex-col"
                 :class="{'hidden md:flex': activeMobileTab !== 'preview', 'flex flex-1': activeMobileTab === 'preview'}"
             >
-                <!-- Tool Bar for Preview (Scale etc could go here) -->
-                
                 <CVRenderer 
-                    :html="store.currentTemplate.html"
-                    :css="store.currentTemplate.css"
+                    :html="store.currentTemplate ? store.currentTemplate.html : ''"
+                    :css="store.currentTemplate ? store.currentTemplate.css : ''"
                     :data="store.currentCV.content"
                     class="flex-1"
                 />
-                
-                <!-- AI Chat Sidebar -->
-                <AIChatSidebar />
             </div>
         </div>
-    </div>
-    
-    <!-- Loading State -->
-    <div v-else-if="store.isLoading" class="h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-        <p class="text-gray-500 font-medium">Loading Editor...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="store.error" class="h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
-        <div class="bg-red-100 p-4 rounded-full mb-4 text-red-600 text-3xl">⚠️</div>
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Failed to Load CV</h2>
-        <p class="text-red-500 mb-6 max-w-md">{{ store.error }}</p>
-        <router-link to="/" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-            Return to Dashboard
-        </router-link>
-    </div>
-
-    <!-- Fallback Empty State -->
-    <div v-else class="h-screen flex items-center justify-center bg-gray-50">
-        <p class="text-gray-400">Initializing...</p>
     </div>
 </template>

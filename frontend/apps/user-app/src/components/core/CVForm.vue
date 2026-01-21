@@ -86,7 +86,7 @@ const removeItem = (section: string, index: number | string) => {
     </div>
 
     <!-- Content -->
-    <div class="p-6 flex-1 overflow-y-auto" v-if="store.currentCV?.content">
+    <div class="p-6 flex-1 overflow-y-auto" v-if="store.currentCV?.content && store.currentCV.content.profile">
         
         <!-- Profile Tab -->
         <div v-if="activeTab === 'profile'" class="space-y-4">
