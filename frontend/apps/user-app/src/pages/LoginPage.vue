@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
+import OAuthProviderButton from '@/components/auth/OAuthProviderButton.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -23,11 +24,14 @@ const handleLogin = async () => {
 <template>
   <div class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="p-8 bg-white rounded shadow-md w-96">
-      <h1 class="text-2xl font-bold mb-4">Login</h1>
+      <h1 class="text-2xl font-bold mb-4 text-center">Login</h1>
       
-      <div class="flex gap-2 mb-4">
-          <a href="http://localhost:8080/auth/oauth/google" class="flex-1 bg-red-500 text-white py-2 rounded text-center font-bold">Google</a>
-          <a href="http://localhost:8080/auth/oauth/github" class="flex-1 bg-gray-800 text-white py-2 rounded text-center font-bold">GitHub</a>
+      <div class="flex flex-wrap gap-2 justify-center mb-6">
+          <OAuthProviderButton provider="google" />
+          <OAuthProviderButton provider="github" />
+          <OAuthProviderButton provider="facebook" />
+          <OAuthProviderButton provider="linkedin" />
+          <OAuthProviderButton provider="zalo" />
       </div>
 
       <div class="relative mb-4">

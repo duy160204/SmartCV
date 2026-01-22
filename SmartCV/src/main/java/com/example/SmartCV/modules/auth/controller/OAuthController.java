@@ -33,8 +33,7 @@ public class OAuthController {
     @GetMapping("/{provider}")
     public void oauthStart(
             @PathVariable String provider,
-            HttpServletResponse response
-    ) throws IOException {
+            HttpServletResponse response) throws IOException {
 
         String state = UUID.randomUUID().toString();
 
@@ -50,12 +49,9 @@ public class OAuthController {
 
         String authUrl;
         switch (provider.toLowerCase()) {
-            case "google" -> authUrl = oauthService.getGoogleAuthorizationUrl(state);
-            case "github" -> authUrl = oauthService.getGithubAuthorizationUrl(state);
-            case "facebook" -> authUrl = oauthService.getFacebookAuthorizationUrl(state);
-            case "linkedin" -> authUrl = oauthService.getLinkedInAuthorizationUrl(state);
             case "zalo" -> authUrl = oauthService.getZaloAuthorizationUrl(state);
-            default -> throw new IllegalArgumentException("Unsupported provider: " + provider);
+            default -> throw new IllegalArgumentException(
+                    "Unsupported provider (Migrated to Spring Security Standard): " + provider);
         }
 
         response.sendRedirect(authUrl);
@@ -70,8 +66,7 @@ public class OAuthController {
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
             @CookieValue(name = "oauth_state", required = false) String savedState,
-            HttpServletResponse response
-    ) throws IOException {
+            HttpServletResponse response) throws IOException {
 
         try {
             if (code == null) {
@@ -84,12 +79,9 @@ public class OAuthController {
 
             AuthResponseDTO auth;
             switch (provider.toLowerCase()) {
-                case "google" -> auth = oauthService.loginWithGoogle(code);
-                case "github" -> auth = oauthService.loginWithGitHub(code);
-                case "facebook" -> auth = oauthService.loginWithFacebook(code);
-                case "linkedin" -> auth = oauthService.loginWithLinkedIn(code);
                 case "zalo" -> auth = oauthService.loginWithZalo(code);
-                default -> throw new IllegalArgumentException("Unsupported provider: " + provider);
+                default -> throw new IllegalArgumentException(
+                        "Unsupported provider (Migrated to Spring Security Standard): " + provider);
             }
 
             // ===== Access Token =====
@@ -101,8 +93,7 @@ public class OAuthController {
                             .maxAge(86400)
                             .sameSite("Lax")
                             .build()
-                            .toString()
-            );
+                            .toString());
 
             // ===== Refresh Token =====
             response.addHeader("Set-Cookie",
@@ -113,8 +104,7 @@ public class OAuthController {
                             .maxAge(604800)
                             .sameSite("Lax")
                             .build()
-                            .toString()
-            );
+                            .toString());
 
             // ===== Clear state =====
             response.addHeader("Set-Cookie",
@@ -122,16 +112,14 @@ public class OAuthController {
                             .path("/")
                             .maxAge(0)
                             .build()
-                            .toString()
-            );
+                            .toString());
 
             response.sendRedirect(frontendUrl + "/oauth/callback/" + provider + "?status=success");
 
         } catch (Exception e) {
             response.sendRedirect(
                     frontendUrl + "/oauth/callback/" + provider
-                            + "?status=error&message=" + e.getMessage()
-            );
+                            + "?status=error&message=" + e.getMessage());
         }
     }
 }

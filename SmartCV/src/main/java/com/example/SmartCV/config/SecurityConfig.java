@@ -23,6 +23,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.example.SmartCV.common.utils.CustomUserDetailsService;
 import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.common.utils.UserPrincipal;
+import com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationSuccessHandler;
+import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,6 +40,8 @@ public class SecurityConfig {
 
     private final JWTUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -63,7 +67,15 @@ public class SecurityConfig {
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .baseUri("/api/oauth2/authorization")) // Must match Proxy
+                        .redirectionEndpoint(red -> red
+                                .baseUri("/api/login/oauth2/code/*")) // Callback handling
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
+                        .successHandler(oAuth2AuthenticationSuccessHandler));
 
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

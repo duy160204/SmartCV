@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
+import OAuthProviderButton from '@/components/auth/OAuthProviderButton.vue';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -9,7 +10,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close']);
-
+// ... existing script content ...
 const auth = useAuthStore();
 const router = useRouter();
 
@@ -111,13 +112,12 @@ const handleSubmit = async () => {
              <!-- Footer / OAuth -->
              <div class="bg-gray-50 px-8 py-6 border-t border-gray-100 text-center">
                  <p class="text-sm text-gray-600 mb-4">Or continue with</p>
-                 <div class="flex gap-3 justify-center mb-6">
-                     <a href="/auth/oauth/google" class="flex-1 bg-white border border-gray-200 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2">
-                         Google
-                     </a>
-                     <a href="/auth/oauth/github" class="flex-1 bg-white border border-gray-200 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2">
-                         GitHub
-                     </a>
+                 <div class="flex flex-wrap gap-3 justify-center mb-6">
+                     <OAuthProviderButton provider="google" />
+                     <OAuthProviderButton provider="github" />
+                     <OAuthProviderButton provider="facebook" />
+                     <OAuthProviderButton provider="linkedin" />
+                     <OAuthProviderButton provider="zalo" />
                  </div>
                  
                  <div class="text-sm">

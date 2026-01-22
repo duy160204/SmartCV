@@ -19,10 +19,6 @@ import com.example.SmartCV.modules.auth.dto.OAuthUserInfo;
 import com.example.SmartCV.modules.auth.repository.OAuthAccountRepository;
 import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
-import com.example.SmartCV.modules.auth.verifier.FacebookVerifier;
-import com.example.SmartCV.modules.auth.verifier.GitHubVerifier;
-import com.example.SmartCV.modules.auth.verifier.GoogleVerifier;
-import com.example.SmartCV.modules.auth.verifier.LinkedInVerifier;
 import com.example.SmartCV.modules.auth.verifier.ZaloVerifier;
 import com.example.SmartCV.modules.subscription.service.SubscriptionService;
 
@@ -54,55 +50,6 @@ public class OAuthService {
 
     // ================= AUTHORIZATION URL =================
 
-    public String getGoogleAuthorizationUrl(String state) {
-        return UriComponentsBuilder
-                .fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
-                .queryParam("client_id", oauthProperties.getGoogle().getClientId())
-                .queryParam("redirect_uri", oauthProperties.getGoogle().getRedirectUri())
-                .queryParam("response_type", "code")
-                .queryParam("scope", "openid email profile")
-                .queryParam("access_type", "offline")
-                .queryParam("prompt", "consent")
-                .queryParam("state", state)
-                .build()
-                .toUriString();
-    }
-
-    public String getGithubAuthorizationUrl(String state) {
-        return UriComponentsBuilder
-                .fromUriString("https://github.com/login/oauth/authorize")
-                .queryParam("client_id", oauthProperties.getGithub().getClientId())
-                .queryParam("redirect_uri", oauthProperties.getGithub().getRedirectUri())
-                .queryParam("scope", "read:user user:email")
-                .queryParam("state", state)
-                .build()
-                .toUriString();
-    }
-
-    public String getFacebookAuthorizationUrl(String state) {
-        return UriComponentsBuilder
-                .fromUriString("https://www.facebook.com/v18.0/dialog/oauth")
-                .queryParam("client_id", oauthProperties.getFacebook().getClientId())
-                .queryParam("redirect_uri", oauthProperties.getFacebook().getRedirectUri())
-                .queryParam("response_type", "code")
-                .queryParam("scope", "email,public_profile")
-                .queryParam("state", state)
-                .build()
-                .toUriString();
-    }
-
-    public String getLinkedInAuthorizationUrl(String state) {
-        return UriComponentsBuilder
-                .fromUriString("https://www.linkedin.com/oauth/v2/authorization")
-                .queryParam("response_type", "code")
-                .queryParam("client_id", oauthProperties.getLinkedin().getClientId())
-                .queryParam("redirect_uri", oauthProperties.getLinkedin().getRedirectUri())
-                .queryParam("scope", "openid profile email")
-                .queryParam("state", state)
-                .build()
-                .toUriString();
-    }
-
     public String getZaloAuthorizationUrl(String state) {
         return UriComponentsBuilder
                 .fromUriString("https://oauth.zaloapp.com/v4/permission")
@@ -116,43 +63,6 @@ public class OAuthService {
     // ==================================================
     // ================= OAUTH LOGIN ====================
     // ==================================================
-
-    public AuthResponseDTO loginWithGoogle(String code) throws OAuthException {
-        try {
-            // Updated to use real exchange
-            OAuthUserInfo userInfo = GoogleVerifier.exchangeCode(code, oauthProperties.getGoogle());
-            return loginOrCreateOAuthUser(userInfo, "google");
-        } catch (Exception e) {
-            throw new OAuthException("Google login failed: " + e.getMessage());
-        }
-    }
-
-    public AuthResponseDTO loginWithGitHub(String code) throws OAuthException {
-        try {
-            OAuthUserInfo userInfo = GitHubVerifier.exchangeCode(code, oauthProperties.getGithub());
-            return loginOrCreateOAuthUser(userInfo, "github");
-        } catch (Exception e) {
-            throw new OAuthException("GitHub login failed: " + e.getMessage());
-        }
-    }
-
-    public AuthResponseDTO loginWithFacebook(String code) throws OAuthException {
-        try {
-            OAuthUserInfo userInfo = FacebookVerifier.exchangeCode(code, oauthProperties.getFacebook());
-            return loginOrCreateOAuthUser(userInfo, "facebook");
-        } catch (Exception e) {
-            throw new OAuthException("Facebook login failed: " + e.getMessage());
-        }
-    }
-
-    public AuthResponseDTO loginWithLinkedIn(String code) throws OAuthException {
-        try {
-            OAuthUserInfo userInfo = LinkedInVerifier.exchangeCode(code, oauthProperties.getLinkedin());
-            return loginOrCreateOAuthUser(userInfo, "linkedin");
-        } catch (Exception e) {
-            throw new OAuthException("LinkedIn login failed: " + e.getMessage());
-        }
-    }
 
     public AuthResponseDTO loginWithZalo(String code) throws OAuthException {
         try {
