@@ -2,6 +2,7 @@ package com.example.SmartCV.modules.payment.controller;
 
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,14 +28,39 @@ public class PaymentCallbackController {
      * Ví dụ:
      * /api/payments/vnpay/return?vnp_ResponseCode=00&vnp_TxnRef=xxx
      */
-    @GetMapping("/return")
-    public ResponseEntity<?> vnpayReturn(
-            @RequestParam Map<String, String> params
-    ) {
-        paymentCallbackService.handleVNPayReturn(params);
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
-        // Thực tế: nên redirect về frontend
-        return ResponseEntity.ok("Payment return processed");
+    /**
+     * =========================
+     * VNPay RETURN URL
+     * - User browser redirect về
+     * - Chỉ để hiển thị kết quả
+     * - KHÔNG dùng để xác nhận giao dịch
+     * =========================
+     *
+     * Ví dụ:
+     * /api/payments/vnpay/return?vnp_ResponseCode=00&vnp_TxnRef=xxx
+     */
+    @GetMapping("/return")
+    public ResponseEntity<Void> vnpayReturn(@RequestParam Map<String, String> params) {
+
+        try {
+            // Verify signature only, do NOT update DB
+            paymentCallbackService.handleVNPayReturn(params);
+        } catch (Exception e) {
+            // Log error but still redirect to failure page
+        }
+
+        String responseCode = params.get("vnp_ResponseCode");
+        String txnRef = params.get("vnp_TxnRef");
+
+        String redirectUrl = String.format("%s/payment/return?vnp_ResponseCode=%s&vnp_TxnRef=%s",
+                frontendUrl, responseCode, txnRef);
+
+        return ResponseEntity.status(302)
+                .header("Location", redirectUrl)
+                .build();
     }
 
     /**
@@ -44,22 +70,19 @@ public class PaymentCallbackController {
      * - DÙNG IPN để xác nhận giao dịch
      * =========================
      */
-    @PostMapping("/ipn")
+    @GetMapping("/ipn")
     public ResponseEntity<Map<String, String>> vnpayIpn(
-            @RequestParam Map<String, String> params
-    ) {
+            @RequestParam Map<String, String> params) {
         boolean success = paymentCallbackService.handleVNPayIpn(params);
 
         if (success) {
             return ResponseEntity.ok(Map.of(
-                "RspCode", "00",
-                "Message", "Confirm Success"
-            ));
+                    "RspCode", "00",
+                    "Message", "Confirm Success"));
         }
 
         return ResponseEntity.ok(Map.of(
-            "RspCode", "99",
-            "Message", "Confirm Failed"
-        ));
+                "RspCode", "99",
+                "Message", "Confirm Failed"));
     }
 }

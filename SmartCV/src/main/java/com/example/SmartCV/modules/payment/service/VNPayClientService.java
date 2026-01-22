@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 
 import com.example.SmartCV.modules.payment.domain.PaymentTransaction;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class VNPayClientService {
 
     @Value("${vnpay.tmn-code}")
@@ -25,6 +28,12 @@ public class VNPayClientService {
 
     @Value("${vnpay.return-url}")
     private String returnUrl;
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        this.tmnCode = this.tmnCode.trim();
+        this.hashSecret = this.hashSecret.trim();
+    }
 
     public String buildPaymentUrl(PaymentTransaction tx) {
 
@@ -43,20 +52,45 @@ public class VNPayClientService {
         params.put("vnp_IpAddr", "127.0.0.1");
 
         params.put(
-            "vnp_CreateDate",
-            DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
-                .format(tx.getCreatedAt())
-        );
+                "vnp_CreateDate",
+                DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                        .format(tx.getCreatedAt()));
 
-        String query = buildQuery(params);
-        String secureHash = hmacSHA512(hashSecret, query);
+        // 1. Build Raw Hash Data (No Encoding)
+        String hashData = buildHashData(params);
 
-        return payUrl + "?" + query + "&vnp_SecureHash=" + secureHash;
+        // 2. Calculate Hash
+        String secureHash = hmacSHA512(hashSecret, hashData);
+
+        // 3. Build Encoded URL Query
+        String queryUrl = buildQueryUrl(params);
+        String finalQuery = queryUrl + "&vnp_SecureHash=" + secureHash;
+
+        log.info("[VNPAY REQUEST] Params: {}", params);
+        log.info("[VNPAY REQUEST] Hash Input (RAW): {}", hashData);
+        log.info("[VNPAY REQUEST] Generated Hash: {}", secureHash);
+        log.info("[VNPAY REQUEST] Final Query: {}", finalQuery);
+
+        return payUrl + "?" + finalQuery;
     }
 
     /* ================= HELPERS ================= */
 
-    private String buildQuery(Map<String, String> params) {
+    private String buildHashData(Map<String, String> params) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            sb.append(e.getKey());
+            sb.append("=");
+            sb.append(e.getValue());
+            sb.append("&");
+        }
+        if (sb.length() > 0) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    private String buildQueryUrl(Map<String, String> params) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> e : params.entrySet()) {
             sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8));
@@ -64,15 +98,16 @@ public class VNPayClientService {
             sb.append(URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
             sb.append("&");
         }
-        sb.deleteCharAt(sb.length() - 1);
+        if (sb.length() > 0) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
         return sb.toString();
     }
 
     private String hmacSHA512(String key, String data) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA512");
-            var secretKey =
-                new javax.crypto.spec.SecretKeySpec(key.getBytes(), "HmacSHA512");
+            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(), "HmacSHA512");
 
             mac.init(secretKey);
 

@@ -26,6 +26,11 @@ public class VNPayCallbackService implements PaymentCallbackService {
     @Value("${vnpay.hash-secret}")
     private String hashSecret;
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        this.hashSecret = this.hashSecret.trim();
+    }
+
     private final PaymentTransactionRepository paymentRepo;
     // private final AdminSubscriptionRequestService
     // adminSubscriptionRequestService; // REMOVED PHASE 4
@@ -64,12 +69,21 @@ public class VNPayCallbackService implements PaymentCallbackService {
         String txnRef = params.get("vnp_TxnRef");
         String responseCode = params.get("vnp_ResponseCode");
 
+        // If it's just a Return URL (redirect), we don't update DB.
+        // We just verify signature (done above) and return.
+        if (!isIpn) {
+            log.info("[VNPAY][RETURN] User returned from VNPay. txnRef={}, code={}", txnRef, responseCode);
+            return;
+        }
+
+        // --- BELOW IS IPN LOGIC ONLY ---
+
         PaymentTransaction tx = paymentRepo
                 .findByTransactionCode(txnRef)
                 .orElseThrow(() -> new RuntimeException("Transaction not found: " + txnRef));
 
         if (tx.getStatus() == PaymentStatus.SUCCESS) {
-            log.warn("[VNPAY] Transaction already SUCCESS: {}", txnRef);
+            log.info("[VNPAY] Transaction already SUCCESS: {}", txnRef);
             return;
         }
 
@@ -84,12 +98,10 @@ public class VNPayCallbackService implements PaymentCallbackService {
         tx.setPaidAt(LocalDateTime.now());
         paymentRepo.save(tx);
 
-        log.info("[VNPAY][SUCCESS] txnRef={}, userId={}", txnRef, tx.getUserId());
+        log.info("[VNPAY][IPN][SUCCESS] txnRef={}, userId={}", txnRef, tx.getUserId());
 
-        if (isIpn) {
-            // AUTO ACTIVE SUBSCRIPTION
-            subscriptionService.activateSubscription(tx);
-        }
+        // AUTO ACTIVE SUBSCRIPTION
+        subscriptionService.activateSubscription(tx);
     }
 
     private boolean verifySignature(Map<String, String> params) {
@@ -110,9 +122,9 @@ public class VNPayCallbackService implements PaymentCallbackService {
         params.forEach((k, v) -> {
             if (v != null && !v.isEmpty()) {
                 try {
-                    sb.append(URLEncoder.encode(k, StandardCharsets.US_ASCII.toString()));
+                    sb.append(URLEncoder.encode(k, StandardCharsets.UTF_8.toString()));
                     sb.append("=");
-                    sb.append(URLEncoder.encode(v, StandardCharsets.US_ASCII.toString()));
+                    sb.append(URLEncoder.encode(v, StandardCharsets.UTF_8.toString()));
                     sb.append("&");
                 } catch (Exception e) {
                     log.error("Encoding error", e);

@@ -22,6 +22,7 @@ public class PaymentController {
 
     private final com.example.SmartCV.modules.subscription.repository.PlanDefinitionRepository planDefinitionRepository;
     private final PaymentTransactionRepository paymentRepo;
+    private final com.example.SmartCV.modules.payment.service.PaymentTransactionService paymentTransactionService;
     private final VNPayClientService vnpayClientService;
 
     @PostMapping
@@ -78,5 +79,23 @@ public class PaymentController {
                 Map.of(
                         "paymentUrl", paymentUrl,
                         "transactionCode", tx.getTransactionCode()));
+    }
+
+    @GetMapping("/{transactionCode}")
+    public ResponseEntity<?> getPaymentStatus(
+            @PathVariable String transactionCode) {
+
+        try {
+            PaymentTransaction tx = paymentTransactionService.getByTransactionCode(transactionCode);
+
+            return ResponseEntity.ok(Map.of(
+                    "transactionCode", tx.getTransactionCode(),
+                    "status", tx.getStatus(),
+                    "amount", tx.getAmount(),
+                    "plan", tx.getPlan(),
+                    "createdAt", tx.getCreatedAt().toString()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

@@ -5,9 +5,11 @@ import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
 
 import com.example.SmartCV.modules.ai.domain.AiUsage;
 import com.example.SmartCV.modules.ai.repository.AiUsageRepository;
+import com.example.SmartCV.common.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -40,9 +42,10 @@ public class AiUsageService {
                 .orElseGet(() -> createNewUsage(userId, today));
 
         if (usage.getRequestCount() >= maxRequestsPerDay) {
-            throw new RuntimeException(
+            throw new BusinessException(
                     "You've reached today's AI usage limit (" + maxRequestsPerDay
-                            + " requests). Please try again tomorrow.");
+                            + " requests). Please try again tomorrow.",
+                    HttpStatus.TOO_MANY_REQUESTS);
         }
 
         usage.incrementCount();
