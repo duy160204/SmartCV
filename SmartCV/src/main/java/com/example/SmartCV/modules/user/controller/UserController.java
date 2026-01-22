@@ -20,10 +20,12 @@ import com.example.SmartCV.modules.user.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserRepository userRepository;
@@ -36,6 +38,8 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserResponseDTO> getCurrentUser(
             @AuthenticationPrincipal UserPrincipal principal) {
+
+        log.info("GET /api/users/me called for user: {}", principal != null ? principal.getUsername() : "null");
 
         if (principal == null) {
             return ResponseEntity.status(401).build();
