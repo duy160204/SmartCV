@@ -23,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.example.SmartCV.common.utils.CustomUserDetailsService;
 import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.common.utils.UserPrincipal;
+import com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationFailureHandler;
 import com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationSuccessHandler;
 import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService;
 
@@ -42,6 +43,7 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -75,7 +77,8 @@ public class SecurityConfig {
                                 .baseUri("/api/login/oauth2/code/*")) // Callback handling
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
-                        .successHandler(oAuth2AuthenticationSuccessHandler));
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler));
 
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

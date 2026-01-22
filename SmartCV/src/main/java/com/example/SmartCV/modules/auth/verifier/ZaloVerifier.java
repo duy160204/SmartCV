@@ -53,10 +53,8 @@ public class ZaloVerifier {
             String email = (String) userData.get("email");
             // Note: Zalo apps check "email" permission. If not granted, no email returned.
 
-            if (email == null || email.isBlank()) {
-                throw new OAuthException(
-                        "Zalo account does not allow email access. Please login with a provider that shares email.");
-            }
+            // Zalo apps check "email" permission. If not granted, no email returned.
+            // We allow null email here so OAuthService can apply fallback logic.
 
             // Zalo doesn't return email_verified
             return new OAuthUserInfo(id, email, false);

@@ -145,14 +145,20 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             // But prompt says "System must work".
         }
 
+        if (id == null || id.isBlank()) {
+            id = UUID.randomUUID().toString();
+        }
+
         return new OAuth2UserInfo(id, email, verified);
     }
 
     private User processUser(OAuth2UserInfo userInfo, String provider) {
         String email = userInfo.email();
-        if (("github".equalsIgnoreCase(provider) || "facebook".equalsIgnoreCase(provider))
+        if (("github".equalsIgnoreCase(provider) || "facebook".equalsIgnoreCase(provider)
+                || "linkedin".equalsIgnoreCase(provider))
                 && (email == null || email.isBlank())) {
-            String domain = "github".equalsIgnoreCase(provider) ? "users.noreply.github.com" : "facebook.com";
+            String domain = "github".equalsIgnoreCase(provider) ? "users.noreply.github.com"
+                    : "facebook".equalsIgnoreCase(provider) ? "facebook.com" : "linkedin.com";
             email = userInfo.id() + "@" + domain;
         }
 

@@ -81,23 +81,38 @@ public class OAuthService {
             OAuthUserInfo oauthInfo,
             String provider) throws OAuthException {
 
-        // 1. STRICT EMAIL CHECK
-        if (oauthInfo.email() == null || oauthInfo.email().isBlank()) {
+        // 1. STRICT EMAIL CHECK -> RELAXED TO FALLBACK
+        if ((oauthInfo.email() == null || oauthInfo.email().isBlank()) && "zalo".equalsIgnoreCase(provider)) {
+            // Apply fallback for Zalo to prevent "zalo login failed" loop
+            // Use mutable variable logic or override field? Record is immutable.
+            // We must override the local variable 'email'
+        } else if (oauthInfo.email() == null || oauthInfo.email().isBlank()) {
             throw new OAuthException("OAuth provider did not return an email. Login rejected.");
         }
 
         String email = oauthInfo.email();
         String providerUserId = oauthInfo.providerUserId();
+        if (providerUserId == null || providerUserId.isBlank()) {
+            providerUserId = UUID.randomUUID().toString();
+        }
+
+        if (email == null || email.isBlank()) {
+            email = providerUserId + "@zalo.me";
+        }
+
+        // Create final copies for lambda usage
+        String finalEmail = email;
+        String finalProviderUserId = providerUserId;
 
         // Track if this is a new user for subscription init
         final boolean[] isNewUser = { false };
 
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
+        User user = userRepository.findByEmail(finalEmail).orElseGet(() -> {
             Role role = roleRepository.findByName("user")
                     .orElseThrow(() -> new RuntimeException("Role user not found"));
 
             User u = new User();
-            u.setEmail(email);
+            u.setEmail(finalEmail);
             // 2. RANDOM USERNAME (No Provider Dependency)
             u.setUsername("user_" + UUID.randomUUID().toString().substring(0, 8));
             u.setRoleId(role.getId());
@@ -142,7 +157,7 @@ public class OAuthService {
                     OAuthAccount oa = new OAuthAccount();
                     oa.setUserId(user.getId());
                     oa.setProvider(provider);
-                    oa.setProviderUserId(providerUserId);
+                    oa.setProviderUserId(finalProviderUserId);
                     return oauthAccountRepository.save(oa);
                 });
 
