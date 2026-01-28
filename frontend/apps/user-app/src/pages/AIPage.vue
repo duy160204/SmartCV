@@ -62,7 +62,7 @@ const sendMessage = async () => {
         // Based on typical AI response, it might be res.data.content or similar.
         // Let's assume the API returns the string or an object with 'message'/'content'.
         // If undefined, fallback to "AI processed your request."
-        const reply = res.data.message || res.data.content || typeof res.data === 'string' ? res.data : "AI Response Received";
+        const reply = res.data.answer || res.data.message || res.data.content || typeof res.data === 'string' ? res.data : "AI Response Received";
         messages.value.push({ role: 'assistant', content: reply });
     } catch (e: any) {
         messages.value.push({ role: 'assistant', content: "Sorry, I encountered an error: " + (e.message || "Unknown error") });

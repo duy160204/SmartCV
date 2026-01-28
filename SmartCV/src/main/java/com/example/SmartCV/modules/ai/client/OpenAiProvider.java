@@ -1,6 +1,8 @@
 package com.example.SmartCV.modules.ai.client;
 
 import com.example.SmartCV.common.exception.BusinessException;
+import com.example.SmartCV.modules.ai.dto.UnifiedAiRequest;
+import com.example.SmartCV.modules.ai.dto.UnifiedAiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,42 +16,40 @@ import java.util.Map;
 
 @Component
 @ConditionalOnProperty(name = "ai.openai.enabled", havingValue = "true")
-public class OpenAiClient implements AiProvider {
+public class OpenAiProvider implements AiProvider {
 
         private final RestTemplate restTemplate;
 
-        @Value("${ai.openai.model}")
+        @Value("${ai.openai.model:gpt-3.5-turbo}")
         private String model;
 
         @Value("${ai.openai.base-url}")
         private String baseUrl;
 
-        public OpenAiClient(
+        public OpenAiProvider(
                         @Value("${ai.openai.api-key}") String apiKey,
                         @Value("${ai.openai.base-url}") String baseUrl,
                         RestTemplateBuilder builder) {
                 this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
                 this.restTemplate = builder
-                                .setConnectTimeout(Duration.ofSeconds(10))
-                                .setReadTimeout(Duration.ofSeconds(30))
+                                .connectTimeout(Duration.ofSeconds(10))
+                                .readTimeout(Duration.ofSeconds(30))
                                 .defaultHeader("Authorization", "Bearer " + apiKey)
                                 .build();
         }
 
         @Override
-        public String chat(String prompt) {
+        public UnifiedAiResponse chat(UnifiedAiRequest request) {
+                long startTime = System.currentTimeMillis();
 
                 Map<String, Object> body = Map.of(
                                 "model", model,
                                 "messages", List.of(
-                                                Map.of("role", "user", "content", prompt)),
-                                "temperature", 0.5 // Lower temperature for more consistent, professional results
-                );
+                                                Map.of("role", "system", "content", request.getSystemMessage()),
+                                                Map.of("role", "user", "content", request.getUserMessage())),
+                                "temperature", 0.5);
 
                 try {
-                        // Using RestTemplate (Blocking I/O but safe in Servlet thread pool compared to
-                        // block() in potentially reactive context)
-                        // And we have configured timeouts.
                         Map response = restTemplate.postForObject(baseUrl + "/chat/completions", body, Map.class);
 
                         if (response == null || !response.containsKey("choices")) {
@@ -58,15 +58,27 @@ public class OpenAiClient implements AiProvider {
 
                         List<Map> choices = (List<Map>) response.get("choices");
                         if (choices.isEmpty()) {
-                                return "";
+                                return new UnifiedAiResponse("");
                         }
                         Map message = (Map) choices.get(0).get("message");
-                        return message.get("content").toString();
+                        String text = message.get("content").toString();
+
+                        long latency = System.currentTimeMillis() - startTime;
+
+                        return UnifiedAiResponse.builder()
+                                        .content(text)
+                                        .provider(AiProviderType.OPENAI)
+                                        .latencyMs(latency)
+                                        .build();
 
                 } catch (Exception e) {
-                        // Log error in caller or here
                         throw new BusinessException("AI Service Error: " + e.getMessage(),
                                         HttpStatus.INTERNAL_SERVER_ERROR);
                 }
+        }
+
+        @Override
+        public AiProviderType getType() {
+                return AiProviderType.OPENAI;
         }
 }

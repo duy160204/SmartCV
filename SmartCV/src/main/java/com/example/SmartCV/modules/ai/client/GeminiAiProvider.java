@@ -13,6 +13,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import com.example.SmartCV.modules.ai.dto.UnifiedAiRequest;
+import com.example.SmartCV.modules.ai.dto.UnifiedAiResponse;
+
 @Component
 @Primary
 @ConditionalOnProperty(name = "ai.gemini.enabled", havingValue = "true", matchIfMissing = true)
@@ -36,15 +39,22 @@ public class GeminiAiProvider implements AiProvider {
     }
 
     @Override
-    public String chat(String prompt) {
+    public UnifiedAiResponse chat(UnifiedAiRequest request) {
         String url = String.format(BASE_URL_TEMPLATE, model, apiKey);
+
+        long startTime = System.currentTimeMillis();
 
         // Build Gemini Request Body
         // { "contents": [{ "parts": [{ "text": "prompt" }] }] }
+        // Prepend system message to user message for Gemini as it supports it
+        // differently in beta
+        // For stability, we just prepend it to the text.
+        String finalPrompt = request.getSystemMessage() + "\n\n" + request.getUserMessage();
+
         Map<String, Object> body = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(
-                                Map.of("text", prompt)))));
+                                Map.of("text", finalPrompt)))));
 
         try {
             Map response = restTemplate.postForObject(url, body, Map.class);
@@ -55,7 +65,7 @@ public class GeminiAiProvider implements AiProvider {
 
             List<Map> candidates = (List<Map>) response.get("candidates");
             if (candidates.isEmpty()) {
-                return "";
+                return new UnifiedAiResponse("");
             }
 
             Map firstCandidate = candidates.get(0);
@@ -63,15 +73,27 @@ public class GeminiAiProvider implements AiProvider {
             List<Map> parts = (List<Map>) content.get("parts");
 
             if (parts.isEmpty()) {
-                return "";
+                return new UnifiedAiResponse("");
             }
 
-            return parts.get(0).get("text").toString();
+            String text = parts.get(0).get("text").toString();
+            long latency = System.currentTimeMillis() - startTime;
+
+            return UnifiedAiResponse.builder()
+                    .content(text)
+                    .provider(AiProviderType.GEMINI)
+                    .latencyMs(latency)
+                    .build();
 
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             throw new BusinessException("AI Processing Failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Override
+    public AiProviderType getType() {
+        return AiProviderType.GEMINI;
     }
 }
