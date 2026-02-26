@@ -2,11 +2,12 @@
 import { ref } from 'vue';
 import { useCVStore } from '@/stores/cv';
 import api from '@/api/axios'; // Direct Axios or via store
+import { processAiAnswer } from '@/utils/aiMarkdown';
 
 const store = useCVStore();
 
 const isOpen = ref(false);
-const messages = ref<{role: 'user' | 'assistant', content: string}[]>([]);
+const messages = ref<{role: 'user' | 'assistant', content: string, html?: string}[]>([]);
 const currentInput = ref('');
 const isProcessing = ref(false);
 
@@ -31,15 +32,21 @@ const sendMessage = async () => {
         // Save CV first to ensure context is fresh
         await store.saveCV();
         
-        // Import aiApi and call backend
         const { aiApi } = await import('@/api/user.api');
         
         const res = await aiApi.chat(store.currentCV?.id!, msg);
+        const rawContent = res.data?.answer || res.data?.message || (typeof res.data === 'string' ? res.data : "AI Response Received");
+        console.log("[AIChatSidebar] API Answer Received:", rawContent);
         
+        const processedHtml = await processAiAnswer(rawContent);
+        console.log("[AIChatSidebar] Processed HTML:", processedHtml);
+
         messages.value.push({
             role: 'assistant',
-            content: res.data.message
+            content: rawContent,
+            html: processedHtml
         });
+        console.log("[AIChatSidebar] Messages length after push:", messages.value.length);
         
     } catch (e: any) {
         // Backend will return usage limit errors
@@ -81,9 +88,10 @@ const sendMessage = async () => {
               <div 
                 v-for="(m, i) in messages" 
                 :key="i"
-                :class="['max-w-[85%] rounded p-2 text-sm', m.role === 'user' ? 'bg-blue-100 ml-auto text-blue-900' : 'bg-white border text-gray-800 self-start']"
+                :class="['max-w-[85%] rounded p-2 text-sm', m.role === 'user' ? 'bg-blue-100 ml-auto text-blue-900' : 'bg-white border text-gray-800 self-start ai-markdown']"
               >
-                  {{ m.content }}
+                  <div v-if="m.html" v-html="m.html"></div>
+                  <div v-else>{{ m.content }}</div>
               </div>
               <div v-if="isProcessing" class="text-xs text-gray-400 italic">AI is thinking...</div>
           </div>
@@ -109,3 +117,44 @@ const sendMessage = async () => {
       </div>
   </div>
 </template>
+
+<style scoped>
+.ai-markdown :deep(h1), .ai-markdown :deep(h2), .ai-markdown :deep(h3), .ai-markdown :deep(h4) {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+.ai-markdown :deep(h1) { font-size: 1.5rem; }
+.ai-markdown :deep(h2) { font-size: 1.25rem; }
+.ai-markdown :deep(h3) { font-size: 1.125rem; }
+.ai-markdown :deep(ul), .ai-markdown :deep(ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+.ai-markdown :deep(ul) { list-style-type: disc; }
+.ai-markdown :deep(ol) { list-style-type: decimal; }
+.ai-markdown :deep(p) {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+.ai-markdown :deep(code) {
+    background-color: #f3f4f6;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+}
+.ai-markdown :deep(pre) {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+}
+.ai-markdown :deep(blockquote) {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1rem;
+    color: #6b7280;
+    font-style: italic;
+}
+</style>

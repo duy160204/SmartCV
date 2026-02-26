@@ -104,6 +104,27 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Malformed JSON request or missing body"));
     }
 
+    // ===== HANDLE 413 PAYLOAD TOO LARGE =====
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxSizeException(
+            org.springframework.web.multipart.MaxUploadSizeExceededException exc) {
+        log.warn("File too large: {}", exc.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ErrorResponse(HttpStatus.PAYLOAD_TOO_LARGE.value(), "File size exceeds limit (5MB maximum)"));
+    }
+
+    // ===== HANDLE 415 UNSUPPORTED MEDIA TYPE =====
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(
+            org.springframework.web.HttpMediaTypeNotSupportedException ex) {
+        log.warn("Unsupported Media Type: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(new ErrorResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
+                        "Unsupported Media Type: " + ex.getContentType()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex) {
         log.error("Unexpected Error", ex);

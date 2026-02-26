@@ -21,8 +21,6 @@ public class TemplateRequestDTO {
     @NotBlank(message = "Template name is required")
     private String name;
 
-    private String thumbnailUrl;
-
     @NotBlank(message = "Preview content is required")
     private String previewContent;
 

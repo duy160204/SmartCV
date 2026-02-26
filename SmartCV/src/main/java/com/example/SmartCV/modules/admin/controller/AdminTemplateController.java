@@ -2,6 +2,7 @@ package com.example.SmartCV.modules.admin.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.SmartCV.common.dto.ApiResponse;
 import com.example.SmartCV.modules.admin.dto.TemplateRequestDTO;
@@ -20,6 +21,17 @@ public class AdminTemplateController {
     private final AdminTemplateService adminTemplateService;
 
     // =========================
+    // UPLOAD TEMPLATE THUMBNAIL
+    // =========================
+    @PostMapping("/{id}/thumbnail")
+    public ResponseEntity<ApiResponse<String>> uploadThumbnail(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        String fileDownloadUri = adminTemplateService.uploadThumbnail(id, file);
+        return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", fileDownloadUri));
+    }
+
+    // =========================
     // CREATE TEMPLATE
     // =========================
     @PostMapping
@@ -27,7 +39,6 @@ public class AdminTemplateController {
             @Valid @RequestBody TemplateRequestDTO request) {
         Template template = adminTemplateService.createTemplate(
                 request.getName(),
-                request.getThumbnailUrl(),
                 request.getPreviewContent(),
                 request.getFullContent(),
                 request.getPlanRequired());
@@ -45,7 +56,6 @@ public class AdminTemplateController {
         Template template = adminTemplateService.updateTemplate(
                 id,
                 request.getName(),
-                request.getThumbnailUrl(),
                 request.getPreviewContent(),
                 request.getFullContent(),
                 request.getPlanRequired());

@@ -2,20 +2,23 @@ package com.example.SmartCV.modules.cv.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.SmartCV.modules.cv.domain.Template;
+import com.example.SmartCV.modules.cv.dto.TemplateSummaryProjection;
 import com.example.SmartCV.modules.subscription.domain.PlanType;
 
 public interface TemplateRepository extends JpaRepository<Template, Long> {
 
-    List<Template> findByIsActiveTrue();
+    Page<TemplateSummaryProjection> findByIsActiveTrue(Pageable pageable);
 
-    List<Template> findByIsActiveTrueAndPlanRequiredIn(List<PlanType> plans);
+    Page<TemplateSummaryProjection> findByIsActiveTrueAndPlanRequiredIn(List<PlanType> plans, Pageable pageable);
 
-    List<Template> findByIsActiveTrueAndPlanRequired(PlanType planRequired);
+    Page<TemplateSummaryProjection> findByIsActiveTrueAndPlanRequired(PlanType planRequired, Pageable pageable);
 
-    List<Template> findByIsActiveTrueOrderByCreatedAtDesc();
+    Page<TemplateSummaryProjection> findByIsActiveTrueOrderByCreatedAtDesc(Pageable pageable);
 
     long countByIsActiveTrue();
 }

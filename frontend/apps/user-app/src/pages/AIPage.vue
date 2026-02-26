@@ -2,11 +2,12 @@
 import { useAuthStore } from '@/stores/auth';
 import { cvApi, aiApi } from '@/api/user.api';
 import { ref, onMounted, computed } from 'vue';
+import { processAiAnswer } from '@/utils/aiMarkdown';
 
 const auth = useAuthStore();
 const myCVs = ref<any[]>([]);
 const selectedCVId = ref<number | null>(null);
-const messages = ref<{role: 'user' | 'assistant', content: string}[]>([]);
+const messages = ref<{role: 'user' | 'assistant', content: string, html?: string}[]>([]);
 const inputMessage = ref('');
 const isLoadingCVs = ref(false);
 const isSending = ref(false);
@@ -62,8 +63,14 @@ const sendMessage = async () => {
         // Based on typical AI response, it might be res.data.content or similar.
         // Let's assume the API returns the string or an object with 'message'/'content'.
         // If undefined, fallback to "AI processed your request."
-        const reply = res.data.answer || res.data.message || res.data.content || typeof res.data === 'string' ? res.data : "AI Response Received";
-        messages.value.push({ role: 'assistant', content: reply });
+        const reply = res.data?.answer || res.data?.message || (typeof res.data === 'string' ? res.data : "AI Response Received");
+        console.log("[AIPage] API Answer Received:", reply);
+        
+        const processedHtml = await processAiAnswer(reply);
+        console.log("[AIPage] Processed HTML:", processedHtml);
+        
+        messages.value.push({ role: 'assistant', content: reply, html: processedHtml });
+        console.log("[AIPage] Messages length after push:", messages.value.length);
     } catch (e: any) {
         messages.value.push({ role: 'assistant', content: "Sorry, I encountered an error: " + (e.message || "Unknown error") });
     } finally {
@@ -135,9 +142,10 @@ const sendMessage = async () => {
                     <div 
                         v-for="(msg, idx) in messages" 
                         :key="idx" 
-                        :class="['max-w-[85%] p-3 rounded-xl text-sm leading-relaxed', msg.role === 'user' ? 'bg-blue-600 text-white self-end ml-auto' : 'bg-white border text-gray-800 self-start']"
+                        :class="['max-w-[85%] p-3 rounded-xl text-sm leading-relaxed', msg.role === 'user' ? 'bg-blue-600 text-white self-end ml-auto' : 'bg-white border text-gray-800 self-start ai-markdown']"
                     >
-                        {{ msg.content }}
+                        <div v-if="msg.html" v-html="msg.html"></div>
+                        <div v-else>{{ msg.content }}</div>
                     </div>
                     <div v-if="isSending" class="self-start bg-gray-100 p-3 rounded-xl text-xs text-gray-500">
                         AI is thinking...
@@ -178,3 +186,44 @@ const sendMessage = async () => {
         </section>
     </div>
 </template>
+
+<style scoped>
+.ai-markdown :deep(h1), .ai-markdown :deep(h2), .ai-markdown :deep(h3), .ai-markdown :deep(h4) {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+.ai-markdown :deep(h1) { font-size: 1.5rem; }
+.ai-markdown :deep(h2) { font-size: 1.25rem; }
+.ai-markdown :deep(h3) { font-size: 1.125rem; }
+.ai-markdown :deep(ul), .ai-markdown :deep(ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+.ai-markdown :deep(ul) { list-style-type: disc; }
+.ai-markdown :deep(ol) { list-style-type: decimal; }
+.ai-markdown :deep(p) {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+.ai-markdown :deep(code) {
+    background-color: #f3f4f6;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+}
+.ai-markdown :deep(pre) {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+}
+.ai-markdown :deep(blockquote) {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1rem;
+    color: #6b7280;
+    font-style: italic;
+}
+</style>

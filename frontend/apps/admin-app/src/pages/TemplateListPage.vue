@@ -6,6 +6,13 @@ const templates = ref<any[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 
+const getImageUrl = (url: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    const backendBaseUrl = (import.meta as any).env.VITE_BACKEND_URL || '';
+    return backendBaseUrl + (url.startsWith('/') ? url : '/' + url);
+};
+
 onMounted(async () => {
     try {
         isLoading.value = true;
@@ -84,7 +91,7 @@ const deleteTemplate = async (id: number) => {
       <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div v-for="tmpl in templates" :key="tmpl.id" class="bg-white p-4 border rounded shadow">
               <div class="h-40 bg-gray-100 flex items-center justify-center mb-4 overflow-hidden relative group">
-                  <img v-if="tmpl.thumbnailUrl" :src="tmpl.thumbnailUrl" alt="Preview" class="w-full h-full object-cover" />
+                  <img v-if="tmpl.thumbnailUrl" :src="getImageUrl(tmpl.thumbnailUrl)" alt="Preview" class="w-full h-full object-cover" />
                   <span v-else class="text-gray-400">No Preview</span>
                   
                   <!-- Hover Overlay for Preview -->

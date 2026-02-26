@@ -11,7 +11,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "templates")
+@Table(name = "templates", indexes = {
+        @Index(name = "idx_template_active_plan", columnList = "is_active, plan_required")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,5 +57,7 @@ public class Template {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-}
 
+    @Version
+    private Integer version;
+}

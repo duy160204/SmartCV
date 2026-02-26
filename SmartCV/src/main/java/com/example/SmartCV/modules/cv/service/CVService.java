@@ -59,6 +59,8 @@ public class CVService {
         CV cv = CV.builder()
                 .userId(userId)
                 .templateId(template.getId())
+                .templateVersion(template.getVersion())
+                .templateSnapshot(template.getFullContent())
                 .title(title)
                 .content(content)
                 .status(CVStatus.DRAFT)

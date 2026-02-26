@@ -2,12 +2,16 @@ package com.example.SmartCV.modules.cv.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.cv.domain.Template;
+import com.example.SmartCV.modules.cv.dto.TemplateDetailResponseDTO;
+import com.example.SmartCV.modules.cv.dto.TemplateSummaryProjection;
 import com.example.SmartCV.modules.cv.service.TemplateService;
 
 import lombok.RequiredArgsConstructor;
@@ -32,22 +36,23 @@ public class TemplateController {
     // =========================
 
     /**
-     * Lấy danh sách template user được phép thấy
+     * Lấy danh sách template user được phép thấy (CÓ PHÂN TRANG, KHÔNG LOB)
      */
     @GetMapping
-    public ResponseEntity<List<Template>> getTemplates(Authentication authentication) {
+    public ResponseEntity<Page<TemplateSummaryProjection>> getTemplates(
+            Authentication authentication,
+            Pageable pageable) {
         Long userId = getUserId(authentication);
-        return ResponseEntity.ok(templateService.getAvailableTemplates(userId));
+        return ResponseEntity.ok(templateService.getAvailableTemplates(userId, pageable));
     }
 
     /**
      * Lấy chi tiết 1 template
      */
     @GetMapping("/{templateId}")
-    public ResponseEntity<Template> getTemplateDetail(
+    public ResponseEntity<TemplateDetailResponseDTO> getTemplateDetail(
             @PathVariable Long templateId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         Long userId = getUserId(authentication);
         return ResponseEntity.ok(templateService.getTemplateDetail(userId, templateId));
     }

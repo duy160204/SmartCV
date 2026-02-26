@@ -15,6 +15,13 @@ const selectedTemplateId = ref<number | null>(null);
 const title = ref('Untitled CV');
 const showFavoritesOnly = ref(false);
 
+const getImageUrl = (url: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    const backendBaseUrl = (import.meta as any).env.VITE_BACKEND_URL || '';
+    return backendBaseUrl + (url.startsWith('/') ? url : '/' + url);
+};
+
 onMounted(async () => {
     try {
         const [templatesRes, favoritesRes] = await Promise.all([
@@ -188,7 +195,7 @@ const createCV = async () => {
                   </button>
                   
                   <div class="aspect-[210/297] bg-gray-200 mb-4 rounded overflow-hidden relative">
-                      <img v-if="tmpl.thumbnailUrl" :src="tmpl.thumbnailUrl" class="w-full h-full object-cover">
+                      <img v-if="tmpl.thumbnailUrl" :src="getImageUrl(tmpl.thumbnailUrl)" class="w-full h-full object-cover">
                       <div v-else class="flex items-center justify-center h-full text-gray-400">Preview</div>
 
                       <div v-if="tmpl.planRequired !== 'FREE'" class="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm z-20">

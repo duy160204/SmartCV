@@ -12,8 +12,17 @@ import com.example.SmartCV.modules.cv.domain.CV;
 import com.example.SmartCV.modules.cv.domain.CVStatus;
 import com.example.SmartCV.modules.cv.domain.Template;
 import com.example.SmartCV.modules.cv.repository.CVRepository;
-import com.example.SmartCV.modules.cv.repository.TemplateRepository;
 import com.example.SmartCV.modules.subscription.domain.PlanType;
+import com.example.SmartCV.modules.cv.repository.TemplateRepository;
+import com.example.SmartCV.modules.cv.repository.CVRepository;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.SmartCV.common.service.PreviewStorageService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,22 +36,28 @@ public class AdminTemplateService {
     private final UserRepository userRepository;
     private final EmailService emailService;
 
+    private final PreviewStorageService previewStorageService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // Removed HTML_POLICY to allow raw templates with Handlebars syntax
+
     // =========================
     // CREATE TEMPLATE
     // =========================
+    @CacheEvict(value = "templates", allEntries = true)
     public Template createTemplate(
             String name,
-            String thumbnailUrl,
             String previewContent,
             String fullContent,
-            PlanType planRequired
-    ) {
+            PlanType planRequired) {
+        String safePreview = sanitizeContent(previewContent);
+        String safeFull = sanitizeContent(fullContent);
+
         Template template = Template.builder()
                 .code(generateTemplateCode(name))
                 .name(name)
-                .thumbnailUrl(thumbnailUrl)
-                .previewContent(previewContent)
-                .fullContent(fullContent)
+                .previewContent(safePreview)
+                .fullContent(safeFull)
                 .planRequired(planRequired)
                 .isActive(true)
                 .build();
@@ -51,38 +66,62 @@ public class AdminTemplateService {
     }
 
     private String generateTemplateCode(String name) {
-    return "TPL_" + name
-            .toUpperCase()
-            .replaceAll("\\s+", "_")
-            + "_" + System.currentTimeMillis();
-}
-
+        return "TPL_" + name
+                .toUpperCase()
+                .replaceAll("\\s+", "_")
+                + "_" + System.currentTimeMillis();
+    }
 
     // =========================
     // UPDATE TEMPLATE
     // =========================
+    @CacheEvict(value = "templates", allEntries = true)
     public Template updateTemplate(
             Long templateId,
             String name,
-            String thumbnailUrl,
             String previewContent,
             String fullContent,
-            PlanType planRequired
-    ) {
+            PlanType planRequired) {
         Template template = getTemplateOrThrow(templateId);
 
+        String safePreview = sanitizeContent(previewContent);
+        String safeFull = sanitizeContent(fullContent);
+
         template.setName(name);
-        template.setThumbnailUrl(thumbnailUrl);
-        template.setPreviewContent(previewContent);
-        template.setFullContent(fullContent);
+        template.setPreviewContent(safePreview);
+        template.setFullContent(safeFull);
         template.setPlanRequired(planRequired);
 
         return templateRepository.save(template);
     }
 
     // =========================
+    // UPLOAD THUMBNAIL
+    // =========================
+    @CacheEvict(value = "templates", allEntries = true)
+    public String uploadThumbnail(Long templateId, MultipartFile file) {
+        Template template = getTemplateOrThrow(templateId);
+        String oldUri = template.getThumbnailUrl();
+
+        String relativeUri = previewStorageService.save(file);
+        template.setThumbnailUrl(relativeUri);
+        templateRepository.save(template);
+
+        if (oldUri != null && oldUri.startsWith("preview/")) {
+            try {
+                previewStorageService.delete(oldUri.replace("preview/", ""));
+            } catch (Exception e) {
+                // Log exception in a real system
+            }
+        }
+
+        return relativeUri;
+    }
+
+    // =========================
     // DISABLE TEMPLATE (LOCK)
     // =========================
+    @CacheEvict(value = "templates", allEntries = true)
     public void disableTemplate(Long templateId) {
 
         Template template = getTemplateOrThrow(templateId);
@@ -101,6 +140,7 @@ public class AdminTemplateService {
     // =========================
     // ENABLE TEMPLATE
     // =========================
+    @CacheEvict(value = "templates", allEntries = true)
     public void enableTemplate(Long templateId) {
 
         Template template = getTemplateOrThrow(templateId);
@@ -118,14 +158,24 @@ public class AdminTemplateService {
     // =========================
     // DELETE TEMPLATE
     // =========================
+    @CacheEvict(value = "templates", allEntries = true)
     public void deleteTemplate(Long templateId) {
 
         Template template = getTemplateOrThrow(templateId);
+        String oldUri = template.getThumbnailUrl();
 
         // 🔥 BẮT BUỘC: xử lý CV trước
         handleCVWhenTemplateDeleted(template);
 
         templateRepository.delete(template);
+
+        if (oldUri != null && oldUri.startsWith("preview/")) {
+            try {
+                previewStorageService.delete(oldUri.replace("preview/", ""));
+            } catch (Exception e) {
+                // Log exception in a real system
+            }
+        }
     }
 
     // =========================
@@ -148,6 +198,30 @@ public class AdminTemplateService {
     // =============== PRIVATE – CORE LOGIC =================
     // ======================================================
 
+    private void validateThumbnailUrl(String url) {
+        if (url == null || url.trim().isEmpty())
+            return;
+        String lower = url.toLowerCase();
+        if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("file:")) {
+            throw new RuntimeException("Dangerous protocols are not allowed in Thumbnail URL");
+        }
+        if (!lower.startsWith("https://") && !lower.startsWith("http://localhost") && !lower.startsWith("/uploads/")) {
+            throw new RuntimeException("Thumbnail URL must be a valid HTTPS URL or an uploaded resource.");
+        }
+    }
+
+    private String sanitizeContent(String content) {
+        if (content == null || content.isBlank()) {
+            return content;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(content);
+            return objectMapper.writeValueAsString(node);
+        } catch (Exception e) {
+            return content;
+        }
+    }
+
     /**
      * Khi template bị LOCK
      * → CV phải bị khóa
@@ -158,7 +232,8 @@ public class AdminTemplateService {
 
         List<CV> cvs = cvRepository.findByTemplateId(template.getId());
 
-        if (cvs.isEmpty()) return; // không ảnh hưởng ai → không mail
+        if (cvs.isEmpty())
+            return; // không ảnh hưởng ai → không mail
 
         for (CV cv : cvs) {
             cv.setStatus(CVStatus.TEMPLATE_LOCKED);
@@ -168,8 +243,7 @@ public class AdminTemplateService {
             notifyUserTemplateAffected(
                     cv.getUserId(),
                     template.getName(),
-                    "Template bạn đang sử dụng đã bị khóa. Vui lòng chọn template khác để tiếp tục chỉnh sửa CV."
-            );
+                    "Template bạn đang sử dụng đã bị khóa. Vui lòng chọn template khác để tiếp tục chỉnh sửa CV.");
         }
     }
 
@@ -183,7 +257,8 @@ public class AdminTemplateService {
 
         List<CV> cvs = cvRepository.findByTemplateId(template.getId());
 
-        if (cvs.isEmpty()) return;
+        if (cvs.isEmpty())
+            return;
 
         for (CV cv : cvs) {
             cv.setStatus(CVStatus.TEMPLATE_DELETED);
@@ -193,8 +268,7 @@ public class AdminTemplateService {
             notifyUserTemplateAffected(
                     cv.getUserId(),
                     template.getName(),
-                    "Template bạn đang sử dụng đã bị xóa. CV đã bị đóng băng, vui lòng tạo CV mới với template khác."
-            );
+                    "Template bạn đang sử dụng đã bị xóa. CV đã bị đóng băng, vui lòng tạo CV mới với template khác.");
         }
     }
 
@@ -204,13 +278,13 @@ public class AdminTemplateService {
     private void notifyUserTemplateAffected(Long userId, String templateName, String reason) {
 
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return;
+        if (user == null)
+            return;
 
         emailService.sendTemplateAffectedEmail(
                 user.getEmail(),
                 templateName,
-                reason
-        );
+                reason);
     }
 
     // =========================

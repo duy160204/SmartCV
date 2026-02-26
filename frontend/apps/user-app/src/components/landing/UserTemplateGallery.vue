@@ -14,15 +14,39 @@ const previewModalOpen = ref(false);
 const currentPreviewImage = ref<string | null>(null);
 const currentPreviewTitle = ref('');
 
-const loadData = async () => {
+const page = ref(0);
+const totalPages = ref(1);
+const size = 8;
+
+const getImageUrl = (url: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    const backendBaseUrl = (import.meta as any).env.VITE_BACKEND_URL || '';
+    return backendBaseUrl + (url.startsWith('/') ? url : '/' + url);
+};
+
+const loadData = async (pageNum = 0) => {
     isLoading.value = true;
     try {
         const [tplRes, subRes] = await Promise.all([
-            api.get('/templates'),
+            api.get(`/templates?page=${pageNum}&size=${size}`),
             api.get('/subscription/me')
         ]);
-        templates.value = tplRes.data;
-        subscription.value = subRes.data;
+        
+        let pageData = tplRes.data;
+        if (tplRes.data && tplRes.data.data) {
+            pageData = tplRes.data.data;
+        }
+
+        if (pageData && pageData.content) {
+            templates.value = pageData.content;
+            page.value = pageData.number;
+            totalPages.value = pageData.totalPages;
+        } else {
+            templates.value = pageData;
+        }
+
+        subscription.value = subRes.data?.data || subRes.data;
     } catch (e) {
         console.error("Failed to load user data", e);
     } finally {
@@ -92,7 +116,13 @@ onMounted(() => {
                 >
                     <!-- Preview Image -->
                     <div class="aspect-[210/297] bg-gray-100 relative">
-                        <img v-if="tmpl.thumbnailUrl" :src="tmpl.thumbnailUrl" class="w-full h-full object-cover">
+                        <img 
+                            v-if="tmpl.thumbnailUrl" 
+                            :src="getImageUrl(tmpl.thumbnailUrl)" 
+                            loading="lazy"
+                            @error="tmpl.thumbnailUrl = null"
+                            class="w-full h-full object-cover"
+                        >
                         <div v-else class="flex items-center justify-center h-full text-gray-400 font-medium">No Preview</div>
 
                         <!-- Hover Overlay -->
@@ -116,11 +146,30 @@ onMounted(() => {
                     <div class="p-4 relative">
                         <h3 class="font-bold text-gray-800 truncate">{{ tmpl.name }}</h3>
                         <p class="text-xs text-gray-500 mt-1">Professional & ATS-Friendly</p>
-                         <span v-if="tmpl.planRequired !== 'FREE'" class="absolute top-4 right-4 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200">
+                        <span v-if="tmpl.planRequired !== 'FREE'" class="absolute top-4 right-4 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200">
                             {{ tmpl.planRequired }}
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div v-if="totalPages > 1" class="mt-12 flex justify-center items-center gap-4">
+                <button 
+                    @click="loadData(page - 1)" 
+                    :disabled="page === 0"
+                    class="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 text-gray-700 font-medium transition"
+                >
+                    Previous
+                </button>
+                <span class="px-4 py-2 text-gray-600 font-medium">Page {{ page + 1 }} of {{ totalPages }}</span>
+                <button 
+                    @click="loadData(page + 1)" 
+                    :disabled="page >= totalPages - 1"
+                    class="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 text-gray-700 font-medium transition"
+                >
+                    Next
+                </button>
             </div>
         </div>
 

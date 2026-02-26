@@ -7,11 +7,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.SmartCV.modules.cv.domain.Template;
+import com.example.SmartCV.modules.cv.dto.TemplateDetailResponseDTO;
+import com.example.SmartCV.modules.cv.dto.TemplateSummaryProjection;
 import com.example.SmartCV.modules.cv.repository.TemplateRepository;
 import com.example.SmartCV.modules.subscription.domain.PlanType;
 import com.example.SmartCV.modules.subscription.domain.SubscriptionStatus;
 import com.example.SmartCV.modules.subscription.domain.UserSubscription;
 import com.example.SmartCV.modules.subscription.repository.UserSubscriptionRepository;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import lombok.RequiredArgsConstructor;
 
@@ -67,20 +73,21 @@ public class TemplateService {
     // =========================
 
     /**
-     * Lấy danh sách template user được phép thấy
+     * Lấy danh sách template user được phép thấy (Phân trang)
      */
-    public List<Template> getAvailableTemplates(Long userId) {
+    @Cacheable(value = "templates", key = "#userId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public Page<TemplateSummaryProjection> getAvailableTemplates(Long userId, Pageable pageable) {
 
         PlanType userPlan = getUserPlan(userId);
         List<PlanType> allowedPlans = getAllowedPlans(userPlan);
 
-        return templateRepository.findByIsActiveTrueAndPlanRequiredIn(allowedPlans);
+        return templateRepository.findByIsActiveTrueAndPlanRequiredIn(allowedPlans, pageable);
     }
 
     /**
      * Lấy chi tiết 1 template (khi user click xem)
      */
-    public Template getTemplateDetail(Long userId, Long templateId) {
+    public TemplateDetailResponseDTO getTemplateDetail(Long userId, Long templateId) {
 
         PlanType userPlan = getUserPlan(userId);
         List<PlanType> allowedPlans = getAllowedPlans(userPlan);
@@ -93,6 +100,18 @@ public class TemplateService {
             throw new RuntimeException("Gói hiện tại không được phép sử dụng template này");
         }
 
-        return template;
+        return TemplateDetailResponseDTO.builder()
+                .id(template.getId())
+                .code(template.getCode())
+                .name(template.getName())
+                .description(template.getDescription())
+                .thumbnailUrl(template.getThumbnailUrl())
+                .previewContent(template.getPreviewContent())
+                .fullContent(template.getFullContent())
+                .planRequired(template.getPlanRequired())
+                .isActive(template.getIsActive())
+                .createdAt(template.getCreatedAt())
+                .updatedAt(template.getUpdatedAt())
+                .build();
     }
 }

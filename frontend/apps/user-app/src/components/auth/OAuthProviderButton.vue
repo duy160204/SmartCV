@@ -88,6 +88,6 @@ const handleLogin = () => {
         <svg v-else-if="provider === 'zalo'" class="w-6 h-6" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25 0C11.193 0 0 11.193 0 25c0 13.807 11.193 25 25 25 13.807 0 25-11.193 25-25C50 11.193 38.807 0 25 0zm0 46C13.421 46 4 36.579 4 25S13.421 4 25 4s21 9.421 21 21-9.421 21-21 21zm-6-29h12v4h-8v8h8v4h-12V17z" fill="currentColor"/></svg>
         
         <!-- Fallback text -->
-        <span v-else>{{ provider[0].toUpperCase() }}</span>
+        <span v-else>{{ (provider as string)[0].toUpperCase() }}</span>
     </button>
 </template>
