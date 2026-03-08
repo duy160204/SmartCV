@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CVAutoSaveDTO {
     private String content;
+    private String dataJson;
 }

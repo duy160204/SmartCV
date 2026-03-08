@@ -103,6 +103,15 @@ export const cvApi = {
 
     // GET /api/cv/favorites
     getFavorites: () => api.get('/cv/favorites'),
+
+    // POST /api/cv/{id}/upload-avatar
+    uploadAvatar: (id: number, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post(`/cv/${id}/upload-avatar`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
 };
 
 // =========================
@@ -149,6 +158,14 @@ export const aiApi = {
     // POST /api/ai/cv/chat
     chat: (cvId: number, message: string) =>
         api.post('/ai/cv/chat', { cvId, message }),
+
+    // POST /api/ai/cv/generate
+    generateCv: (prompt: string, templateConfigJson: string) =>
+        api.post('/ai/cv/generate', { prompt, templateConfigJson }),
+
+    // POST /api/ai/text/improve
+    improveText: (text: string, instruction: string) =>
+        api.post('/ai/text/improve', { text, instruction }),
 };
 
 export const publicPlanApi = {

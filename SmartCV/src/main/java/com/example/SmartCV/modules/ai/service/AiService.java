@@ -37,13 +37,39 @@ public class AiService {
                 .userMessage("=== NỘI DUNG CV ===\n" + cvContent + "\n\n=== CÂU HỎI CỦA NGƯỜI DÙNG ===\n" + userMessage)
                 .build();
 
-        // 1. Try Primary
+        return executeWithFallback(request);
+    }
+
+    public String generateCvContent(String prompt, String templateConfigJson) {
+        UnifiedAiRequest request = UnifiedAiRequest.builder()
+                .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\n" + AiPrompts.GENERATE_CV_PROMPT)
+                .userMessage("=== USER BACKGROUND ===\n" + prompt + "\n\n=== SECTION CONFIG ===\n" + templateConfigJson)
+                .build();
+        return executeWithFallback(request);
+    }
+
+    public String improveText(String text, String instruction) {
+        UnifiedAiRequest request = UnifiedAiRequest.builder()
+                .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\n" + AiPrompts.IMPROVE_TEXT_PROMPT)
+                .userMessage("=== INSTRUCTION ===\n" + instruction + "\n\n=== TEXT TO IMPROVE ===\n" + text)
+                .build();
+        return executeWithFallback(request);
+    }
+
+    public String buildTemplateFromImage(String imageUrl) {
+        UnifiedAiRequest request = UnifiedAiRequest.builder()
+                .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\n" + AiPrompts.BUILD_TEMPLATE_PROMPT)
+                .userMessage("Convert the image according to the instructions.")
+                .imageUrl(imageUrl)
+                .build();
+        return executeWithFallback(request);
+    }
+
+    private String executeWithFallback(UnifiedAiRequest request) {
         try {
             return executeChat(aiProviderFactory.getPrimaryProvider(), request);
         } catch (Exception e) {
             log.error("Primary AI Provider ({}) failed: {}", aiProviderFactory.getPrimaryType(), e.getMessage());
-
-            // 2. Try Fallback
             try {
                 log.info("Switching to Fallback AI Provider...");
                 return executeChat(aiProviderFactory.getFallbackProvider(), request);

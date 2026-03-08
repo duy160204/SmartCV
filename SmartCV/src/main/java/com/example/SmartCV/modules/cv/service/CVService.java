@@ -48,7 +48,7 @@ public class CVService {
     // UC-B01 – Create CV
     // =========================
 
-    public CV createCV(Long userId, Long templateId, String title, String content) {
+    public CV createCV(Long userId, Long templateId, String title, String content, String dataJson) {
 
         subscriptionService.checkCanCreateCV(userId);
 
@@ -63,6 +63,7 @@ public class CVService {
                 .templateSnapshot(template.getFullContent())
                 .title(title)
                 .content(content)
+                .dataJson(dataJson)
                 .status(CVStatus.DRAFT)
                 .isPublic(false)
                 .viewCount(0L)
@@ -75,7 +76,7 @@ public class CVService {
     // UC-B02 – Update CV
     // =========================
 
-    public CV updateCV(Long userId, Long cvId, String title, String content) {
+    public CV updateCV(Long userId, Long cvId, String title, String content, String dataJson) {
 
         CV cv = getOwnedCV(cvId, userId);
 
@@ -87,6 +88,7 @@ public class CVService {
 
         cv.setTitle(title);
         cv.setContent(content);
+        cv.setDataJson(dataJson);
 
         return cvRepository.save(cv);
     }
@@ -95,7 +97,7 @@ public class CVService {
     // UC-B03 – Auto Save
     // =========================
 
-    public void autoSave(Long userId, Long cvId, String content) {
+    public void autoSave(Long userId, Long cvId, String content, String dataJson) {
 
         CV cv = getOwnedCV(cvId, userId);
 
@@ -106,6 +108,7 @@ public class CVService {
         }
 
         cv.setContent(content);
+        cv.setDataJson(dataJson);
         cvRepository.save(cv);
     }
 

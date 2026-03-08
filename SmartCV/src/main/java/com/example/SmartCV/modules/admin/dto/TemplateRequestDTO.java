@@ -27,6 +27,8 @@ public class TemplateRequestDTO {
     @NotBlank(message = "Full content is required")
     private String fullContent;
 
+    private String configJson;
+
     @NotNull(message = "Plan type is required")
     private PlanType planRequired;
 }

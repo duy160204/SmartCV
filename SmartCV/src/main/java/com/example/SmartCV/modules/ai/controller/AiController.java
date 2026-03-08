@@ -38,4 +38,33 @@ public class AiController {
 
         return ResponseEntity.ok(new AiChatResponse(result));
     }
+
+    @PostMapping("/cv/generate")
+    public ResponseEntity<AiChatResponse> generateCvContent(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody com.example.SmartCV.modules.ai.dto.AiGenerateRequest request) {
+        aiUsageService.checkAndRecordUsage(principal.getId());
+        String result = aiService.generateCvContent(request.getPrompt(), request.getTemplateConfigJson());
+        return ResponseEntity.ok(new AiChatResponse(result));
+    }
+
+    @PostMapping("/text/improve")
+    public ResponseEntity<AiChatResponse> improveText(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody com.example.SmartCV.modules.ai.dto.AiImproveRequest request) {
+        aiUsageService.checkAndRecordUsage(principal.getId());
+        String result = aiService.improveText(request.getText(), request.getInstruction());
+        return ResponseEntity.ok(new AiChatResponse(result));
+    }
+
+    @PostMapping("/template/build")
+    // Note: Assuming Admin tool might be here or in Admin controller. Let's place
+    // it here but requiring Admin later if needed.
+    public ResponseEntity<AiChatResponse> buildTemplate(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody com.example.SmartCV.modules.ai.dto.AiBuildTemplateRequest request) {
+        aiUsageService.checkAndRecordUsage(principal.getId());
+        String result = aiService.buildTemplateFromImage(request.getImageUrl());
+        return ResponseEntity.ok(new AiChatResponse(result));
+    }
 }

@@ -78,9 +78,20 @@ public class PublicCVService {
             html = "<h1>Error loading template</h1>";
         }
 
+        // Parse cv.getDataJson() securely
+        Object dataJsonObj = null;
+        try {
+            if (cv.getDataJson() != null && !cv.getDataJson().isBlank()) {
+                dataJsonObj = objectMapper.readValue(cv.getDataJson(), Object.class);
+            }
+        } catch (Exception e) {
+            dataJsonObj = cv.getDataJson();
+        }
+
         return PublicCVResponseDTO.builder()
                 .title(cv.getTitle())
                 .content(contentObj)
+                .dataJson(dataJsonObj)
                 .html(html)
                 .css(css)
                 .build();

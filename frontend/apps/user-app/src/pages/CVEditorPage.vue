@@ -1,15 +1,36 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCVStore } from '@/stores/cv';
 import CVRenderer from '@/components/core/CVRenderer.vue';
 import CVForm from '@/components/core/CVForm.vue';
+import AIGeneratorModal from '@/components/core/AIGeneratorModal.vue';
 import { cvApi, subscriptionApi } from '@/api/user.api';
 
 const route = useRoute();
 const router = useRouter();
 const store = useCVStore();
+
 const activeMobileTab = ref<'edit' | 'preview'>('edit');
+const activeFormTab = ref('profile');
+const isAIGeneratorOpen = ref(false);
+
+const configSections = computed(() => {
+    try {
+        if (store.currentTemplate && store.currentTemplate.configJson) {
+            const parsed = typeof store.currentTemplate.configJson === 'string' 
+                ? JSON.parse(store.currentTemplate.configJson) 
+                : store.currentTemplate.configJson;
+            if (parsed && parsed.sections && Array.isArray(parsed.sections)) {
+                return parsed.sections;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse configJson for sections", e);
+    }
+    // Fallback default sections
+    return ['profile', 'experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards'];
+});
 
 onMounted(() => {
     const id = Number(route.params.id);
@@ -17,6 +38,15 @@ onMounted(() => {
         store.loadCV(id);
     }
 });
+
+const handleAIGenerate = async (prompt: string) => {
+    isAIGeneratorOpen.value = false;
+    try {
+        await store.generateCv(prompt);
+    } catch (e: any) {
+        alert("Failed to generate CV: " + e.message);
+    }
+};
 
 const deleteCV = async () => {
     if (!store.currentCV?.id) return;
@@ -56,6 +86,13 @@ const downloadCV = async () => {
 </script>
 
 <template>
+    <!-- AI Generator Modal -->
+    <AIGeneratorModal 
+        :isOpen="isAIGeneratorOpen" 
+        @close="isAIGeneratorOpen = false" 
+        @generate="handleAIGenerate"
+    />
+
     <!-- 1. LOADING STATE (Highest Priority) -->
     <div v-if="store.isLoading || !store.currentCV" class="h-screen flex flex-col items-center justify-center bg-gray-50 z-50 fixed inset-0">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -131,23 +168,63 @@ const downloadCV = async () => {
                 </button>
             </div>
 
-            <!-- Left Panel: Form -->
-            <!-- 
-                Desktop: Always Visible (w-5/12 or w-1/3)
-                Mobile: Visible ONLY if activeMobileTab == 'edit' (using v-show equivalent via classes to keep state)
-             -->
+            <!-- New Sidebar: Sections & AI Assistant Panel (Desktop Only) -->
+            <div class="bg-gray-50 border-r w-48 flex-shrink-0 hidden md:flex flex-col">
+                <div class="p-4 border-b font-bold text-gray-700">CV Sections</div>
+                
+                <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <button 
+                        v-for="section in configSections" 
+                        :key="section"
+                        @click="activeFormTab = section"
+                        :class="[
+                            'w-full text-left px-3 py-2 rounded capitalize font-medium transition duration-200',
+                            activeFormTab === section ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-200'
+                        ]"
+                    >
+                        {{ section }}
+                    </button>
+                </div>
+
+                <!-- AI Assistant Panel -->
+                <div class="p-4 border-t bg-purple-50">
+                    <p class="text-xs text-purple-800 font-bold mb-2">AI Assistant Panel</p>
+                    <button @click="isAIGeneratorOpen = true" class="w-full bg-purple-600 text-white py-2 rounded shadow hover:bg-purple-700 font-medium transition duration-200 flex items-center justify-center gap-2">
+                        <span>✨ Generate with AI</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Middle Panel: Form -->
             <div 
-                class="bg-white border-r overflow-y-auto md:w-5/12 lg:w-1/3 w-full flex-shrink-0"
-                :class="{'hidden md:block': activeMobileTab !== 'edit'}"
+                class="bg-white border-r overflow-hidden md:w-5/12 lg:w-1/3 w-full flex-shrink-0 flex flex-col"
+                :class="{'hidden md:flex': activeMobileTab !== 'edit'}"
             >
-                <CVForm />
+                <!-- Mobile Sections Tabs -->
+                <div class="md:hidden flex overflow-x-auto border-b bg-gray-50 p-2 space-x-2 shrink-0">
+                    <button 
+                        v-for="section in configSections" 
+                        :key="section"
+                        @click="activeFormTab = section"
+                        :class="[
+                            'px-3 py-1 rounded capitalize text-sm whitespace-nowrap',
+                            activeFormTab === section ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-gray-200 text-gray-600'
+                        ]"
+                    >{{ section }}</button>
+                </div>
+                <!-- Mobile Generate AI Button -->
+                <div class="md:hidden p-2 bg-purple-50 shrink-0">
+                    <button @click="isAIGeneratorOpen = true" class="w-full bg-purple-600 text-white text-sm py-2 rounded shadow flex items-center justify-center gap-2">
+                         <span>✨ Generate with AI</span>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-visible">
+                    <CVForm :activeTab="activeFormTab" />
+                </div>
             </div>
 
             <!-- Right Panel: Preview -->
-            <!-- 
-                Desktop: Always Visible (flex-1)
-                Mobile: Visible ONLY if activeMobileTab == 'preview'
-             -->
             <div 
                 class="bg-gray-100 overflow-hidden relative md:flex-1 w-full flex flex-col"
                 :class="{'hidden md:flex': activeMobileTab !== 'preview', 'flex flex-1': activeMobileTab === 'preview'}"

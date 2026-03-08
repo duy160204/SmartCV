@@ -41,6 +41,7 @@ public class AdminTemplateController {
                 request.getName(),
                 request.getPreviewContent(),
                 request.getFullContent(),
+                request.getConfigJson(),
                 request.getPlanRequired());
 
         return ResponseEntity.ok(ApiResponse.success("Template created successfully", template));
@@ -58,6 +59,7 @@ public class AdminTemplateController {
                 request.getName(),
                 request.getPreviewContent(),
                 request.getFullContent(),
+                request.getConfigJson(),
                 request.getPlanRequired());
 
         return ResponseEntity.ok(ApiResponse.success("Template updated successfully", template));

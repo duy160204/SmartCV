@@ -13,6 +13,8 @@ public class CVDTO {
     @NotBlank(message = "Content is required")
     private String content;
 
+    private String dataJson;
+
     @NotNull(message = "Template ID is required")
     private Long templateId;
 }

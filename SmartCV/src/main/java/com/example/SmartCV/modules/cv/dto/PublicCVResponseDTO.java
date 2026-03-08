@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class PublicCVResponseDTO {
     private String title;
     private Object content; // JSON Data
+    private Object dataJson; // Structured Data JSON
     private String html; // Template HTML
     private String css; // Template CSS
 }

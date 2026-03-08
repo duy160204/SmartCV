@@ -39,6 +39,9 @@ public class CV {
     @Column(columnDefinition = "LONGTEXT")
     private String content;
 
+    @Column(name = "data_json", columnDefinition = "LONGTEXT")
+    private String dataJson;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CVStatus status;

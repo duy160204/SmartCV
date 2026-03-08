@@ -66,6 +66,28 @@ watch(activeTab, (newTab) => {
     }
 });
 
+watch(() => props.initialHtml, (newVal) => {
+    if (newVal !== undefined && newVal !== htmlContent.value) {
+        htmlContent.value = newVal;
+        if (activeTab.value === 'html' && editorInstance) {
+            if (editorInstance.getValue() !== newVal) {
+                editorInstance.setValue(newVal);
+            }
+        }
+    }
+});
+
+watch(() => props.initialCss, (newVal) => {
+    if (newVal !== undefined && newVal !== cssContent.value) {
+        cssContent.value = newVal;
+        if (activeTab.value === 'css' && editorInstance) {
+            if (editorInstance.getValue() !== newVal) {
+                editorInstance.setValue(newVal);
+            }
+        }
+    }
+});
+
 const save = () => {
     emit('save', {
         html: htmlContent.value,

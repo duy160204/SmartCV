@@ -42,11 +42,20 @@ public class OpenAiProvider implements AiProvider {
         public UnifiedAiResponse chat(UnifiedAiRequest request) {
                 long startTime = System.currentTimeMillis();
 
+                Object userContent;
+                if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
+                        userContent = List.of(
+                                        Map.of("type", "text", "text", request.getUserMessage()),
+                                        Map.of("type", "image_url", "image_url", Map.of("url", request.getImageUrl())));
+                } else {
+                        userContent = request.getUserMessage();
+                }
+
                 Map<String, Object> body = Map.of(
                                 "model", model,
                                 "messages", List.of(
                                                 Map.of("role", "system", "content", request.getSystemMessage()),
-                                                Map.of("role", "user", "content", request.getUserMessage())),
+                                                Map.of("role", "user", "content", userContent)),
                                 "temperature", 0.5);
 
                 try {

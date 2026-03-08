@@ -9,7 +9,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.example.SmartCV.common.service.PreviewStorageService;
 import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.cv.domain.CV;
 import com.example.SmartCV.modules.cv.domain.CVFavorite;
@@ -25,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class CVController {
 
         private final CVService cvService;
+        private final PreviewStorageService previewStorageService;
 
         // =========================
         // UC-B01 – Create CV
@@ -33,7 +36,8 @@ public class CVController {
         public ResponseEntity<CV> createCV(
                         @AuthenticationPrincipal UserPrincipal principal,
                         @RequestBody @Valid CVDTO body) {
-                CV cv = cvService.createCV(principal.getId(), body.getTemplateId(), body.getTitle(), body.getContent());
+                CV cv = cvService.createCV(principal.getId(), body.getTemplateId(), body.getTitle(), body.getContent(),
+                                body.getDataJson());
                 return ResponseEntity.ok(cv);
         }
 
@@ -46,7 +50,8 @@ public class CVController {
                         @PathVariable Long cvId,
                         @RequestBody @Valid CVDTO body) {
                 // Validation handled by @Valid
-                CV cv = cvService.updateCV(principal.getId(), cvId, body.getTitle(), body.getContent());
+                CV cv = cvService.updateCV(principal.getId(), cvId, body.getTitle(), body.getContent(),
+                                body.getDataJson());
                 return ResponseEntity.ok(cv);
         }
 
@@ -60,11 +65,26 @@ public class CVController {
                         @RequestBody com.example.SmartCV.modules.cv.dto.CVAutoSaveDTO body // Use DTO
         ) {
                 String content = body.getContent();
-                if (content == null) {
+                String dataJson = body.getDataJson();
+                if (content == null && dataJson == null) {
                         return ResponseEntity.badRequest().build();
                 }
-                cvService.autoSave(principal.getId(), cvId, content);
+                cvService.autoSave(principal.getId(), cvId, content, dataJson);
                 return ResponseEntity.ok().build();
+        }
+
+        // =========================
+        // UC-B03b – Upload Avatar
+        // =========================
+        @PostMapping("/{cvId}/upload-avatar")
+        public ResponseEntity<?> uploadCVAvatar(
+                        @AuthenticationPrincipal UserPrincipal principal,
+                        @PathVariable Long cvId,
+                        @RequestParam("file") MultipartFile file) {
+                // Ensure CV belongs to user
+                cvService.getMyCVDetail(principal.getId(), cvId);
+                String relativeUri = previewStorageService.save(file);
+                return ResponseEntity.ok(relativeUri);
         }
 
         // =========================

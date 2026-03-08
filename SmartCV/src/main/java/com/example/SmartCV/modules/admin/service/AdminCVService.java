@@ -56,6 +56,7 @@ public class AdminCVService {
                 .title(cv.getTitle())
                 .templateId(cv.getTemplateId())
                 .content(cv.getContent())
+                .dataJson(cv.getDataJson())
                 .status(cv.getStatus())
                 .isPublic(cv.getIsPublic())
                 .isLocked(cv.getIsLocked())

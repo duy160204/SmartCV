@@ -37,23 +37,46 @@ export const useCVStore = defineStore('cv', () => {
 
         // Ensure Profile
         if (!cv.content.profile) {
-            cv.content.profile = {
-                name: '',
-                title: '',
-                email: '',
-                phone: '',
-                website: '',
-                location: '',
-                summary: ''
-            };
+            cv.content.profile = {};
         }
+        const defaultProfile = {
+            name: '',
+            title: '',
+            email: '',
+            phone: '',
+            website: '',
+            location: '',
+            summary: '',
+            photo: '',
+            gender: '',
+            dob: '',
+            address: ''
+        };
+        cv.content.profile = { ...defaultProfile, ...cv.content.profile };
+
+        // Ensure Top-Level Strings
+        if (typeof cv.content.careerObjective !== 'string') cv.content.careerObjective = '';
+        if (typeof cv.content.interests !== 'string') cv.content.interests = '';
 
         // Ensure Arrays
-        const arraySections = ['experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards'];
+        const arraySections = ['experience', 'education', 'skills', 'languages', 'references'];
         arraySections.forEach(sec => {
             if (!Array.isArray(cv.content[sec])) {
                 cv.content[sec] = [];
             }
+        });
+
+        // Normalize Dates
+        cv.content.experience.forEach((e: any) => {
+            if (e.date) { e.startDate = e.date; delete e.date; }
+            if (!e.startDate) e.startDate = '';
+            if (!e.endDate) e.endDate = '';
+        });
+        cv.content.education.forEach((e: any) => {
+            if (e.date) { e.startDate = e.date; delete e.date; }
+            if (!e.startDate) e.startDate = '';
+            if (!e.endDate) e.endDate = '';
+            if (!e.major) e.major = '';
         });
 
         return cv;
@@ -152,12 +175,43 @@ export const useCVStore = defineStore('cv', () => {
         await saveCV();
 
         try {
-            isSaving.value = true; // reusing saving indicator or add isProcessingAI
-            const res = await aiApi.chat(currentCV.value.id, `Original text: "${text}". Instruction: ${instruction}. Return ONLY the improved text.`);
+            isSaving.value = true;
+            const res = await aiApi.improveText(text, instruction);
 
-            return res.data.message; // Assume response wrapper
+            return res.data.answer || res.data.message || res.data.content;
         } finally {
             isSaving.value = false;
+        }
+    }
+
+    async function generateCv(prompt: string) {
+        if (!currentCV.value || !currentTemplate.value) return;
+
+        try {
+            isLoading.value = true;
+            const configJson = currentTemplate.value.configJson || JSON.stringify({ sections: ['profile', 'experience', 'education', 'skills'] });
+            const res = await aiApi.generateCv(prompt, typeof configJson === 'string' ? configJson : JSON.stringify(configJson));
+
+            // Expected to return JSON string in content
+            let generatedData = res.data.answer || res.data.message || res.data.content;
+            if (typeof generatedData === 'string') {
+                // remove markdown ticks if any
+                generatedData = generatedData.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsedData = JSON.parse(generatedData);
+
+                // Merge into currentCV content safely
+                currentCV.value.content = {
+                    ...currentCV.value.content,
+                    ...parsedData
+                };
+                normalizeCV(currentCV.value);
+                await saveCV();
+            }
+        } catch (e: any) {
+            console.error("AI Generation JSON parse or endpoint error", e);
+            throw new Error(e.response?.data?.message || e.message || "Failed to generate CV");
+        } finally {
+            isLoading.value = false;
         }
     }
 
@@ -199,6 +253,7 @@ export const useCVStore = defineStore('cv', () => {
         loadCV,
         saveCV,
         improveText,
+        generateCv,
         publishCV,
         unpublishCV
     };

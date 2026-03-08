@@ -18,6 +18,7 @@ public class AdminCVDetailResponse {
     private String title;
     private Long templateId;
     private String content;
+    private String dataJson;
     private CVStatus status;
     private Boolean isPublic;
     private Boolean isLocked;

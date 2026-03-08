@@ -51,10 +51,21 @@ public class GeminiAiProvider implements AiProvider {
         // For stability, we just prepend it to the text.
         String finalPrompt = request.getSystemMessage() + "\n\n" + request.getUserMessage();
 
+        List<Map<String, Object>> requestParts;
+        if (request.getImageUrl() != null && request.getImageUrl().startsWith("data:image")) {
+            String[] split = request.getImageUrl().split(",");
+            String mimeType = split[0].substring(split[0].indexOf(":") + 1, split[0].indexOf(";"));
+            String base64Data = split[1];
+            requestParts = List.of(
+                    Map.of("text", finalPrompt),
+                    Map.of("inlineData", Map.of("mimeType", mimeType, "data", base64Data)));
+        } else {
+            requestParts = List.of(Map.of("text", finalPrompt));
+        }
+
         Map<String, Object> body = Map.of(
                 "contents", List.of(
-                        Map.of("parts", List.of(
-                                Map.of("text", finalPrompt)))));
+                        Map.of("parts", requestParts)));
 
         try {
             Map response = restTemplate.postForObject(url, body, Map.class);

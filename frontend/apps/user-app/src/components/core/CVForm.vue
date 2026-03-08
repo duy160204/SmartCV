@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { useCVStore } from '@/stores/cv';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { cvApi } from '@/api/user.api';
 import AIImproveModal from './AIImproveModal.vue';
 
+const props = defineProps<{
+    activeTab: string;
+}>();
+
 const store = useCVStore();
-const activeTab = ref('profile');
 
 // AI State
 const showAI = ref(false);
@@ -24,23 +28,11 @@ const handleAIApply = async (instruction: string) => {
     try {
         const improved = await store.improveText(aiTargetField.value, aiTargetValue.value, instruction);
         if (improved) {
-            // Traverse path to update value
-            // Simple approach for specific known fields, generic is harder without lodash set
-            // For now, implementing map for Profile Summary as primary use case
             if (aiTargetField.value === 'profile.summary') {
                 if (store.currentCV?.content?.profile) {
                     store.currentCV.content.profile.summary = improved;
                 }
-            } else if (aiTargetField.value.startsWith('experience')) {
-                // e.g. experience[0].description
-                // Parse index
-                const parts = aiTargetField.value.split('.'); 
-                // experience[0] -> experience, 0
-                // Hacky parse for now, assuming explicit calls
             }
-             // For strict implementation, we'd use a deep set util, but here we can just update the model driven by UI
-             // But wait, the previous code doesn't do deep set helper. 
-             // We'll update manually based on bindings.
         }
     } catch (e: any) {
         alert("AI Failed: " +  (e.message || e));
@@ -49,7 +41,6 @@ const handleAIApply = async (instruction: string) => {
     }
 };
 
-// Add item
 const addItem = (section: string) => {
     if (!store.currentCV?.content) return;
     if (!store.currentCV.content[section]) store.currentCV.content[section] = [];
@@ -59,30 +50,50 @@ const addItem = (section: string) => {
 const removeItem = (section: string, index: number | string) => {
     if (store.currentCV?.content?.[section]) store.currentCV.content[section].splice(Number(index), 1);
 };
+
+const getImageUrl = (url: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    const backendBaseUrl = (import.meta as any).env.VITE_BACKEND_URL || '';
+    return backendBaseUrl + (url.startsWith('/') ? url : '/' + url);
+};
+
+const isUploadingAvatar = ref(false);
+const uploadAvatar = async (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file || !store.currentCV) return;
+
+    isUploadingAvatar.value = true;
+    try {
+        const res = await cvApi.uploadAvatar(store.currentCV.id, file);
+        if (store.currentCV.content && store.currentCV.content.profile) {
+            store.currentCV.content.profile.photo = res.data;
+        }
+    } catch (e: any) {
+        alert("Upload failed: " + (e.response?.data?.message || e.message));
+    } finally {
+        isUploadingAvatar.value = false;
+        (event.target as HTMLInputElement).value = '';
+    }
+};
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-slate-50 relative">
+  <div class="flex flex-col h-full relative">
     
     <AIImproveModal 
+        v-if="showAI"
         :isOpen="showAI" 
         :currentText="aiTargetValue"
         @close="showAI = false"
         @apply="handleAIApply"
     />
     
-    <div v-if="aiLoading" class="absolute inset-0 bg-white bg-opacity-50 z-40 flex items-center justify-center">
-        <span class="text-purple-600 font-bold animate-pulse">✨ AI Generating...</span>
-    </div>
-
-    <!-- Tabs -->
-    <div class="flex border-b bg-white overflow-x-auto">
-        <button 
-            v-for="tab in ['profile', 'experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards']" 
-            :key="tab"
-            @click="activeTab = tab"
-            :class="['px-4 py-3 capitalize font-medium whitespace-nowrap', activeTab === tab ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700']"
-        >{{ tab }}</button>
+    <div v-if="aiLoading" class="absolute inset-0 bg-white bg-opacity-75 z-40 flex items-center justify-center">
+        <div class="flex flex-col border p-6 bg-white shadow-lg rounded items-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
+            <span class="text-purple-600 font-bold">✨ AI Improving...</span>
+        </div>
     </div>
 
     <!-- Content -->
@@ -92,6 +103,18 @@ const removeItem = (section: string, index: number | string) => {
         <div v-if="activeTab === 'profile'" class="space-y-4">
             <h3 class="font-bold text-lg">Personal Details</h3>
             
+            <div>
+                 <label class="block text-sm font-medium mb-1">Profile Photo</label>
+                 <div class="flex items-center gap-4">
+                     <img v-if="store.currentCV.content.profile.photo" :src="getImageUrl(store.currentCV.content.profile.photo)" class="w-16 h-16 rounded-full object-cover border" />
+                     <div v-else class="w-16 h-16 rounded-full bg-gray-200 border flex items-center justify-center text-gray-400 text-xs">No Photo</div>
+                     <div class="flex flex-col">
+                         <input type="file" accept="image/png, image/jpeg, image/webp" @change="uploadAvatar" :disabled="isUploadingAvatar" class="text-sm" />
+                         <span v-if="isUploadingAvatar" class="text-xs text-blue-500 mt-1">Uploading...</span>
+                     </div>
+                 </div>
+            </div>
+
             <div>
                 <label class="block text-sm font-medium mb-1">Full Name</label>
                 <input v-model="store.currentCV.content.profile.name" class="w-full border p-2 rounded" />
@@ -117,7 +140,19 @@ const removeItem = (section: string, index: number | string) => {
                 <input v-model="store.currentCV.content.profile.location" class="w-full border p-2 rounded" />
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">Summary</label>
+                <label class="block text-sm font-medium mb-1">Gender</label>
+                <input v-model="store.currentCV.content.profile.gender" class="w-full border p-2 rounded" />
+            </div>
+             <div>
+                <label class="block text-sm font-medium mb-1">Date of Birth</label>
+                <input v-model="store.currentCV.content.profile.dob" class="w-full border p-2 rounded" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Address</label>
+                <input v-model="store.currentCV.content.profile.address" class="w-full border p-2 rounded" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Summary / Career Objective</label>
                 <div class="relative">
                     <textarea v-model="store.currentCV.content.profile.summary" rows="4" class="w-full border p-2 rounded"></textarea>
                     <button 
@@ -145,7 +180,8 @@ const removeItem = (section: string, index: number | string) => {
                     <input v-model="exp.position" placeholder="Position" class="border p-2 rounded" />
                 </div>
                 <div class="grid grid-cols-2 gap-4 mb-2">
-                    <input v-model="exp.date" placeholder="Date Range" class="border p-2 rounded" />
+                    <input v-model="exp.startDate" placeholder="Start Date" class="border p-2 rounded" />
+                    <input v-model="exp.endDate" placeholder="End Date" class="border p-2 rounded" />
                 </div>
                 <div>
                      <textarea v-model="exp.description" placeholder="Description" rows="3" class="w-full border p-2 rounded mb-1"></textarea>
@@ -167,7 +203,11 @@ const removeItem = (section: string, index: number | string) => {
                     <input v-model="edu.school" placeholder="School" class="border p-2 rounded" />
                     <input v-model="edu.degree" placeholder="Degree" class="border p-2 rounded" />
                 </div>
-                 <input v-model="edu.date" placeholder="Date" class="border p-2 rounded w-full" />
+                 <div class="grid grid-cols-2 gap-4 mb-2">
+                    <input v-model="edu.startDate" placeholder="Start Date" class="border p-2 rounded" />
+                    <input v-model="edu.endDate" placeholder="End Date" class="border p-2 rounded" />
+                </div>
+                <input v-model="edu.major" placeholder="Major" class="border p-2 rounded w-full" />
             </div>
         </div>
 
@@ -268,6 +308,35 @@ const removeItem = (section: string, index: number | string) => {
                          <input v-model="award.issuer" placeholder="Issuer" class="border p-2 rounded" />
                          <input v-model="award.year" placeholder="Year" class="border p-2 rounded" />
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- Interests Tab -->
+        <div v-if="activeTab === 'interests'" class="space-y-6">
+             <div class="flex justify-between items-center">
+                <h3 class="font-bold text-lg">Interests</h3>
+            </div>
+            <div>
+                 <textarea v-model="store.currentCV.content.interests" placeholder="Tell us about your interests..." rows="4" class="w-full border p-2 rounded mb-1"></textarea>
+            </div>
+        </div>
+
+        <!-- References Tab -->
+        <div v-if="activeTab === 'references'" class="space-y-6">
+             <div class="flex justify-between items-center">
+                <h3 class="font-bold text-lg">References</h3>
+                <button @click="addItem('references')" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded">+ Add</button>
+            </div>
+            
+            <div v-if="store.currentCV.content.references">
+                <div v-for="(refItem, index) in store.currentCV.content.references" :key="index" class="bg-white p-4 border rounded shadow-sm relative group space-y-2">
+                    <button @click="removeItem('references', index)" class="absolute top-2 right-2 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100">✕</button>
+                    <input v-model="refItem.name" placeholder="Reference Name" class="border p-2 rounded w-full" />
+                    <div class="grid grid-cols-2 gap-4">
+                         <input v-model="refItem.position" placeholder="Position" class="border p-2 rounded" />
+                         <input v-model="refItem.company" placeholder="Company" class="border p-2 rounded" />
+                    </div>
+                    <input v-model="refItem.contact" placeholder="Contact Info" class="border p-2 rounded w-full" />
                 </div>
             </div>
         </div>

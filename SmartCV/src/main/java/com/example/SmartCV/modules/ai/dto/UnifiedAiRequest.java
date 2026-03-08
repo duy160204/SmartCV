@@ -19,4 +19,9 @@ public class UnifiedAiRequest {
      * The actual user query or CV content to process.
      */
     private String userMessage;
+
+    /**
+     * Optional image data (base64 or URL)
+     */
+    private String imageUrl;
 }

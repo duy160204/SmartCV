@@ -23,7 +23,24 @@ const render = () => {
              contentElement.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No Template Loaded</div>';
              return;
         }
-        const template = Handlebars.compile(props.html);
+        // Register helper for truncating words
+        Handlebars.registerHelper('limitWords', function(str, limit) {
+             if (typeof str !== 'string') return '';
+             var words = str.split(' ');
+             if (words.length > limit) {
+                 return words.slice(0, limit).join(' ') + '...';
+             }
+             return str;
+        });
+        
+        // Prepare template - automatically truncating fields based on constraints
+        // Using regex to replace {{summary}} to {{limitWords summary 80}}, etc.
+        let processedHtml = props.html
+            .replace(/\{\{\s*profile\.summary\s*\}\}/g, '{{limitWords profile.summary 80}}')
+            .replace(/\{\{\s*careerObjective\s*\}\}/g, '{{limitWords careerObjective 60}}')
+            .replace(/\{\{\s*description\s*\}\}/g, '{{limitWords description 60}}');
+
+        const template = Handlebars.compile(processedHtml);
         
         console.warn('-------- CVRenderer Debug --------');
         console.warn('HTML Template Sample:', props.html.substring(0, 500));
@@ -44,8 +61,15 @@ const render = () => {
         // Update content
         contentElement.innerHTML = sanitized;
         
+        // Ensure constraints CSS
+        const constraintCss = `
+            .cv-container { width:210mm; min-height:297mm; padding:20mm; box-sizing:border-box; }
+            section { margin-bottom:18px; }
+            .item { page-break-inside:avoid; }
+            body { margin: 0; padding: 0; }
+        `;
         // Update CSS
-        styleElement.textContent = props.css;
+        styleElement.textContent = constraintCss + '\n' + props.css;
 
     } catch (e: any) {
         contentElement.innerHTML = `<div style="color:red; padding: 20px;">Template Error: ${e.message}</div>`;
@@ -60,7 +84,7 @@ onMounted(() => {
         styleElement = document.createElement('style');
         contentElement = document.createElement('div');
         // Add a wrapper class often used by A4
-        contentElement.className = 'cv-page';
+        contentElement.className = 'cv-container';
         
         shadow.appendChild(styleElement);
         shadow.appendChild(contentElement);

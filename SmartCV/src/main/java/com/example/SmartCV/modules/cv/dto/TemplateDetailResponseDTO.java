@@ -20,6 +20,7 @@ public class TemplateDetailResponseDTO {
     private String thumbnailUrl;
     private String previewContent;
     private String fullContent;
+    private String configJson;
     private PlanType planRequired;
     private Boolean isActive;
     private LocalDateTime createdAt;

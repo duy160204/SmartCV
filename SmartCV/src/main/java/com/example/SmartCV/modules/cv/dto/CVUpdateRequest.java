@@ -6,4 +6,5 @@ import lombok.Data;
 public class CVUpdateRequest {
     private String title;
     private String content;
+    private String dataJson;
 }

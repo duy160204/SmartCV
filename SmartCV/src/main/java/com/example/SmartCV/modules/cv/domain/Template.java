@@ -43,6 +43,9 @@ public class Template {
     @Column(name = "full_content", columnDefinition = "LONGTEXT")
     private String fullContent;
 
+    @Column(name = "config_json", columnDefinition = "LONGTEXT")
+    private String configJson;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_required", nullable = false)
     private PlanType planRequired;

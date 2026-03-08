@@ -49,6 +49,7 @@ public class AdminTemplateService {
             String name,
             String previewContent,
             String fullContent,
+            String configJson,
             PlanType planRequired) {
         String safePreview = sanitizeContent(previewContent);
         String safeFull = sanitizeContent(fullContent);
@@ -58,6 +59,7 @@ public class AdminTemplateService {
                 .name(name)
                 .previewContent(safePreview)
                 .fullContent(safeFull)
+                .configJson(configJson)
                 .planRequired(planRequired)
                 .isActive(true)
                 .build();
@@ -81,6 +83,7 @@ public class AdminTemplateService {
             String name,
             String previewContent,
             String fullContent,
+            String configJson,
             PlanType planRequired) {
         Template template = getTemplateOrThrow(templateId);
 
@@ -90,6 +93,7 @@ public class AdminTemplateService {
         template.setName(name);
         template.setPreviewContent(safePreview);
         template.setFullContent(safeFull);
+        template.setConfigJson(configJson);
         template.setPlanRequired(planRequired);
 
         return templateRepository.save(template);
@@ -216,9 +220,60 @@ public class AdminTemplateService {
         }
         try {
             JsonNode node = objectMapper.readTree(content);
+            if (node.has("html") && node.isObject()) {
+                String html = node.get("html").asText();
+                String sanitizedHtml = html
+                        .replaceAll("(?i)<script.*?>.*?</script>", "")
+                        .replaceAll("(?i)<iframe.*?>.*?</iframe>", "")
+                        .replaceAll("(?i)javascript:", "blocked:")
+                        .replaceAll("(?i)onload\\s*=", "data-blocked=")
+                        .replaceAll("(?i)onerror\\s*=", "data-blocked=");
+
+                validateTemplatePlaceholders(sanitizedHtml);
+
+                ((ObjectNode) node).put("html", sanitizedHtml);
+            }
             return objectMapper.writeValueAsString(node);
         } catch (Exception e) {
+            if (e instanceof RuntimeException)
+                throw (RuntimeException) e;
             return content;
+        }
+    }
+
+    private void validateTemplatePlaceholders(String html) {
+        if (html == null)
+            return;
+
+        java.util.regex.Pattern p = java.util.regex.Pattern
+                .compile("\\{\\{[&#^/]*\\s*(?:each\\s+|limitWords\\s+)?([a-zA-Z0-9.]+)(?:\\s+\\d+)?\\s*\\}\\}");
+        java.util.regex.Matcher m = p.matcher(html);
+        List<String> validKeys = List.of(
+                "profile.name", "profile.title", "profile.summary", "profile.photo",
+                "profile.email", "profile.phone", "profile.gender", "profile.dob",
+                "profile.address", "profile.website",
+                "careerObjective", "interests",
+                "experience", "company", "position", "description", "startDate", "endDate",
+                "education", "school", "degree", "major",
+                "skills", "name", "level", "languages", "language", "proficiency",
+                "references", "contact",
+                "projects", "role", "link",
+                "certifications", "issuer", "date",
+                "awards", "year");
+
+        while (m.find()) {
+            String key = m.group(1);
+            if (key.equals("else") || key.endsWith(".length") || key.equals("this"))
+                continue;
+            if (key.equals("experience") || key.equals("education") || key.equals("skills") || key.equals("languages")
+                    || key.equals("references") || key.equals("projects") || key.equals("certifications")
+                    || key.equals("awards"))
+                continue;
+
+            if (!validKeys.contains(key)) {
+                throw new RuntimeException(
+                        "Invalid template placeholder key: " + key + ". Please use only official schema keys.");
+            }
         }
     }
 

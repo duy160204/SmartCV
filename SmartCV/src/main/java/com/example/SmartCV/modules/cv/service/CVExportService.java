@@ -48,8 +48,21 @@ public class CVExportService {
                 throw new BusinessException("Invalid template format", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            // 3. Parse CV Content (JSON String -> Object)
-            Object contentObj = objectMapper.readValue(cv.getContent(), Object.class);
+            // 3. Parse CV Data (Use dataJson if available and valid)
+            Object contentObj;
+            try {
+                if (cv.getDataJson() != null && !cv.getDataJson().isBlank()) {
+                    contentObj = objectMapper.readValue(cv.getDataJson(), Object.class);
+                } else {
+                    contentObj = objectMapper.readValue(cv.getContent(), Object.class);
+                }
+            } catch (Exception e) {
+                if (cv.getDataJson() != null && !cv.getDataJson().isBlank()) {
+                    contentObj = cv.getDataJson();
+                } else {
+                    contentObj = cv.getContent();
+                }
+            }
 
             // 4. Render HTML via Handlebars
             com.github.jknack.handlebars.Template hbsTemplate = handlebars.compileInline(htmlTemplate);
