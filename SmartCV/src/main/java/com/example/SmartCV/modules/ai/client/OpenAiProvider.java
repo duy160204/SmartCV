@@ -3,12 +3,14 @@ package com.example.SmartCV.modules.ai.client;
 import com.example.SmartCV.common.exception.BusinessException;
 import com.example.SmartCV.modules.ai.dto.UnifiedAiRequest;
 import com.example.SmartCV.modules.ai.dto.UnifiedAiResponse;
-import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
 import java.util.List;
@@ -18,23 +20,31 @@ import java.util.Map;
 @ConditionalOnProperty(name = "ai.openai.enabled", havingValue = "true")
 public class OpenAiProvider implements AiProvider {
 
-        private final RestTemplate restTemplate;
-
-        @Value("${ai.openai.model:gpt-3.5-turbo}")
-        private String model;
-
-        @Value("${ai.openai.base-url}")
-        private String baseUrl;
+        private final RestClient restClient;
+        private final String model;
 
         public OpenAiProvider(
-                        @Value("${ai.openai.api-key}") String apiKey,
-                        @Value("${ai.openai.base-url}") String baseUrl,
-                        RestTemplateBuilder builder) {
-                this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-                this.restTemplate = builder
-                                .connectTimeout(Duration.ofSeconds(10))
-                                .readTimeout(Duration.ofSeconds(30))
+                        @Value("${ai.openai.api-key:}") String apiKey,
+                        @Value("${ai.openai.base-url:https://api.openai.com/v1}") String baseUrl,
+                        @Value("${ai.openai.model:gpt-3.5-turbo}") String model,
+                        RestClient.Builder builder) {
+
+                this.model = model;
+
+                // Ensure robust base URL formatting (strip trailing slash safely)
+                String cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+
+                // Modern timeout setting approach compatible with Spring Boot 3.2 RestClient
+                SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+                requestFactory.setConnectTimeout((int) Duration.ofSeconds(10).toMillis());
+                requestFactory.setReadTimeout((int) Duration.ofSeconds(30).toMillis());
+
+                // Utilize robust, fluent RestClient
+                this.restClient = builder
+                                .baseUrl(cleanBaseUrl)
                                 .defaultHeader("Authorization", "Bearer " + apiKey)
+                                .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                                .requestFactory(requestFactory)
                                 .build();
         }
 
@@ -59,10 +69,15 @@ public class OpenAiProvider implements AiProvider {
                                 "temperature", 0.5);
 
                 try {
-                        Map response = restTemplate.postForObject(baseUrl + "/chat/completions", body, Map.class);
+                        Map response = restClient.post()
+                                        .uri("/chat/completions")
+                                        .body(body)
+                                        .retrieve()
+                                        .body(Map.class);
 
                         if (response == null || !response.containsKey("choices")) {
-                                throw new RuntimeException("Invalid response from AI provider");
+                                throw new BusinessException("Invalid response from AI provider",
+                                                HttpStatus.BAD_GATEWAY);
                         }
 
                         List<Map> choices = (List<Map>) response.get("choices");
@@ -80,6 +95,10 @@ public class OpenAiProvider implements AiProvider {
                                         .latencyMs(latency)
                                         .build();
 
+                } catch (RestClientResponseException e) {
+                        throw new BusinessException(
+                                        "OpenAI API Error: " + e.getResponseBodyAsString(),
+                                        HttpStatus.valueOf(e.getStatusCode().value()));
                 } catch (Exception e) {
                         throw new BusinessException("AI Service Error: " + e.getMessage(),
                                         HttpStatus.INTERNAL_SERVER_ERROR);

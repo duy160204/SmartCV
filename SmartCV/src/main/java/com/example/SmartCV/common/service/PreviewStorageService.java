@@ -6,7 +6,6 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -21,99 +20,101 @@ import java.util.UUID;
 @Service
 public class PreviewStorageService {
 
-    private Path fileStorageLocation;
-    private final String previewDir;
+    private final Path fileStorageLocation;
     private static final List<String> ALLOWED_MIME_TYPES = Arrays.asList("image/jpeg", "image/png", "image/webp");
 
     public PreviewStorageService(@Value("${app.storage.preview-dir}") String previewDir) {
-        this.previewDir = previewDir;
-    }
-
-    @PostConstruct
-    public void init() {
+        if (previewDir == null || previewDir.trim().isEmpty()) {
+            throw new IllegalArgumentException("Preview directory configuration is missing");
+        }
         try {
             this.fileStorageLocation = Paths.get(previewDir).toAbsolutePath().normalize();
             Files.createDirectories(this.fileStorageLocation);
         } catch (IOException e) {
-            throw new RuntimeException("Could not initialize preview storage", e);
+            throw new IllegalStateException("Could not initialize preview storage directory at " + previewDir, e);
         }
     }
 
     public String save(MultipartFile file) {
-        // Validate file type
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Cannot store empty file");
+        }
+
         if (file.getContentType() == null || !ALLOWED_MIME_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException(
                     "Sorry! Only JPEG, PNG, and WebP images are allowed. Provided: " + file.getContentType());
         }
 
-        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+        String originalFileName = StringUtils
+                .cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "");
 
         try {
-            // Check if the file's name contains invalid characters
             if (originalFileName.contains("..")) {
-                throw new IllegalArgumentException(
-                        "Sorry! Filename contains invalid path sequence " + originalFileName);
+                throw new IllegalArgumentException("Filename contains invalid path sequence: " + originalFileName);
+            }
+
+            String fileExtension = "";
+            int extensionIndex = originalFileName.lastIndexOf('.');
+            if (extensionIndex > 0) {
+                fileExtension = originalFileName.substring(extensionIndex);
             }
 
             // Generate unique filename using UUID
-            String fileExtension = "";
-            int i = originalFileName.lastIndexOf('.');
-            if (i > 0) {
-                fileExtension = originalFileName.substring(i);
-            }
             String newFileName = UUID.randomUUID().toString() + fileExtension;
 
-            // Resolve target location
-            // Resolve target location
             Path targetLocation = this.fileStorageLocation.resolve(newFileName).normalize();
 
+            // Prevent path traversal attacks
             if (!targetLocation.startsWith(this.fileStorageLocation)) {
-                throw new SecurityException("Invalid path: " + targetLocation);
-            }
-
-            // Ensure we are not overwriting
-            if (Files.exists(targetLocation)) {
-                throw new RuntimeException("File collision occurred. Please try again.");
+                throw new SecurityException("Cannot store file outside current directory: " + targetLocation);
             }
 
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            return "preview/" + newFileName; // Relative path stored in DB
+            return "preview/" + newFileName;
         } catch (IOException ex) {
-            throw new RuntimeException("Could not store file " + originalFileName + ". Please try again!", ex);
+            throw new IllegalStateException("Could not store file " + originalFileName, ex);
         }
     }
 
     public Resource load(String filename) {
         try {
+            if (filename.contains("..")) {
+                throw new SecurityException("Filename contains invalid path sequence: " + filename);
+            }
+
             Path filePath = this.fileStorageLocation.resolve(filename).normalize();
 
             if (!filePath.startsWith(this.fileStorageLocation)) {
-                throw new SecurityException("Invalid path: " + filename);
+                throw new SecurityException("Invalid path requested: " + filename);
             }
 
             Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists() || resource.isReadable()) {
+            if (resource.exists() && resource.isReadable()) {
                 return resource;
             } else {
-                throw new RuntimeException("Could not read file: " + filename);
+                throw new IllegalArgumentException("Could not read file or file does not exist: " + filename);
             }
         } catch (MalformedURLException ex) {
-            throw new RuntimeException("Could not read file: " + filename, ex);
+            throw new IllegalArgumentException("Malformed file path requested: " + filename, ex);
         }
     }
 
     public void delete(String filename) {
         try {
+            if (filename.contains("..")) {
+                throw new SecurityException("Filename contains invalid path sequence: " + filename);
+            }
+
             Path filePath = this.fileStorageLocation.resolve(filename).normalize();
 
             if (!filePath.startsWith(this.fileStorageLocation)) {
-                throw new SecurityException("Invalid path: " + filename);
+                throw new SecurityException("Invalid delete path requested: " + filename);
             }
 
             Files.deleteIfExists(filePath);
         } catch (IOException ex) {
-            throw new RuntimeException("Could not delete file: " + filename, ex);
+            throw new IllegalStateException("Could not delete file: " + filename, ex);
         }
     }
 }

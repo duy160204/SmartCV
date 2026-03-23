@@ -23,7 +23,7 @@ public class AiController {
     private final AiUsageService aiUsageService;
     private final CVService cvService;
 
-    @PostMapping("/cv/chat")
+    @PostMapping({ "/cv/chat", "/cv/chat/" })
     public ResponseEntity<AiChatResponse> chatWithCv(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody AiChatRequest request) {
@@ -39,7 +39,7 @@ public class AiController {
         return ResponseEntity.ok(new AiChatResponse(result));
     }
 
-    @PostMapping("/cv/generate")
+    @PostMapping({ "/cv/generate", "/cv/generate/" })
     public ResponseEntity<AiChatResponse> generateCvContent(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody com.example.SmartCV.modules.ai.dto.AiGenerateRequest request) {
@@ -48,7 +48,7 @@ public class AiController {
         return ResponseEntity.ok(new AiChatResponse(result));
     }
 
-    @PostMapping("/text/improve")
+    @PostMapping({ "/text/improve", "/text/improve/" })
     public ResponseEntity<AiChatResponse> improveText(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody com.example.SmartCV.modules.ai.dto.AiImproveRequest request) {
@@ -57,7 +57,7 @@ public class AiController {
         return ResponseEntity.ok(new AiChatResponse(result));
     }
 
-    @PostMapping("/template/build")
+    @PostMapping({ "/template/build", "/template/build/" })
     // Note: Assuming Admin tool might be here or in Admin controller. Let's place
     // it here but requiring Admin later if needed.
     public ResponseEntity<AiChatResponse> buildTemplate(
