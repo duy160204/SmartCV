@@ -1,0 +1,645 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.example:SmartCV >-------------------------
+[INFO] Building SmartCV 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ SmartCV ---
+[INFO] Deleting /home/duylv/springboot/SmartCV/SmartCV/target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ SmartCV ---
+[INFO] Copying 3 resources from src/main/resources to target/classes
+[INFO] Copying 6 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ SmartCV ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 182 source files with javac [debug release 21] to target/classes
+[INFO] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/ai/service/AiService.java: /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/ai/service/AiService.java uses or overrides a deprecated API.
+[INFO] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/ai/service/AiService.java: Recompile with -Xlint:deprecation for details.
+[INFO] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java: Some input files use unchecked or unsafe operations.
+[INFO] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java: Recompile with -Xlint:unchecked for details.
+[INFO] Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/config/SecurityConfig.java:[108,5] org.springframework.context.annotation.Bean is not a repeatable annotation interface
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[45,51] cannot find symbol
+  symbol:   method getAmount()
+  location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[47,36] cannot find symbol
+  symbol:   method getTransactionCode()
+  location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[48,59] cannot find symbol
+  symbol:   method getPlan()
+  location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[57,35] cannot find symbol
+  symbol:   method getCreatedAt()
+  location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[69,9] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[70,9] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[71,9] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[72,9] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[53,37] cannot find symbol
+  symbol:   method builder()
+  location: class com.example.SmartCV.modules.admin.dto.AdminCVDetailResponse
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[54,23] cannot find symbol
+  symbol:   method getId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[55,27] cannot find symbol
+  symbol:   method getUserId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[56,26] cannot find symbol
+  symbol:   method getTitle()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[57,31] cannot find symbol
+  symbol:   method getTemplateId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[58,28] cannot find symbol
+  symbol:   method getContent()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[59,29] cannot find symbol
+  symbol:   method getDataJson()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[60,27] cannot find symbol
+  symbol:   method getStatus()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[61,29] cannot find symbol
+  symbol:   method getIsPublic()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[62,29] cannot find symbol
+  symbol:   method getIsLocked()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[63,30] cannot find symbol
+  symbol:   method getViewCount()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[64,30] cannot find symbol
+  symbol:   method getCreatedAt()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[65,30] cannot find symbol
+  symbol:   method getUpdatedAt()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[66,45] cannot find symbol
+  symbol:   method getTemplateId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[67,43] cannot find symbol
+  symbol:   method getTemplateId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[78,35] cannot find symbol
+  symbol:   method getIsLocked()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[82,11] cannot find symbol
+  symbol:   method setIsLocked(boolean)
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[95,36] cannot find symbol
+  symbol:   method getIsLocked()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[99,11] cannot find symbol
+  symbol:   method setIsLocked(boolean)
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[127,15] cannot find symbol
+  symbol:   method getUserId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[128,52] cannot find symbol
+  symbol:   method getUserId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[129,26] invalid method reference
+  cannot find symbol
+    symbol:   method getEmail()
+    location: class com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[133,35] cannot find symbol
+  symbol:   method builder()
+  location: class com.example.SmartCV.modules.admin.dto.AdminCVListResponse
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[134,23] cannot find symbol
+  symbol:   method getId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[135,27] cannot find symbol
+  symbol:   method getUserId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[137,26] cannot find symbol
+  symbol:   method getTitle()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[138,31] cannot find symbol
+  symbol:   method getTemplateId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[139,29] cannot find symbol
+  symbol:   method getIsPublic()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[140,29] cannot find symbol
+  symbol:   method getIsLocked()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[141,30] cannot find symbol
+  symbol:   method getCreatedAt()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[150,33] cannot find symbol
+  symbol:   method getFullContent()
+  location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[154,55] cannot find symbol
+  symbol:   method getFullContent()
+  location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[159,21] cannot find symbol
+  symbol:   method getFullContent()
+  location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[160,28] cannot find symbol
+  symbol:   method getFullContent()
+  location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[169,33] cannot find symbol
+  symbol:   method getFullContent()
+  location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[173,55] cannot find symbol
+  symbol:   method getFullContent()
+  location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[184,47] cannot find symbol
+  symbol:   method getUserId()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[189,21] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[190,19] cannot find symbol
+  symbol:   method getTitle()
+  location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[56,54] cannot find symbol
+  symbol:   method getZalo()
+  location: variable oauthProperties of type com.example.SmartCV.config.OAuthProperties
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[57,60] cannot find symbol
+  symbol:   method getZalo()
+  location: variable oauthProperties of type com.example.SmartCV.config.OAuthProperties
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[69,85] cannot find symbol
+  symbol:   method getZalo()
+  location: variable oauthProperties of type com.example.SmartCV.config.OAuthProperties
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[115,14] cannot find symbol
+  symbol:   method setEmail(java.lang.String)
+  location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[117,14] cannot find symbol
+  symbol:   method setUsername(java.lang.String)
+  location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[118,29] cannot find symbol
+  symbol:   method getId()
+  location: variable role of type com.example.SmartCV.modules.auth.domain.Role
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[122,14] cannot find symbol
+  symbol:   method setVerified(boolean)
+  location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[125,14] cannot find symbol
+  symbol:   method setLocked(boolean)
+  location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[133,58] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[136,17] cannot find symbol
+  symbol:   method getPassword()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[143,17] cannot find symbol
+  symbol:   method isLocked()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[146,21] cannot find symbol
+  symbol:   method setVerified(boolean)
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[147,21] cannot find symbol
+  symbol:   method setLocked(boolean)
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[155,46] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[158,38] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[159,23] cannot find symbol
+  symbol:   method setProvider(java.lang.String)
+  location: variable oa of type com.example.SmartCV.modules.auth.domain.OAuthAccount
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[160,23] cannot find symbol
+  symbol:   method setProviderUserId(java.lang.String)
+  location: variable oa of type com.example.SmartCV.modules.auth.domain.OAuthAccount
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[164,51] cannot find symbol
+  symbol:   method getRoleId()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[165,22] invalid method reference
+  cannot find symbol
+    symbol:   method getName()
+    location: class com.example.SmartCV.modules.auth.domain.Role
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[172,21] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[173,21] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[175,21] cannot find symbol
+  symbol:   method isVerified()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java:[20,51] cannot find symbol
+  symbol:   method getClientId()
+  location: variable props of type com.example.SmartCV.config.OAuthProperties.Facebook
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java:[21,55] cannot find symbol
+  symbol:   method getClientSecret()
+  location: variable props of type com.example.SmartCV.config.OAuthProperties.Facebook
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java:[22,54] cannot find symbol
+  symbol:   method getRedirectUri()
+  location: variable props of type com.example.SmartCV.config.OAuthProperties.Facebook
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[48,33] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[49,36] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[50,37] cannot find symbol
+  symbol:   method getRoleId()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[60,33] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[68,64] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[88,13] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[90,13] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[92,13] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[94,13] cannot find symbol
+  symbol:   variable log
+  location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/RefreshTokenService.java:[28,36] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[51,48] cannot find symbol
+  symbol:   method builder()
+  location: class com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[82,20] cannot find symbol
+  symbol:   method getEndDate()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[81,20] cannot find symbol
+  symbol:   method getStartDate()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[80,20] cannot find symbol
+  symbol:   method getStatus()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[79,20] cannot find symbol
+  symbol:   method getPlan()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[91,55] cannot find symbol
+  symbol:   method getPlan()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[104,20] cannot find symbol
+  symbol:   method getPlan()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[107,41] cannot find symbol
+  symbol:   method getShareUuid()
+  location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[107,63] cannot find symbol
+  symbol:   method getExpireAt()
+  location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[111,22] cannot find symbol
+  symbol:   method getExpireAt()
+  location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[110,37] cannot find symbol
+  symbol:   method getShareUuid()
+  location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[122,28] cannot find symbol
+  symbol:   method getMaxSharePerMonth()
+  location: variable planDef of type com.example.SmartCV.modules.subscription.domain.PlanDefinition
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[135,46] cannot find symbol
+  symbol:   method getPlan()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[136,22] invalid method reference
+  cannot find symbol
+    symbol:   method isEnabled()
+    location: class com.example.SmartCV.modules.subscription.domain.PlanFeature
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[152,46] cannot find symbol
+  symbol:   method getPlan()
+  location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[153,22] invalid method reference
+  cannot find symbol
+    symbol:   method isEnabled()
+    location: class com.example.SmartCV.modules.subscription.domain.PlanFeature
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[166,52] cannot find symbol
+  symbol:   method builder()
+  location: class com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[INFO] 100 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  03:51 min
+[INFO] Finished at: 2026-04-01T23:12:19+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project SmartCV: Compilation failure: Compilation failure: 
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/config/SecurityConfig.java:[108,5] org.springframework.context.annotation.Bean is not a repeatable annotation interface
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[45,51] cannot find symbol
+[ERROR]   symbol:   method getAmount()
+[ERROR]   location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[47,36] cannot find symbol
+[ERROR]   symbol:   method getTransactionCode()
+[ERROR]   location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[48,59] cannot find symbol
+[ERROR]   symbol:   method getPlan()
+[ERROR]   location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[57,35] cannot find symbol
+[ERROR]   symbol:   method getCreatedAt()
+[ERROR]   location: variable tx of type com.example.SmartCV.modules.payment.domain.PaymentTransaction
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[69,9] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[70,9] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[71,9] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/payment/service/VNPayClientService.java:[72,9] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.modules.payment.service.VNPayClientService
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[53,37] cannot find symbol
+[ERROR]   symbol:   method builder()
+[ERROR]   location: class com.example.SmartCV.modules.admin.dto.AdminCVDetailResponse
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[54,23] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[55,27] cannot find symbol
+[ERROR]   symbol:   method getUserId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[56,26] cannot find symbol
+[ERROR]   symbol:   method getTitle()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[57,31] cannot find symbol
+[ERROR]   symbol:   method getTemplateId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[58,28] cannot find symbol
+[ERROR]   symbol:   method getContent()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[59,29] cannot find symbol
+[ERROR]   symbol:   method getDataJson()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[60,27] cannot find symbol
+[ERROR]   symbol:   method getStatus()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[61,29] cannot find symbol
+[ERROR]   symbol:   method getIsPublic()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[62,29] cannot find symbol
+[ERROR]   symbol:   method getIsLocked()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[63,30] cannot find symbol
+[ERROR]   symbol:   method getViewCount()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[64,30] cannot find symbol
+[ERROR]   symbol:   method getCreatedAt()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[65,30] cannot find symbol
+[ERROR]   symbol:   method getUpdatedAt()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[66,45] cannot find symbol
+[ERROR]   symbol:   method getTemplateId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[67,43] cannot find symbol
+[ERROR]   symbol:   method getTemplateId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[78,35] cannot find symbol
+[ERROR]   symbol:   method getIsLocked()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[82,11] cannot find symbol
+[ERROR]   symbol:   method setIsLocked(boolean)
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[95,36] cannot find symbol
+[ERROR]   symbol:   method getIsLocked()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[99,11] cannot find symbol
+[ERROR]   symbol:   method setIsLocked(boolean)
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[127,15] cannot find symbol
+[ERROR]   symbol:   method getUserId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[128,52] cannot find symbol
+[ERROR]   symbol:   method getUserId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[129,26] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getEmail()
+[ERROR]     location: class com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[133,35] cannot find symbol
+[ERROR]   symbol:   method builder()
+[ERROR]   location: class com.example.SmartCV.modules.admin.dto.AdminCVListResponse
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[134,23] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[135,27] cannot find symbol
+[ERROR]   symbol:   method getUserId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[137,26] cannot find symbol
+[ERROR]   symbol:   method getTitle()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[138,31] cannot find symbol
+[ERROR]   symbol:   method getTemplateId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[139,29] cannot find symbol
+[ERROR]   symbol:   method getIsPublic()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[140,29] cannot find symbol
+[ERROR]   symbol:   method getIsLocked()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[141,30] cannot find symbol
+[ERROR]   symbol:   method getCreatedAt()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[150,33] cannot find symbol
+[ERROR]   symbol:   method getFullContent()
+[ERROR]   location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[154,55] cannot find symbol
+[ERROR]   symbol:   method getFullContent()
+[ERROR]   location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[159,21] cannot find symbol
+[ERROR]   symbol:   method getFullContent()
+[ERROR]   location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[160,28] cannot find symbol
+[ERROR]   symbol:   method getFullContent()
+[ERROR]   location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[169,33] cannot find symbol
+[ERROR]   symbol:   method getFullContent()
+[ERROR]   location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[173,55] cannot find symbol
+[ERROR]   symbol:   method getFullContent()
+[ERROR]   location: variable tmpl of type com.example.SmartCV.modules.cv.domain.Template
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[184,47] cannot find symbol
+[ERROR]   symbol:   method getUserId()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[189,21] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/admin/service/AdminCVService.java:[190,19] cannot find symbol
+[ERROR]   symbol:   method getTitle()
+[ERROR]   location: variable cv of type com.example.SmartCV.modules.cv.domain.CV
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[56,54] cannot find symbol
+[ERROR]   symbol:   method getZalo()
+[ERROR]   location: variable oauthProperties of type com.example.SmartCV.config.OAuthProperties
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[57,60] cannot find symbol
+[ERROR]   symbol:   method getZalo()
+[ERROR]   location: variable oauthProperties of type com.example.SmartCV.config.OAuthProperties
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[69,85] cannot find symbol
+[ERROR]   symbol:   method getZalo()
+[ERROR]   location: variable oauthProperties of type com.example.SmartCV.config.OAuthProperties
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[115,14] cannot find symbol
+[ERROR]   symbol:   method setEmail(java.lang.String)
+[ERROR]   location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[117,14] cannot find symbol
+[ERROR]   symbol:   method setUsername(java.lang.String)
+[ERROR]   location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[118,29] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable role of type com.example.SmartCV.modules.auth.domain.Role
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[122,14] cannot find symbol
+[ERROR]   symbol:   method setVerified(boolean)
+[ERROR]   location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[125,14] cannot find symbol
+[ERROR]   symbol:   method setLocked(boolean)
+[ERROR]   location: variable u of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[133,58] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[136,17] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[143,17] cannot find symbol
+[ERROR]   symbol:   method isLocked()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[146,21] cannot find symbol
+[ERROR]   symbol:   method setVerified(boolean)
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[147,21] cannot find symbol
+[ERROR]   symbol:   method setLocked(boolean)
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[155,46] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[158,38] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[159,23] cannot find symbol
+[ERROR]   symbol:   method setProvider(java.lang.String)
+[ERROR]   location: variable oa of type com.example.SmartCV.modules.auth.domain.OAuthAccount
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[160,23] cannot find symbol
+[ERROR]   symbol:   method setProviderUserId(java.lang.String)
+[ERROR]   location: variable oa of type com.example.SmartCV.modules.auth.domain.OAuthAccount
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[164,51] cannot find symbol
+[ERROR]   symbol:   method getRoleId()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[165,22] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getName()
+[ERROR]     location: class com.example.SmartCV.modules.auth.domain.Role
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[172,21] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[173,21] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/OAuthService.java:[175,21] cannot find symbol
+[ERROR]   symbol:   method isVerified()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java:[20,51] cannot find symbol
+[ERROR]   symbol:   method getClientId()
+[ERROR]   location: variable props of type com.example.SmartCV.config.OAuthProperties.Facebook
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java:[21,55] cannot find symbol
+[ERROR]   symbol:   method getClientSecret()
+[ERROR]   location: variable props of type com.example.SmartCV.config.OAuthProperties.Facebook
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/verifier/FacebookVerifier.java:[22,54] cannot find symbol
+[ERROR]   symbol:   method getRedirectUri()
+[ERROR]   location: variable props of type com.example.SmartCV.config.OAuthProperties.Facebook
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[48,33] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[49,36] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[50,37] cannot find symbol
+[ERROR]   symbol:   method getRoleId()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[60,33] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[68,64] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[88,13] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[90,13] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[92,13] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/common/utils/JWTUtils.java:[94,13] cannot find symbol
+[ERROR]   symbol:   variable log
+[ERROR]   location: class com.example.SmartCV.common.utils.JWTUtils
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/auth/service/RefreshTokenService.java:[28,36] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.example.SmartCV.modules.auth.domain.User
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[51,48] cannot find symbol
+[ERROR]   symbol:   method builder()
+[ERROR]   location: class com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[82,20] cannot find symbol
+[ERROR]   symbol:   method getEndDate()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[81,20] cannot find symbol
+[ERROR]   symbol:   method getStartDate()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[80,20] cannot find symbol
+[ERROR]   symbol:   method getStatus()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[79,20] cannot find symbol
+[ERROR]   symbol:   method getPlan()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[91,55] cannot find symbol
+[ERROR]   symbol:   method getPlan()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[104,20] cannot find symbol
+[ERROR]   symbol:   method getPlan()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[107,41] cannot find symbol
+[ERROR]   symbol:   method getShareUuid()
+[ERROR]   location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[107,63] cannot find symbol
+[ERROR]   symbol:   method getExpireAt()
+[ERROR]   location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[111,22] cannot find symbol
+[ERROR]   symbol:   method getExpireAt()
+[ERROR]   location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[110,37] cannot find symbol
+[ERROR]   symbol:   method getShareUuid()
+[ERROR]   location: variable usage of type com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[122,28] cannot find symbol
+[ERROR]   symbol:   method getMaxSharePerMonth()
+[ERROR]   location: variable planDef of type com.example.SmartCV.modules.subscription.domain.PlanDefinition
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[135,46] cannot find symbol
+[ERROR]   symbol:   method getPlan()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[136,22] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method isEnabled()
+[ERROR]     location: class com.example.SmartCV.modules.subscription.domain.PlanFeature
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[152,46] cannot find symbol
+[ERROR]   symbol:   method getPlan()
+[ERROR]   location: variable sub of type com.example.SmartCV.modules.subscription.domain.UserSubscription
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[153,22] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method isEnabled()
+[ERROR]     location: class com.example.SmartCV.modules.subscription.domain.PlanFeature
+[ERROR] /home/duylv/springboot/SmartCV/SmartCV/src/main/java/com/example/SmartCV/modules/subscription/service/SubscriptionService.java:[166,52] cannot find symbol
+[ERROR]   symbol:   method builder()
+[ERROR]   location: class com.example.SmartCV.modules.subscription.domain.SubscriptionUsage
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

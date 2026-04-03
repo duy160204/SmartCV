@@ -18,6 +18,18 @@ const AUTH_EXEMPT_PATHS = [
     '/payment/return'
 ];
 
+// Request interceptor to add Authorization token
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
 // Response interceptor
 api.interceptors.response.use(
     response => response,

@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 
 import com.example.SmartCV.common.exception.BusinessException;
 import com.example.SmartCV.common.utils.JWTUtils;
@@ -49,15 +52,22 @@ public class AuthService {
     @Autowired
     private SubscriptionService subscriptionService;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
     /**
      * ============================
      * REGISTER
      * ============================
      */
+    @Autowired
+    private AuthKafkaProducer authKafkaProducer;
+
     @Transactional
     public void register(RegisterRequestDTO request) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
             throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
         }
 
@@ -65,7 +75,7 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException("Default role not found", HttpStatus.INTERNAL_SERVER_ERROR));
 
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setUsername(request.getName());
         user.setRoleId(defaultRole.getId());
@@ -80,6 +90,8 @@ public class AuthService {
 
         // 2. AUTO INIT FREE SUBSCRIPTION
         subscriptionService.initFreeSubscription(savedUser.getId());
+        authKafkaProducer.sendSubscriptionActivated(savedUser.getEmail(), "FREE");
+        authKafkaProducer.sendUserRegistered(savedUser.getEmail(), "LOCAL");
 
         // 3. Send verify email (Async to prevent blocking)
         java.util.concurrent.CompletableFuture.runAsync(() -> {
@@ -98,8 +110,9 @@ public class AuthService {
      * ============================
      */
     public AuthResponseDTO login(LoginRequestDTO request) {
-
-        User user = userRepository.findByEmail(request.getEmail())
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new BusinessException("Invalid email or password", HttpStatus.UNAUTHORIZED));
 
         if (!user.isVerified()) {
@@ -110,14 +123,14 @@ public class AuthService {
             throw new BusinessException("Account is locked", HttpStatus.FORBIDDEN);
         }
 
+
         if (user.getPassword() == null) {
-            throw new BusinessException("This email is registered with OAuth — please login with OAuth.",
-                    HttpStatus.BAD_REQUEST);
+            throw new BusinessException("OAuth accounts must login with their respective provider.", HttpStatus.UNAUTHORIZED);
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BusinessException("Invalid email or password", HttpStatus.UNAUTHORIZED);
-        }
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword())
+        );
 
         String accessToken = jwtUtils.generateToken(user);
 
@@ -196,10 +209,9 @@ public class AuthService {
      * FORGOT PASSWORD (SIMPLE MODE)
      * ============================
      */
-    @Transactional
     public void forgotPassword(String email) {
-
-        Optional<User> optionalUser = userRepository.findByEmail(email);
+        String normalizedEmail = email.trim().toLowerCase();
+        Optional<User> optionalUser = userRepository.findByEmailIgnoreCase(normalizedEmail);
 
         if (optionalUser.isEmpty()) {
             // Không báo lỗi để tránh dò email

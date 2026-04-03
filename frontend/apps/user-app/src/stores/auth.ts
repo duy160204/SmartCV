@@ -51,6 +51,9 @@ export const useAuthStore = defineStore('auth', () => {
             if (data.refreshToken) {
                 localStorage.setItem('refreshToken', data.refreshToken);
             }
+            if (data.accessToken) {
+                localStorage.setItem('accessToken', data.accessToken);
+            }
 
             await checkAuth();
         } catch (error: any) {
@@ -72,6 +75,9 @@ export const useAuthStore = defineStore('auth', () => {
             if (data.refreshToken) {
                 localStorage.setItem('refreshToken', data.refreshToken);
             }
+            if (data.accessToken) {
+                localStorage.setItem('accessToken', data.accessToken);
+            }
             await checkAuth();
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Registration failed';
@@ -85,6 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
             if (token) {
                 await authApi.post('/api/auth/logout', { refreshToken: token });
                 localStorage.removeItem('refreshToken');
+                localStorage.removeItem('accessToken');
             } else {
                 console.warn("No refresh token found for logout");
             }

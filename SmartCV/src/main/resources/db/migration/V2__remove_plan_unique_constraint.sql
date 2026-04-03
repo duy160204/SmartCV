@@ -1,12 +1,22 @@
--- Migration to remove incorrect UNIQUE constraint on plan_definitions.plan column
+-- Idempotent, Flyway-safe, no procedure, no delimiter
 
--- 1. Drop the specific unique index identified by the error key
--- Key Name provided: UKsslj74ry860cb627ioihx9g9m
--- This key corresponds to the 'plan' column (PlanType)
+SET @idx := (
+    SELECT INDEX_NAME
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'plan_definitions'
+      AND COLUMN_NAME = 'plan'
+      AND NON_UNIQUE = 0
+      AND INDEX_NAME != 'PRIMARY'
+    LIMIT 1
+);
 
-ALTER TABLE plan_definitions DROP INDEX UKsslj74ry860cb627ioihx9g9m;
+SET @sql = IF(
+    @idx IS NOT NULL,
+    CONCAT('ALTER TABLE plan_definitions DROP INDEX ', @idx),
+    'SELECT 1'
+);
 
--- 2. Verify: Ensure 'code' column still has a unique constraint
--- (This is usually handled by a separate index, typically UK_plan_definitions_code or similar)
--- If it's missing, we would add it back:
--- ALTER TABLE plan_definitions ADD CONSTRAINT UK_plan_code UNIQUE (code);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

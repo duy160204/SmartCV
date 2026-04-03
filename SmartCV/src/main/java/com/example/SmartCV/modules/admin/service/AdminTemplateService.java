@@ -241,39 +241,35 @@ public class AdminTemplateService {
         }
     }
 
+    private static final java.util.Set<String> VALID_SCHEMA_KEYS = java.util.Set.of(
+        "profile.name", "profile.title", "profile.email", "profile.phone", "profile.website", "profile.location", "profile.summary",
+        "experience", "this.company", "this.position", "this.date", "this.description",
+        "education", "this.school", "this.degree",
+        "skills", "this.name", "this.level",
+        "projects", "this.role", "this.link",
+        "languages", "this.language", "this.proficiency",
+        "certifications", "this.issuer",
+        "awards", "this.year"
+    );
+
     private void validateTemplatePlaceholders(String html) {
-        if (html == null)
-            return;
+        if (html == null || html.isBlank()) return;
 
-        java.util.regex.Pattern p = java.util.regex.Pattern
-                .compile("\\{\\{[&#^/]*\\s*(?:each\\s+|limitWords\\s+)?([a-zA-Z0-9.]+)(?:\\s+\\d+)?\\s*\\}\\}");
-        java.util.regex.Matcher m = p.matcher(html);
-        List<String> validKeys = List.of(
-                "profile.name", "profile.title", "profile.summary", "profile.photo",
-                "profile.email", "profile.phone", "profile.gender", "profile.dob",
-                "profile.address", "profile.website",
-                "careerObjective", "interests",
-                "experience", "company", "position", "description", "startDate", "endDate",
-                "education", "school", "degree", "major",
-                "skills", "name", "level", "languages", "language", "proficiency",
-                "references", "contact",
-                "projects", "role", "link",
-                "certifications", "issuer", "date",
-                "awards", "year");
+        try {
+            com.github.jknack.handlebars.Handlebars handlebars = new com.github.jknack.handlebars.Handlebars();
+            com.github.jknack.handlebars.Template parsedTemplate = handlebars.compileInline(html);
+            
+            java.util.List<String> variables = parsedTemplate.collect(com.github.jknack.handlebars.TagType.VAR);
+            variables.addAll(parsedTemplate.collect(com.github.jknack.handlebars.TagType.SECTION));
 
-        while (m.find()) {
-            String key = m.group(1);
-            if (key.equals("else") || key.endsWith(".length") || key.equals("this"))
-                continue;
-            if (key.equals("experience") || key.equals("education") || key.equals("skills") || key.equals("languages")
-                    || key.equals("references") || key.equals("projects") || key.equals("certifications")
-                    || key.equals("awards"))
-                continue;
-
-            if (!validKeys.contains(key)) {
-                throw new RuntimeException(
-                        "Invalid template placeholder key: " + key + ". Please use only official schema keys.");
+            for (String var : variables) {
+                if (var.equals("else") || var.equals("this") || var.equals("each") || var.equals("if")) continue;
+                if (!VALID_SCHEMA_KEYS.contains(var)) {
+                    throw new RuntimeException("CRITICAL: Schema Violation. Unrecognized field: " + var);
+                }
             }
+        } catch (Exception e) {
+            throw new RuntimeException("Validation Error: Invalid nesting or unknown fields detected. " + e.getMessage());
         }
     }
 

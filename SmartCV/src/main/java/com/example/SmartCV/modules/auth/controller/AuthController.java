@@ -11,6 +11,8 @@ import com.example.SmartCV.modules.auth.dto.LoginRequestDTO;
 import com.example.SmartCV.modules.auth.dto.RegisterRequestDTO;
 import com.example.SmartCV.modules.auth.service.AuthService;
 
+import org.springframework.data.redis.core.RedisTemplate;
+import java.util.concurrent.TimeUnit;
 import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
@@ -19,6 +21,12 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private com.example.SmartCV.common.utils.JWTUtils jwtUtils;
 
     @Value("${app.security.cookie-secure}")
     private boolean cookieSecure;
@@ -55,15 +63,15 @@ public class AuthController {
 
         response.addHeader("Set-Cookie", cookie.toString());
 
-        // Trả body KHÔNG có accessToken (chuẩn bảo mật)
+        // Return access token in body so frontend can use it as Bearer token
         AuthResponseDTO responseBody = new AuthResponseDTO(
                 auth.getEmail(),
                 auth.getName(),
                 auth.getProvider(),
                 auth.isVerified(),
                 auth.getRole(),
-                null, // không trả accessToken
-                auth.getRefreshToken() // chỉ trả refreshToken
+                auth.getAccessToken(), 
+                auth.getRefreshToken()
         );
 
         return ResponseEntity.ok(responseBody);
@@ -97,6 +105,18 @@ public class AuthController {
         // Log request (Strict Requirement)
         org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
         log.info("[BE] LOGOUT REQUEST from {}", request.getUserPrincipal());
+
+        // Set to Redis Blacklist
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            try {
+                // Revoke token with exact TTL based on its intrinsic expiration
+                jwtUtils.revokeToken(token);
+            } catch (Exception e) {
+                log.error("Failed to blacklist token in Redis (Fail-Open): {}", e.getMessage());
+            }
+        }
 
         // Invalidate session
         request.getSession().invalidate();

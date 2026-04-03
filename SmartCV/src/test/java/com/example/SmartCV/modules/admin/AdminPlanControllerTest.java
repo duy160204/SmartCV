@@ -8,6 +8,8 @@ import com.example.SmartCV.modules.subscription.service.PlanService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -22,7 +24,15 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(AdminPlanController.class)
+@WebMvcTest(
+    controllers = AdminPlanController.class,
+    excludeAutoConfiguration = {
+        SecurityAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
+    }
+)
+@AutoConfigureMockMvc(addFilters = false)
 public class AdminPlanControllerTest {
 
     @Autowired
@@ -30,6 +40,24 @@ public class AdminPlanControllerTest {
 
     @MockBean
     private PlanService planService;
+
+    @MockBean
+    private com.example.SmartCV.common.utils.JWTUtils jwtUtils;
+
+    @MockBean
+    private com.example.SmartCV.common.utils.CustomUserDetailsService userDetailsService;
+
+    @MockBean
+    private com.example.SmartCV.modules.auth.service.CustomOAuth2UserService customOAuth2UserService;
+
+    @MockBean
+    private com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
+    @MockBean
+    private com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+
+    @MockBean
+    private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;

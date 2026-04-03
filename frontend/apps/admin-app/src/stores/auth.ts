@@ -38,6 +38,9 @@ export const useAuthStore = defineStore('auth', () => {
             if (res.data?.refreshToken) {
                 localStorage.setItem('refreshToken', res.data.refreshToken);
             }
+            if (res.data?.accessToken) {
+                localStorage.setItem('accessToken', res.data.accessToken);
+            }
             await checkAuth();
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Login failed';

@@ -12,6 +12,14 @@ import lombok.Setter;
 @Setter
 public class User {
 
+    @PrePersist
+    @PreUpdate
+    private void normalizeEmail() {
+        if (email != null) {
+            this.email = email.trim().toLowerCase();
+        }
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,7 +29,6 @@ public class User {
 
     private String username;
 
-    // Password is nullable to support OAuth users who don't have passwords
     private String password;
 
     private String avatarURL;
