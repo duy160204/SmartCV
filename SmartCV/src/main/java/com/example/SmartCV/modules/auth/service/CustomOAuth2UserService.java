@@ -109,7 +109,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 break;
             case "github":
                 id = String.valueOf(attributes.get("id"));
-                email = (String) attributes.get("email");
+                email = (String) attributes.get("email"); // FIX: Github might have null email
                 verified = true;
                 break;
             case "facebook":
@@ -118,8 +118,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 verified = true;
                 break;
             case "linkedin":
-                id = attributes.containsKey("sub") ? (String) attributes.get("sub") : (String) attributes.get("id");
-                email = (String) attributes.get("email");
+                // FIX: LinkedIn mapping
+                id = attributes.containsKey("sub") ? (String) attributes.get("sub") : String.valueOf(attributes.get("id"));
+                email = (String) attributes.get("emailAddress");
+                if (email == null) {
+                    email = (String) attributes.get("email");
+                }
                 verified = Boolean.TRUE.equals(attributes.get("email_verified"));
                 break;
             case "zalo":
@@ -132,15 +136,19 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         if (id == null || id.isBlank()) id = UUID.randomUUID().toString();
 
+        // FIX: Add fallback email if null
+        // ADDED: ensure email is NEVER null
+        if (email == null || email.isBlank() || "null".equalsIgnoreCase(email)) {
+             email = id + "@" + provider.toLowerCase() + ".local";
+        }
+
         return new OAuth2UserInfo(id, email, verified);
     }
 
     private User processUser(OAuth2UserInfo userInfo, String provider) {
         String email = userInfo.email();
 
-        if (email == null || email.isBlank()) {
-            throw new OAuth2AuthenticationException(new org.springframework.security.oauth2.core.OAuth2Error("email_required"), "Email not returned from provider " + provider);
-        }
+        // UPDATED: Logic fallback moved to extractUserInfo. Removed exception since email is guaranteed to be never null.
 
         // Normalize email
         String finalEmail = email.trim().toLowerCase();

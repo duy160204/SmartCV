@@ -41,6 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String token = extractToken(request);
             log.debug("JwtAuthenticationFilter -> Token after extraction: {}", token);
+            log.debug("JWT extracted: {}", token != null ? "YES" : "NO");
 
             if (token != null) {
                 boolean isValid = jwtUtils.validateToken(token);
@@ -61,15 +62,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String email = jwtUtils.getEmailFromToken(token);
                     log.debug("JwtAuthenticationFilter -> Email extracted: {}", email);
                     
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                    UsernamePasswordAuthenticationToken auth = 
-                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-                    
-                    log.debug("JwtAuthenticationFilter -> Authentication is set.");
-                    log.debug("JwtAuthenticationFilter -> Current SecurityContext Authentication: {}", SecurityContextHolder.getContext().getAuthentication());
+                    if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                        UsernamePasswordAuthenticationToken auth = 
+                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        
+                        log.debug("Setting authentication for user: {}", email);
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                        
+                        log.debug("JwtAuthenticationFilter -> Authentication is set.");
+                        log.debug("JwtAuthenticationFilter -> Current SecurityContext Authentication: {}", SecurityContextHolder.getContext().getAuthentication());
+                    }
 
                 } else {
                     log.warn("JwtAuthenticationFilter -> Token is INVALID");
@@ -82,10 +86,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractToken(HttpServletRequest request) {
+        log.debug("JWT present in cookies: {}", request.getCookies() != null);
+        // 1. Cookie first (PRIMARY)
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("jwt".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        // 2. Fallback header
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7); // Pure Bearer token ONLY
+            return header.substring(7);
         }
+
         return null;
     }
 }

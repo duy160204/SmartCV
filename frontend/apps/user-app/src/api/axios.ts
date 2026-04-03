@@ -18,17 +18,31 @@ const AUTH_EXEMPT_PATHS = [
     '/payment/return'
 ];
 
-// Request interceptor to add Authorization token
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+        // DO NOT rely on localStorage token
+        // DO NOT send Authorization header if using cookies
         return config;
     },
     (error) => Promise.reject(error)
 );
+
+export const waitForAuth = async (maxRetries = 10, delayMs = 300): Promise<any> => {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await api.get('/users/me');
+            return response.data;
+        } catch (error) {
+            if (i === maxRetries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+};
+
+export const fetchUser = async (): Promise<any> => {
+    return await waitForAuth();
+};
 
 // Response interceptor
 api.interceptors.response.use(

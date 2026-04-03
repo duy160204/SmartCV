@@ -29,20 +29,19 @@ onMounted(async () => {
     try {
         state.value = 'loading';
         
-        // Call checkAuth to verify the OAuth cookie was set correctly
-        await authStore.checkAuth();
+        // Wait for OAuth cookie to become viable by polling
+        const userData = await waitForAuth(10, 300);
+        
+        // Populate standard store using setUser to avoid duplicate HTTP requests
+        authStore.setUser(userData);
         
         // Check if authentication succeeded
         if (authStore.isAuthenticated && authStore.user) {
             console.log('[OAuth Callback] Auth verified, user:', authStore.user.email);
             state.value = 'success';
             
-            // Small delay for user feedback then redirect
-            setTimeout(() => {
-                router.replace('/');
-            }, 500);
+            router.replace('/');
         } else {
-            // Auth check passed but no user -> something wrong
             throw new Error('Authentication verified but user data not available');
         }
     } catch (error: any) {

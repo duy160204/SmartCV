@@ -31,14 +31,21 @@ export const useAuthStore = defineStore('auth', () => {
             isLoading.value = true;
             // GET /api/users/me
             const res = await api.get('/users/me');
-            user.value = res.data;
-            isAuthenticated.value = true;
+            setUser(res.data);
         } catch (error) {
+            setUser(null);
+        }
+    }
+
+    function setUser(data: any) {
+        if (data) {
+            user.value = data;
+            isAuthenticated.value = true;
+        } else {
             user.value = null;
             isAuthenticated.value = false;
-        } finally {
-            isLoading.value = false;
         }
+        isLoading.value = false;
     }
 
     async function login(payload: any) {
@@ -113,6 +120,7 @@ export const useAuthStore = defineStore('auth', () => {
         checkAuth,
         login,
         register,
-        logout
+        logout,
+        setUser
     };
 });

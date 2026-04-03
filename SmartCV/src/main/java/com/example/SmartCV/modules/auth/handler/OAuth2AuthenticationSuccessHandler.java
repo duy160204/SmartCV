@@ -42,7 +42,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             Authentication authentication) throws IOException, ServletException {
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        // FIX: Use a safer way to get email in SuccessHandler
         String email = oAuth2User.getAttribute("email"); // Standard attribute
+        if (email == null || email.isBlank()) {
+            email = oAuth2User.getName();
+        }
 
         log.info("OAuth2 Login Success for email: {}", email);
 
@@ -56,10 +60,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         response.addHeader("Set-Cookie",
                 ResponseCookie.from("jwt", accessToken)
                         .httpOnly(true)
-                        .secure(cookieSecure)
+                        .secure(false) // DEV FIX
                         .path("/")
                         .maxAge(86400)
-                        .sameSite("Lax") // Match previous logic
+                        .sameSite("Lax") // DEV FIX
                         .build()
                         .toString());
 
@@ -67,12 +71,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         response.addHeader("Set-Cookie",
                 ResponseCookie.from("refresh_token", refreshToken.getToken())
                         .httpOnly(true)
-                        .secure(cookieSecure)
+                        .secure(false) // DEV FIX
                         .path("/")
                         .maxAge(604800)
-                        .sameSite("Lax")
+                        .sameSite("Lax") // DEV FIX
                         .build()
                         .toString());
+
+        log.info("JWT cookie set successfully");
 
         // Determine Provider from request URI if possible, or just default.
         // Request URI: /login/oauth2/code/{registrationId} or
@@ -85,8 +91,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             provider = parts[parts.length - 1];
         }
 
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback/" + provider)
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback")
                 .queryParam("status", "success")
+                .queryParam("accessToken", accessToken)
+                .queryParam("refreshToken", refreshToken.getToken())
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
