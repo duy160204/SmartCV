@@ -1,4 +1,14 @@
-SmartCV/node_modules/
-fe/node_modules/
-.env
+# Node
+node_modules/
+dist/
+build/
+
+# IDE
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# OS
 .DS_Store
