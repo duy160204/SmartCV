@@ -13,6 +13,7 @@ import com.example.SmartCV.common.exception.ResourceNotFoundException;
 import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.auth.domain.User;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
+import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.user.dto.ChangePasswordRequest;
 import com.example.SmartCV.modules.user.dto.UpdateProfileRequest;
 import com.example.SmartCV.modules.user.dto.UserResponseDTO;
@@ -30,6 +31,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final RoleRepository roleRepository;
 
     /**
      * Get current logged-in user (Session Rehydration)
@@ -42,13 +44,16 @@ public class UserController {
         log.info("GET /api/users/me called for user: {}", principal != null ? principal.getUsername() : "null");
 
         if (principal == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.ok(null);
         }
 
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        String role = user.getRoleId() == 1L ? "ADMIN" : "USER";
+        String roleName = roleRepository.findById(user.getRoleId())
+                .map(com.example.SmartCV.modules.auth.domain.Role::getName)
+                .orElse("ROLE_USER");
+        String role = roleName.replace("ROLE_", "");
 
         UserResponseDTO response = UserResponseDTO.builder()
                 .id(user.getId())

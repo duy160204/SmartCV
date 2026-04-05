@@ -80,45 +80,30 @@ const router = createRouter({
     ]
 })
 
-router.beforeEach(async (to, from, next) => {
-    const authStore = useAuthStore();
+let navigating = false;
 
-    // ALWAYS check auth on initial load, BEFORE any routing decisions
-    if (authStore.isLoading) {
-        try {
-            await authStore.checkAuth();
-        } catch (e) {
-            console.warn('[Admin Router] Auth check failed:', e);
-            // Continue with isAuthenticated = false
-        }
+router.beforeEach((to, from, next) => {
+    // 1. Prevent Double Navigation
+    if (to.path === from.path && to.path !== '/') {
+        return next(false);
     }
 
-    // Now handle routing based on auth state
+    const rawToken = localStorage.getItem('accessToken');
 
-    // Guest-only pages (login)
+    // 2. Guest-only check (e.g. /login)
     if (to.meta.guestOnly) {
-        if (authStore.isAuthenticated) {
-            // Already logged in, redirect to dashboard
+        if (rawToken) {
             return next({ name: 'dashboard' });
         }
         return next();
     }
 
-    // Protected routes - check auth
-    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    // 3. Protected route check
+    if (to.meta.requiresAuth && !rawToken) {
         return next({ name: 'login' });
     }
 
-    // ADMIN Role Check (case-insensitive)
-    if (authStore.isAuthenticated) {
-        const userRole = authStore.user?.role?.toLowerCase();
-        if (userRole !== 'admin') {
-            console.warn('[Admin] Non-admin user attempted access:', userRole);
-            await authStore.logout();
-            return next({ name: 'login' });
-        }
-    }
-
+    // 4. Default Allow
     next();
 });
 

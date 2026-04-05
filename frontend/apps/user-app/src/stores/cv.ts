@@ -35,31 +35,60 @@ export const useCVStore = defineStore('cv', () => {
             cv.content = {};
         }
 
-        // Ensure Profile
         if (!cv.content.profile) {
             cv.content.profile = {};
         }
+        if (!cv.content.profile.extras) {
+            cv.content.profile.extras = {};
+        }
+
+        // Clean up invalid legacy fields to valid ones
+        if (cv.content.careerObjective) {
+            if (!cv.content.profile.summary) {
+                cv.content.profile.summary = cv.content.careerObjective;
+            }
+            delete cv.content.careerObjective;
+        }
+        if (cv.content.certificates) {
+            if (!cv.content.certifications) {
+                cv.content.certifications = cv.content.certificates;
+            }
+            delete cv.content.certificates;
+        }
+        if (cv.content.profile && cv.content.profile.dob) {
+            if (!cv.content.profile.birthday) {
+                cv.content.profile.birthday = cv.content.profile.dob;
+            }
+            delete cv.content.profile.dob;
+        }
+        if (cv.content.profile && cv.content.profile.birthdate) {
+            if (!cv.content.profile.birthday) {
+                cv.content.profile.birthday = cv.content.profile.birthdate;
+            }
+            delete cv.content.profile.birthdate;
+        }
+
+        // Move unknown profile fields to extras
+        const coreProfileFields = ['name', 'title', 'email', 'phone', 'website', 'location', 'summary', 'photo', 'gender', 'birthday', 'address', 'extras'];
+        Object.keys(cv.content.profile).forEach(key => {
+            if (!coreProfileFields.includes(key) && key !== 'dob' && key !== 'birthdate' && key !== 'dateOfBirth') {
+                cv.content.profile.extras[key] = cv.content.profile[key];
+                delete cv.content.profile[key];
+            }
+        });
+
+        // Ensure Profile defaults for UI
         const defaultProfile = {
-            name: '',
-            title: '',
-            email: '',
-            phone: '',
-            website: '',
-            location: '',
-            summary: '',
-            photo: '',
-            gender: '',
-            dob: '',
-            address: ''
+            name: '', title: '', email: '', phone: '', website: '', location: '', summary: '', photo: '', gender: '', birthday: '', address: ''
         };
         cv.content.profile = { ...defaultProfile, ...cv.content.profile };
 
-        // Ensure Top-Level Strings
-        if (typeof cv.content.careerObjective !== 'string') cv.content.careerObjective = '';
-        if (typeof cv.content.interests !== 'string') cv.content.interests = '';
-
         // Ensure Arrays
-        const arraySections = ['experience', 'education', 'skills', 'languages', 'references'];
+        if (typeof cv.content.interests === 'string') {
+            cv.content.interests = cv.content.interests.split(',').map((i: string) => i.trim()).filter(Boolean);
+        }
+        // Ensure all collections are instantiated as Arrays specifically
+        const arraySections = ['experience', 'education', 'skills', 'languages', 'references', 'projects', 'certifications', 'awards', 'interests'];
         arraySections.forEach(sec => {
             if (!Array.isArray(cv.content[sec])) {
                 cv.content[sec] = [];
@@ -68,14 +97,14 @@ export const useCVStore = defineStore('cv', () => {
 
         // Normalize Dates
         cv.content.experience.forEach((e: any) => {
-            if (e.date) { e.startDate = e.date; delete e.date; }
-            if (!e.startDate) e.startDate = '';
-            if (!e.endDate) e.endDate = '';
+            if (e.startDate) { e.date = e.startDate; delete e.startDate; }
+            if (e.endDate) { delete e.endDate; }
+            if (!e.date) e.date = '';
         });
         cv.content.education.forEach((e: any) => {
-            if (e.date) { e.startDate = e.date; delete e.date; }
-            if (!e.startDate) e.startDate = '';
-            if (!e.endDate) e.endDate = '';
+            if (e.startDate) { e.date = e.startDate; delete e.startDate; }
+            if (e.endDate) { delete e.endDate; }
+            if (!e.date) e.date = '';
             if (!e.major) e.major = '';
         });
 
@@ -150,14 +179,35 @@ export const useCVStore = defineStore('cv', () => {
 
     }, { deep: true });
 
+    function buildPayload(form: any) {
+        return {
+            profile: {
+                name: form.profile?.name || '', title: form.profile?.title || '', email: form.profile?.email || '',
+                phone: form.profile?.phone || '', website: form.profile?.website || '', location: form.profile?.location || '',
+                summary: form.profile?.summary || form.careerObjective || '', photo: form.profile?.photo || '', gender: form.profile?.gender || '',
+                birthday: form.profile?.birthday || form.profile?.dob || form.profile?.birthdate || '', address: form.profile?.address || '',
+                extras: form.profile?.extras || {}
+            },
+            experience: Array.isArray(form.experience) ? form.experience.map((e: any) => ({
+                company: e.company || '', position: e.position || '', date: e.date || '', description: e.description || '', extras: e.extras || {}
+            })) : [],
+            skills: Array.isArray(form.skills) ? form.skills.map((s: any) => ({ name: s.name || '', level: s.level || '', extras: s.extras || {} })) : [],
+            projects: Array.isArray(form.projects) ? form.projects.map((p: any) => ({ name: p.name || '', role: p.role || '', date: p.date || '', description: p.description || '', link: p.link || '', extras: p.extras || {} })) : [],
+            languages: Array.isArray(form.languages) ? form.languages.map((l: any) => ({ language: l.language || '', proficiency: l.proficiency || '', extras: l.extras || {} })) : [],
+            certifications: Array.isArray(form.certifications) ? form.certifications.map((c: any) => ({ name: c.name || '', issuer: c.issuer || '', date: c.date || '', extras: c.extras || {} })) : [],
+            awards: Array.isArray(form.awards) ? form.awards.map((a: any) => ({ name: a.name || '', issuer: a.issuer || '', year: a.year || '', extras: a.extras || {} })) : [],
+            education: Array.isArray(form.education) ? form.education.map((e: any) => ({ school: e.school || '', degree: e.degree || '', major: e.major || '', date: e.date || '', extras: e.extras || {} })) : [],
+            interests: Array.isArray(form.interests) ? form.interests : (form.interests ? [form.interests] : []),
+            references: Array.isArray(form.references) ? form.references.map((r: any) => ({ name: r.name || '', position: r.position || '', company: r.company || '', contact: r.contact || '', extras: r.extras || {} })) : []
+        };
+    }
+
     async function saveCV() {
         if (!currentCV.value) return;
 
         try {
             isSaving.value = true;
-            // PATCH /api/cv/{id}/autosave
-            // Use cvApi which handles serialization automatically
-            await cvApi.autosave(currentCV.value.id, currentCV.value.content);
+            await cvApi.autosave(currentCV.value.id, buildPayload(currentCV.value.content));
 
             lastSaved.value = new Date();
         } catch (e) {

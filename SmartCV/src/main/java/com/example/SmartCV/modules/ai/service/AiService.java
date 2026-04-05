@@ -20,6 +20,8 @@ import org.springframework.retry.annotation.Retryable;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.SmartCV.modules.cv.dto.UnifiedCVDTO;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class AiService {
 
     private final AiProviderFactory aiProviderFactory;
     private final AiRateLimiter aiRateLimiter; 
+    private final ObjectMapper objectMapper;
 
     private Long getCurrentUserId() {
         try {
@@ -78,7 +81,8 @@ public class AiService {
                 .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\n" + AiPrompts.GENERATE_CV_PROMPT)
                 .userMessage("=== USER BACKGROUND ===\n" + prompt + "\n\n=== SECTION CONFIG ===\n" + templateConfigJson)
                 .build();
-        return executeChat(aiProviderFactory.getPrimaryProvider(), request);
+        String responseContent = executeChat(aiProviderFactory.getPrimaryProvider(), request);
+        return validateJsonOutput(responseContent);
     }
 
     public String fallbackGenerateCvContent(String prompt, String templateConfigJson, Throwable t) {
@@ -87,7 +91,8 @@ public class AiService {
                 .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\n" + AiPrompts.GENERATE_CV_PROMPT)
                 .userMessage("=== USER BACKGROUND ===\n" + prompt + "\n\n=== SECTION CONFIG ===\n" + templateConfigJson)
                 .build();
-        return executeChat(aiProviderFactory.getFallbackProvider(), request);
+        String responseContent = executeChat(aiProviderFactory.getFallbackProvider(), request);
+        return validateJsonOutput(responseContent);
     }
 
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallbackImproveText")
@@ -139,5 +144,77 @@ public class AiService {
         UnifiedAiResponse response = provider.chat(request);
         log.info("AI Request processed by {} in {}ms", response.getProvider(), response.getLatencyMs());
         return response.getContent();
+    }
+
+    private String validateJsonOutput(String rawJson) {
+        try {
+            String cleanedJson = rawJson;
+            if (cleanedJson.contains("```json")) {
+                cleanedJson = cleanedJson.replaceAll("```json|```", "").trim();
+            } else if (cleanedJson.contains("```")) {
+                cleanedJson = cleanedJson.replaceAll("```", "").trim();
+            }
+            
+            com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(cleanedJson);
+            if (rootNode.isObject()) {
+                com.fasterxml.jackson.databind.node.ObjectNode root = (com.fasterxml.jackson.databind.node.ObjectNode) rootNode;
+                
+                if (root.has("profile") && root.get("profile").isObject()) {
+                    sanitizeObject((com.fasterxml.jackson.databind.node.ObjectNode) root.get("profile"), java.util.Arrays.asList(
+                        "name", "title", "email", "phone", "website", "location", "summary", 
+                        "photo", "gender", "birthday", "address", "extras"
+                    ));
+                }
+                
+                sanitizeArray(root, "experience", java.util.Arrays.asList("company", "position", "date", "description", "extras"));
+                sanitizeArray(root, "skills", java.util.Arrays.asList("name", "level", "extras"));
+                sanitizeArray(root, "projects", java.util.Arrays.asList("name", "role", "date", "description", "link", "extras"));
+                sanitizeArray(root, "languages", java.util.Arrays.asList("language", "proficiency", "extras"));
+                sanitizeArray(root, "certifications", java.util.Arrays.asList("name", "issuer", "date", "extras"));
+                sanitizeArray(root, "awards", java.util.Arrays.asList("name", "issuer", "year", "extras"));
+                sanitizeArray(root, "education", java.util.Arrays.asList("school", "degree", "major", "date", "extras"));
+                sanitizeArray(root, "references", java.util.Arrays.asList("name", "position", "company", "contact", "extras"));
+            }
+
+            ObjectMapper strictMapper = objectMapper.copy();
+            strictMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+            strictMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true);
+            
+            UnifiedCVDTO cleanDto = strictMapper.treeToValue(rootNode, UnifiedCVDTO.class);
+            return strictMapper.writeValueAsString(cleanDto);
+        } catch (Exception e) {
+            log.error("AI Schema Validation Failed: {}", e.getMessage());
+            throw new BusinessException("SCHEMA_VIOLATION: Invalid AI JSON format. " + e.getMessage(), org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private void sanitizeArray(com.fasterxml.jackson.databind.node.ObjectNode root, String fieldName, java.util.List<String> coreFields) {
+        if (root.has(fieldName) && root.get(fieldName).isArray()) {
+            for (com.fasterxml.jackson.databind.JsonNode item : root.get(fieldName)) {
+                if (item.isObject()) {
+                    sanitizeObject((com.fasterxml.jackson.databind.node.ObjectNode) item, coreFields);
+                }
+            }
+        }
+    }
+
+    private void sanitizeObject(com.fasterxml.jackson.databind.node.ObjectNode obj, java.util.List<String> coreFields) {
+        com.fasterxml.jackson.databind.node.ObjectNode extrasNode = null;
+        if (obj.has("extras") && obj.get("extras").isObject()) {
+            extrasNode = (com.fasterxml.jackson.databind.node.ObjectNode) obj.get("extras");
+        }
+        
+        java.util.List<String> fieldNames = new java.util.ArrayList<>();
+        obj.fieldNames().forEachRemaining(fieldNames::add);
+        
+        for (String fieldName : fieldNames) {
+            if (!coreFields.contains(fieldName)) {
+                if (extrasNode == null) {
+                    extrasNode = obj.putObject("extras");
+                }
+                extrasNode.set(fieldName, obj.get(fieldName));
+                obj.remove(fieldName);
+            }
+        }
     }
 }

@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.example.SmartCV.modules.auth.domain.User;
+import com.example.SmartCV.modules.auth.repository.RoleRepository;
+
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -32,6 +34,7 @@ public class JWTUtils {
     private final long jwtRefreshExpirationMs = 604800000L; 
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RoleRepository roleRepository;
     private javax.crypto.SecretKey key;
 
     @jakarta.annotation.PostConstruct
@@ -44,10 +47,18 @@ public class JWTUtils {
 
     public String generateToken(User user) {
         long now = System.currentTimeMillis();
+        String roleName = roleRepository.findById(user.getRoleId())
+                .map(com.example.SmartCV.modules.auth.domain.Role::getName)
+                .orElse("ROLE_USER");
+        if (!roleName.startsWith("ROLE_")) {
+            roleName = "ROLE_" + roleName.toUpperCase();
+        }
+
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("name", user.getUsername())
-                .claim("roles", user.getRoleId())
+                .claim("role", roleName)
+                .claim("id", user.getId())
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(now + jwtExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS512)
@@ -73,17 +84,11 @@ public class JWTUtils {
         return refreshToken;
     }
 
-    public void revokeToken(String token) {
-        // Find time to live
+    public void revokeToken(String token) throws Exception {
         long expiration = getExpirationDateFromToken(token).getTime();
         long ttl = expiration - System.currentTimeMillis();
         if (ttl > 0) {
-            // Add to blacklist until it naturally expires
-            try {
-                redisTemplate.opsForValue().set("jwt_blacklist:" + token, "REVOKED", ttl, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                log.warn("Redis FAIL-OPEN: Cannot blacklist token, continuing. Error: {}", e.getMessage());
-            }
+            redisTemplate.opsForValue().set("jwt_blacklist:" + token, "REVOKED", ttl, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -106,6 +111,16 @@ public class JWTUtils {
 
     public String getEmailFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public Long getIdFromToken(String token) {
+        Object idVal = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("id");
+        return idVal instanceof Number ? ((Number) idVal).longValue() : null;
+    }
+
+    public String getRoleFromToken(String token) {
+        Object roleVal = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("role");
+        return roleVal != null ? roleVal.toString() : null;
     }
 
     public Date getExpirationDateFromToken(String token) {

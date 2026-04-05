@@ -93,15 +93,31 @@ public class AuthService {
         authKafkaProducer.sendSubscriptionActivated(savedUser.getEmail(), "FREE");
         authKafkaProducer.sendUserRegistered(savedUser.getEmail(), "LOCAL");
 
-        // 3. Send verify email (Async to prevent blocking)
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
-            try {
-                emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerifyToken());
-            } catch (Exception e) {
-                // Log but don't fail the registration
-                System.err.println("WARNING: Failed to send verification email: " + e.getMessage());
+        // 3. Send verify email safely ONLY after transaction commits
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+            new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    java.util.concurrent.CompletableFuture.runAsync(() -> {
+                        int retries = 3;
+                        while (retries > 0) {
+                            try {
+                                emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerifyToken());
+                                break;
+                            } catch (Exception e) {
+                                retries--;
+                                System.err.println("SMTP error. Retries left: " + retries + ". Error: " + e.getMessage());
+                                if (retries == 0) {
+                                    System.err.println("CRITICAL: Failed to send verification email for " + savedUser.getEmail() + " after 3 retries");
+                                } else {
+                                    try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                                }
+                            }
+                        }
+                    });
+                }
             }
-        });
+        );
     }
 
     /**
@@ -131,6 +147,8 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword())
         );
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String accessToken = jwtUtils.generateToken(user);
 

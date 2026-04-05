@@ -37,7 +37,6 @@ const render = () => {
         // Using regex to replace {{summary}} to {{limitWords summary 80}}, etc.
         let processedHtml = props.html
             .replace(/\{\{\s*profile\.summary\s*\}\}/g, '{{limitWords profile.summary 80}}')
-            .replace(/\{\{\s*careerObjective\s*\}\}/g, '{{limitWords careerObjective 60}}')
             .replace(/\{\{\s*description\s*\}\}/g, '{{limitWords description 60}}');
 
         const template = Handlebars.compile(processedHtml);

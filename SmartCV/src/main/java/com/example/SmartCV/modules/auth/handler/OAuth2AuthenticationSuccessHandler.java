@@ -7,13 +7,18 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import java.util.Collection;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.common.utils.JWTUtils;
 import com.example.SmartCV.modules.auth.domain.RefreshToken;
 import com.example.SmartCV.modules.auth.domain.User;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
+import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.service.RefreshTokenService;
 
 import jakarta.servlet.ServletException;
@@ -30,6 +35,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JWTUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
     @Value("${app.security.cookie-secure:false}")
     private boolean cookieSecure;
@@ -52,6 +58,25 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found after OAuth2 execution"));
+
+        // 🚨 REQUIRED SECURITY RULE: UNIFIED PRINCIPAL REPLACEMENT 🚨
+        // Re-store properly mapped generic standard UserPrincipal inside local execution
+        String roleName = roleRepository.findById(user.getRoleId())
+                .map(com.example.SmartCV.modules.auth.domain.Role::getName)
+                .orElse("ROLE_USER");
+        if (!roleName.startsWith("ROLE_")) {
+            roleName = "ROLE_" + roleName.toUpperCase();
+        }
+
+        UserPrincipal userPrincipal = new UserPrincipal(
+                user.getId(),
+                user.getEmail(),
+                user.getPassword() != null ? user.getPassword() : "",
+                roleName
+        );
+        UsernamePasswordAuthenticationToken newAuth = 
+                new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(newAuth);
 
         String accessToken = jwtUtils.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);

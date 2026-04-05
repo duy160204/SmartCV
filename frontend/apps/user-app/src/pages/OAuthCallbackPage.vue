@@ -29,11 +29,8 @@ onMounted(async () => {
     try {
         state.value = 'loading';
         
-        // Wait for OAuth cookie to become viable by polling
-        const userData = await waitForAuth(10, 300);
-        
-        // Populate standard store using setUser to avoid duplicate HTTP requests
-        authStore.setUser(userData);
+        // Populate standard store safely without delays
+        await authStore.checkAuth();
         
         // Check if authentication succeeded
         if (authStore.isAuthenticated && authStore.user) {

@@ -102,23 +102,29 @@ public class AuthController {
     // =================== LOGOUT =================== //
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
-        // Log request (Strict Requirement)
         org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
         log.info("[BE] LOGOUT REQUEST from {}", request.getUserPrincipal());
 
-        // Set to Redis Blacklist
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
-            try {
-                // Revoke token with exact TTL based on its intrinsic expiration
-                jwtUtils.revokeToken(token);
-            } catch (Exception e) {
-                log.error("Failed to blacklist token in Redis (Fail-Open): {}", e.getMessage());
+            boolean success = false;
+            for (int i = 0; i < 3; i++) {
+                try {
+                    jwtUtils.revokeToken(token);
+                    success = true;
+                    break;
+                } catch (Exception e) {
+                    log.error("Redis retry {} failed: {}", i, e.getMessage());
+                    try { Thread.sleep(500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                }
+            }
+            if (!success) {
+                log.error("CRITICAL: Redis logout blacklist failed after retries.");
+                return ResponseEntity.status(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE).build();
             }
         }
 
-        // Invalidate session
         request.getSession().invalidate();
 
         // Clear cookie (Blacklist equivalent for stateless JWT in cookie)

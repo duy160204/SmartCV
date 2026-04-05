@@ -2,7 +2,9 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: '/api',
-    withCredentials: true, // Crucial for HttpOnly cookies
+    withCredentials: true, // Crucial for HttpOnly cookies and CSRF
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
     headers: {
         'Content-Type': 'application/json'
     }
@@ -28,20 +30,9 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-export const waitForAuth = async (maxRetries = 10, delayMs = 300): Promise<any> => {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const response = await api.get('/users/me');
-            return response.data;
-        } catch (error) {
-            if (i === maxRetries - 1) throw error;
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-    }
-};
-
 export const fetchUser = async (): Promise<any> => {
-    return await waitForAuth();
+    const response = await api.get('/users/me');
+    return response.data;
 };
 
 // Response interceptor
@@ -55,7 +46,12 @@ api.interceptors.response.use(
             const isExempt = AUTH_EXEMPT_PATHS.some(path => currentPath.startsWith(path));
 
             if (!isExempt) {
-                window.location.href = '/login';
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                import('../router').then((routerModule) => {
+                    const router = routerModule.default;
+                    router.replace('/login');
+                });
             }
         }
         return Promise.reject(error);

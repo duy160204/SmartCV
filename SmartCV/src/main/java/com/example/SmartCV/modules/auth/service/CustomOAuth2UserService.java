@@ -12,6 +12,14 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import java.util.List;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -42,7 +50,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
     private final RoleRepository roleRepository;
     private final SubscriptionService subscriptionService;
     private final PasswordEncoder passwordEncoder;
-    private final AuthKafkaProducer authKafkaProducer;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public OidcUser loadOidcUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
         OidcUserService delegate = new OidcUserService();
@@ -50,7 +58,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Map<String, Object> attributes = oidcUser.getAttributes();
 
-        OAuth2UserInfo userInfo = extractUserInfo(registrationId, attributes);
+        OAuth2UserInfo userInfo = extractUserInfo(userRequest, attributes);
         User user = processUser(userInfo, registrationId);
 
         String roleName = roleRepository.findById(user.getRoleId())
@@ -80,7 +88,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        OAuth2UserInfo userInfo = extractUserInfo(registrationId, attributes);
+        OAuth2UserInfo userInfo = extractUserInfo(userRequest, attributes);
         User user = processUser(userInfo, registrationId);
 
         String roleName = roleRepository.findById(user.getRoleId())
@@ -96,7 +104,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 "email"); // use email as name attribute
     }
 
-    private OAuth2UserInfo extractUserInfo(String provider, Map<String, Object> attributes) {
+    private OAuth2UserInfo extractUserInfo(OAuth2UserRequest userRequest, Map<String, Object> attributes) {
+        String provider = userRequest.getClientRegistration().getRegistrationId();
         String email = "";
         String id;
         boolean verified = false;
@@ -109,8 +118,29 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 break;
             case "github":
                 id = String.valueOf(attributes.get("id"));
-                email = (String) attributes.get("email"); // FIX: Github might have null email
-                verified = true;
+                try {
+                    RestTemplate restTemplate = new RestTemplate();
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.set("Authorization", "Bearer " + userRequest.getAccessToken().getTokenValue());
+                    HttpEntity<String> entity = new HttpEntity<>("", headers);
+                    ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                            "https://api.github.com/user/emails", HttpMethod.GET, entity, new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+                    );
+                    if (response.getBody() != null) {
+                        for (Map<String, Object> emailObj : response.getBody()) {
+                            if (Boolean.TRUE.equals(emailObj.get("primary")) && Boolean.TRUE.equals(emailObj.get("verified"))) {
+                                email = (String) emailObj.get("email");
+                                verified = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to fetch verified Github emails", e);
+                }
+                if (!verified) {
+                    throw new OAuth2AuthenticationException(new org.springframework.security.oauth2.core.OAuth2Error("unverified_email"), "GitHub account lacks a verified primary email.");
+                }
                 break;
             case "facebook":
                 id = (String) attributes.get("id");
@@ -172,15 +202,16 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         if (isNewUser[0]) {
             subscriptionService.initFreeSubscription(user.getId());
-            authKafkaProducer.sendUserRegistered(user.getEmail(), provider);
-            authKafkaProducer.sendSubscriptionActivated(user.getEmail(), "FREE");
+            applicationEventPublisher.publishEvent(new UserRegisteredEvent(user.getEmail(), provider));
         } else {
+            if (user.isLocked()) {
+                throw new OAuth2AuthenticationException(new org.springframework.security.oauth2.core.OAuth2Error("locked"), "Account administratively locked.");
+            }
             // UPSERT logic: Link provider if not set, set verified = true
             boolean modified = false;
             
             if (!user.isVerified()) {
                 user.setVerified(true);
-                user.setLocked(false);
                 modified = true;
             }
             
@@ -189,7 +220,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             }
         }
 
-        authKafkaProducer.sendOAuth2Login(user.getEmail(), provider);
+        applicationEventPublisher.publishEvent(new OAuth2LoginEvent(user.getEmail(), provider));
 
         Long uid = user.getId();
         oauthAccountRepository.findByUserIdAndProvider(uid, provider)
@@ -206,4 +237,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
     private record OAuth2UserInfo(String id, String email, boolean verified) {
     }
+
+    public record UserRegisteredEvent(String email, String provider) {}
+    public record OAuth2LoginEvent(String email, String provider) {}
 }

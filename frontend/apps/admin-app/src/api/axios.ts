@@ -18,10 +18,23 @@ export const authApi = axios.create({
 });
 
 api.interceptors.request.use(
-    (config) => {
+    async (config) => {
+        const isAuthRequest = config.url?.includes('/auth/') || config.url?.includes('/login') || config.url?.includes('/refresh') || config.url?.includes('/users/me');
+
+        const { useAuthStore } = await import('../stores/auth');
+        const authStore = useAuthStore();
+        
+        if (!authStore.authInitialized && !isAuthRequest) {
+            await authStore.hydrateAuth();
+        }
+
         const token = localStorage.getItem('accessToken');
+
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+            config.headers = {
+                ...config.headers,
+                Authorization: `Bearer ${token}`
+            } as any;
         }
         return config;
     },
@@ -29,17 +42,21 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-    response => response,
-    error => {
-        // Handle 401 - redirect to login (but NOT during login itself)
-        if (error.response?.status === 401) {
-            const currentPath = window.location.pathname;
-            // Don't redirect if already on login or during initial auth check
-            if (!currentPath.startsWith('/login')) {
-                window.location.href = '/login';
-            }
+    res => res,
+    err => {
+        const status = err?.response?.status;
+
+        if (status === 401) {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('token');
+            window.location.href = '/login';
         }
-        return Promise.reject(error);
+
+        if (status === 403) {
+            console.warn('Permission denied');
+        }
+
+        return Promise.reject(err);
     }
 );
 

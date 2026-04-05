@@ -18,8 +18,8 @@ const uploading = ref(false);
 const configJson = ref('');
 
 // Section selection
-const availableSections = ['profile', 'careerObjective', 'experience', 'education', 'skills', 'languages', 'projects', 'certificates', 'awards', 'interests', 'references'];
-const selectedSections = ref<string[]>(['profile', 'careerObjective', 'experience', 'education', 'skills']);
+const availableSections = ['profile', 'experience', 'education', 'skills', 'languages', 'projects', 'certifications', 'awards', 'interests', 'references'];
+const selectedSections = ref<string[]>(['profile', 'experience', 'education', 'skills']);
 
 watch(selectedSections, (newVal) => {
     configJson.value = JSON.stringify({ sections: newVal });

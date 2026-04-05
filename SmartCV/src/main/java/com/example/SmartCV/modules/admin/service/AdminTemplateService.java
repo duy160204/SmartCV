@@ -229,6 +229,7 @@ public class AdminTemplateService {
                         .replaceAll("(?i)onload\\s*=", "data-blocked=")
                         .replaceAll("(?i)onerror\\s*=", "data-blocked=");
 
+                sanitizedHtml = sanitizeTemplate(sanitizedHtml);
                 validateTemplatePlaceholders(sanitizedHtml);
 
                 ((ObjectNode) node).put("html", sanitizedHtml);
@@ -241,16 +242,29 @@ public class AdminTemplateService {
         }
     }
 
-    private static final java.util.Set<String> VALID_SCHEMA_KEYS = java.util.Set.of(
-        "profile.name", "profile.title", "profile.email", "profile.phone", "profile.website", "profile.location", "profile.summary",
+    private String sanitizeTemplate(String html) {
+        if (html == null) return null;
+    
+        return html
+            .replaceAll("profile\\.dateOfBirth", "profile.birthday")
+            .replaceAll("profile\\.dob", "profile.birthday")
+            .replaceAll("profile\\.birthdate", "profile.birthday")
+            .replaceAll("careerObjective", "profile.summary")
+            .replaceAll("certificates", "certifications");
+    }
+
+    private static final java.util.Set<String> VALID_SCHEMA_KEYS = new java.util.HashSet<>(java.util.Arrays.asList(
+        "profile.name", "profile.title", "profile.email", "profile.phone", "profile.website", "profile.location", "profile.summary", "profile.photo", "profile.gender", "profile.birthday", "profile.address",
         "experience", "this.company", "this.position", "this.date", "this.description",
-        "education", "this.school", "this.degree",
+        "education", "this.school", "this.degree", "this.major",
         "skills", "this.name", "this.level",
         "projects", "this.role", "this.link",
         "languages", "this.language", "this.proficiency",
         "certifications", "this.issuer",
-        "awards", "this.year"
-    );
+        "awards", "this.year",
+        "interests", "this",
+        "references", "this.contact"
+    ));
 
     private void validateTemplatePlaceholders(String html) {
         if (html == null || html.isBlank()) return;
@@ -264,8 +278,10 @@ public class AdminTemplateService {
 
             for (String var : variables) {
                 if (var.equals("else") || var.equals("this") || var.equals("each") || var.equals("if")) continue;
+                if (var.startsWith("profile.extras.") || var.startsWith("this.extras.")) continue;
+                
                 if (!VALID_SCHEMA_KEYS.contains(var)) {
-                    throw new RuntimeException("CRITICAL: Schema Violation. Unrecognized field: " + var);
+                    System.out.println("Warning: Unrecognized field allowed in hybrid schema: " + var);
                 }
             }
         } catch (Exception e) {

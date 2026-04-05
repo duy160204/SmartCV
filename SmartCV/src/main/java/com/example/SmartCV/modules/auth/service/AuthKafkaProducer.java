@@ -3,6 +3,11 @@ package com.example.SmartCV.modules.auth.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
+
+import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService.UserRegisteredEvent;
+import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService.OAuth2LoginEvent;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,6 +28,17 @@ public class AuthKafkaProducer {
 
     public void sendSubscriptionActivated(String email, String plan) {
         sendMessage("subscription-activated", String.format("{\"email\":\"%s\",\"plan\":\"%s\"}", email, plan));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onUserRegistered(UserRegisteredEvent event) {
+        sendUserRegistered(event.email(), event.provider());
+        sendSubscriptionActivated(event.email(), "FREE");
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOAuth2Login(OAuth2LoginEvent event) {
+        sendOAuth2Login(event.email(), event.provider());
     }
 
     private void sendMessage(String topic, String payload) {

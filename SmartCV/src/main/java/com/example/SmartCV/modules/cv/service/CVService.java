@@ -24,6 +24,28 @@ public class CVService {
 
     private final SubscriptionService subscriptionService;
     private final CVExportService cvExportService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    // =========================
+    // Validation Layer
+    // =========================
+    private String validateDataJsonStrictly(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) return rawJson;
+        if (rawJson.contains("\"dob\"") || rawJson.contains("\"birthdate\"") || rawJson.contains("\"experience.date\"")) {
+            throw new BusinessException("SCHEMA_VIOLATION: Forbidden fields detected.", HttpStatus.BAD_REQUEST);
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper strictMapper = objectMapper.copy();
+            strictMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+            strictMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true);
+            com.example.SmartCV.modules.cv.dto.UnifiedCVDTO cleanDto = strictMapper.readValue(rawJson, com.example.SmartCV.modules.cv.dto.UnifiedCVDTO.class);
+            return strictMapper.writeValueAsString(cleanDto);
+        } catch (com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException e) {
+            throw new BusinessException("SCHEMA_VIOLATION: Unrecognized field: " + e.getPropertyName(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            throw new BusinessException("SCHEMA_VIOLATION: Invalid CV JSON format. " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 
     // =========================
     // Helpers
@@ -62,8 +84,8 @@ public class CVService {
                 .templateVersion(template.getVersion())
                 .templateSnapshot(template.getFullContent())
                 .title(title)
-                .content(content)
-                .dataJson(dataJson)
+                .content(validateDataJsonStrictly(content))
+                .dataJson(validateDataJsonStrictly(dataJson))
                 .status(CVStatus.DRAFT)
                 .isPublic(false)
                 .viewCount(0L)
@@ -87,8 +109,8 @@ public class CVService {
         }
 
         cv.setTitle(title);
-        cv.setContent(content);
-        cv.setDataJson(dataJson);
+        cv.setContent(validateDataJsonStrictly(content));
+        cv.setDataJson(validateDataJsonStrictly(dataJson));
 
         return cvRepository.save(cv);
     }
@@ -107,8 +129,8 @@ public class CVService {
             throw new BusinessException("CV is archived, cannot auto-save", HttpStatus.FORBIDDEN);
         }
 
-        cv.setContent(content);
-        cv.setDataJson(dataJson);
+        cv.setContent(validateDataJsonStrictly(content));
+        cv.setDataJson(validateDataJsonStrictly(dataJson));
         cvRepository.save(cv);
     }
 

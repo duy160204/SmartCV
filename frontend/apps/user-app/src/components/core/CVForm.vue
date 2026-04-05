@@ -2,13 +2,25 @@
 import { useCVStore } from '@/stores/cv';
 import { ref, computed } from 'vue';
 import { cvApi } from '@/api/user.api';
+
+const store = useCVStore();
+
+const interestsText = computed({
+    get: () => {
+        const interests = store.currentCV?.content?.interests;
+        return Array.isArray(interests) ? interests.join(', ') : '';
+    },
+    set: (val: string) => {
+        if (store.currentCV?.content) {
+            store.currentCV.content.interests = val.split(',').map(i => i.trim()).filter(Boolean);
+        }
+    }
+});
 import AIImproveModal from './AIImproveModal.vue';
 
 const props = defineProps<{
     activeTab: string;
 }>();
-
-const store = useCVStore();
 
 // AI State
 const showAI = ref(false);
@@ -49,6 +61,39 @@ const addItem = (section: string) => {
 
 const removeItem = (section: string, index: number | string) => {
     if (store.currentCV?.content?.[section]) store.currentCV.content[section].splice(Number(index), 1);
+};
+
+const addExtra = (section: string) => {
+    if (!store.currentCV?.content) return;
+    if (section === 'profile') {
+        if (!store.currentCV.content.profile.extras) store.currentCV.content.profile.extras = {};
+        const timestamp = Date.now();
+        const newKey = `custom_field_${timestamp}`;
+        store.currentCV.content.profile.extras[newKey] = '';
+    }
+};
+
+const updateExtraKey = (section: string, oldKey: string, newKey: string, event: Event) => {
+    if (oldKey === newKey || !newKey || !store.currentCV?.content) return;
+    if (section === 'profile') {
+        const extras = store.currentCV.content.profile.extras;
+        extras[newKey] = extras[oldKey];
+        delete extras[oldKey];
+    }
+};
+
+const updateExtraValue = (section: string, key: string, value: string) => {
+    if (!store.currentCV?.content) return;
+    if (section === 'profile') {
+        store.currentCV.content.profile.extras[key] = value;
+    }
+};
+
+const removeExtra = (section: string, key: string) => {
+    if (!store.currentCV?.content) return;
+    if (section === 'profile') {
+        delete store.currentCV.content.profile.extras[key];
+    }
 };
 
 const getImageUrl = (url: string | null) => {
@@ -145,7 +190,7 @@ const uploadAvatar = async (event: Event) => {
             </div>
              <div>
                 <label class="block text-sm font-medium mb-1">Date of Birth</label>
-                <input v-model="store.currentCV.content.profile.dob" class="w-full border p-2 rounded" />
+                <input v-model="store.currentCV.content.profile.birthday" class="w-full border p-2 rounded" />
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Address</label>
@@ -161,6 +206,19 @@ const uploadAvatar = async (event: Event) => {
                     >
                         ✨ AI Improve
                     </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Extras -->
+            <div class="mt-4 border-t pt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-sm">Additional Fields</h4>
+                    <button @click="addExtra('profile')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">+ Add Custom Field</button>
+                </div>
+                <div v-for="(val, key) in store.currentCV.content.profile.extras" :key="key" class="flex gap-2 mb-2 items-center">
+                    <input :value="key" @change="updateExtraKey('profile', String(key), ($event.target as HTMLInputElement).value, $event)" placeholder="Field Name" class="w-1/3 border p-2 rounded text-sm" />
+                    <input :value="val" @input="updateExtraValue('profile', String(key), ($event.target as HTMLInputElement).value)" placeholder="Value" class="flex-1 border p-2 rounded text-sm" />
+                    <button @click="removeExtra('profile', String(key))" class="text-red-400 hover:text-red-600 bg-white border border-transparent hover:border-red-200 rounded p-1 shadow-sm">✕</button>
                 </div>
             </div>
         </div>
@@ -179,9 +237,8 @@ const uploadAvatar = async (event: Event) => {
                     <input v-model="exp.company" placeholder="Company" class="border p-2 rounded" />
                     <input v-model="exp.position" placeholder="Position" class="border p-2 rounded" />
                 </div>
-                <div class="grid grid-cols-2 gap-4 mb-2">
-                    <input v-model="exp.startDate" placeholder="Start Date" class="border p-2 rounded" />
-                    <input v-model="exp.endDate" placeholder="End Date" class="border p-2 rounded" />
+                <div class="mb-2">
+                    <input v-model="exp.date" placeholder="Date / Duration" class="border p-2 rounded w-full" />
                 </div>
                 <div>
                      <textarea v-model="exp.description" placeholder="Description" rows="3" class="w-full border p-2 rounded mb-1"></textarea>
@@ -203,9 +260,8 @@ const uploadAvatar = async (event: Event) => {
                     <input v-model="edu.school" placeholder="School" class="border p-2 rounded" />
                     <input v-model="edu.degree" placeholder="Degree" class="border p-2 rounded" />
                 </div>
-                 <div class="grid grid-cols-2 gap-4 mb-2">
-                    <input v-model="edu.startDate" placeholder="Start Date" class="border p-2 rounded" />
-                    <input v-model="edu.endDate" placeholder="End Date" class="border p-2 rounded" />
+                 <div class="mb-2">
+                    <input v-model="edu.date" placeholder="Date" class="border p-2 rounded w-full" />
                 </div>
                 <input v-model="edu.major" placeholder="Major" class="border p-2 rounded w-full" />
             </div>
@@ -317,7 +373,7 @@ const uploadAvatar = async (event: Event) => {
                 <h3 class="font-bold text-lg">Interests</h3>
             </div>
             <div>
-                 <textarea v-model="store.currentCV.content.interests" placeholder="Tell us about your interests..." rows="4" class="w-full border p-2 rounded mb-1"></textarea>
+                 <textarea v-model="interestsText" placeholder="Tell us about your interests (comma separated)..." rows="4" class="w-full border p-2 rounded mb-1"></textarea>
             </div>
         </div>
 

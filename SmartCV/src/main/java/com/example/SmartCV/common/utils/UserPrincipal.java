@@ -19,20 +19,11 @@ public class UserPrincipal implements UserDetails {
     private Long id;
     private String email;
     private String password;
-    private Long roleId; // 1 = ADMIN, 2 = USER
+    private String roleName;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-
-        String roleName;
-
-        if (roleId == 1L) {
-            roleName = "ROLE_ADMIN";
-        } else {
-            roleName = "ROLE_USER";
-        }
-
-        return List.of(new SimpleGrantedAuthority(roleName));
+        return List.of(new SimpleGrantedAuthority(roleName != null ? roleName : "ROLE_USER"));
     }
 
     @Override
