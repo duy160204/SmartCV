@@ -51,6 +51,23 @@ const render = () => {
         // structuredClone ensures a deep copy without Vue reactivity pointers
         const rawData = props.data ? structuredClone(toRaw(props.data)) : {};
         
+        // 3️⃣ Hydrate Flex Schema (EXTRAS) For Legacy Templates
+        // Legacy templates use {{profile.facebook}} while data is in profile.extras.facebook
+        // Since rawData is a detached clone, we safely flatten extras into their parents for rendering
+        if (rawData.profile && typeof rawData.profile.extras === 'object') {
+             Object.assign(rawData.profile, rawData.profile.extras);
+        }
+        const sectionsToHydrate = ['experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards'];
+        sectionsToHydrate.forEach(sec => {
+             if (Array.isArray(rawData[sec])) {
+                 rawData[sec].forEach((item: any) => {
+                     if (item && typeof item.extras === 'object') {
+                         Object.assign(item, item.extras);
+                     }
+                 });
+             }
+        });
+        
         const result = template(rawData);
         
         // Sanitize HTML (Allowing style attributes might be needed for some templates, but safer to block scripts)

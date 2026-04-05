@@ -75,13 +75,32 @@ public class TemplateService {
     /**
      * Lấy danh sách template user được phép thấy (Phân trang)
      */
-    @Cacheable(value = "templates", key = "#userId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
-    public Page<TemplateSummaryProjection> getAvailableTemplates(Long userId, Pageable pageable) {
+    @Cacheable(value = "templates", key = "#userId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort.toString()")
+    public com.example.SmartCV.common.dto.PageResponse<com.example.SmartCV.modules.cv.dto.TemplateSummaryDTO> getAvailableTemplates(Long userId, Pageable pageable) {
 
         PlanType userPlan = getUserPlan(userId);
         List<PlanType> allowedPlans = getAllowedPlans(userPlan);
 
-        return templateRepository.findByIsActiveTrueAndPlanRequiredIn(allowedPlans, pageable);
+        Page<Template> templates = templateRepository.findByIsActiveTrueAndPlanRequiredIn(allowedPlans, pageable);
+        List<com.example.SmartCV.modules.cv.dto.TemplateSummaryDTO> content = templates.map(t -> com.example.SmartCV.modules.cv.dto.TemplateSummaryDTO.builder()
+                .id(t.getId())
+                .code(t.getCode())
+                .name(t.getName())
+                .description(t.getDescription())
+                .thumbnailUrl(t.getThumbnailUrl())
+                .planRequired(t.getPlanRequired())
+                .isActive(t.getIsActive())
+                .createdAt(t.getCreatedAt())
+                .updatedAt(t.getUpdatedAt())
+                .build()).getContent();
+
+        return com.example.SmartCV.common.dto.PageResponse.<com.example.SmartCV.modules.cv.dto.TemplateSummaryDTO>builder()
+                .content(content)
+                .totalElements(templates.getTotalElements())
+                .totalPages(templates.getTotalPages())
+                .pageNumber(templates.getNumber())
+                .pageSize(templates.getSize())
+                .build();
     }
 
     /**

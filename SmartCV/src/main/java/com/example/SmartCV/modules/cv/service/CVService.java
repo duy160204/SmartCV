@@ -119,7 +119,7 @@ public class CVService {
     // UC-B03 – Auto Save
     // =========================
 
-    public void autoSave(Long userId, Long cvId, String content, String dataJson) {
+    public void autoSave(Long userId, Long cvId, String title, String content, String dataJson) {
 
         CV cv = getOwnedCV(cvId, userId);
 
@@ -129,6 +129,9 @@ public class CVService {
             throw new BusinessException("CV is archived, cannot auto-save", HttpStatus.FORBIDDEN);
         }
 
+        if (title != null && !title.isBlank()) {
+            cv.setTitle(title);
+        }
         cv.setContent(validateDataJsonStrictly(content));
         cv.setDataJson(validateDataJsonStrictly(dataJson));
         cvRepository.save(cv);

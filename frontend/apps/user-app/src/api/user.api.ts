@@ -78,9 +78,9 @@ export const cvApi = {
     },
 
     // PATCH /api/cv/{id}/autosave
-    autosave: (id: number, content: any) => {
-        const finalContent = typeof content === 'string' ? content : JSON.stringify(content);
-        return api.patch(`/cv/${id}/autosave`, { content: finalContent });
+    autosave: (id: number, payload: { title: string; content: any }) => {
+        const finalContent = typeof payload.content === 'string' ? payload.content : JSON.stringify(payload.content);
+        return api.patch(`/cv/${id}/autosave`, { title: payload.title, content: finalContent });
     },
 
     // POST /api/cv/{id}/publish

@@ -64,12 +64,13 @@ public class CVController {
                         @PathVariable Long cvId,
                         @RequestBody com.example.SmartCV.modules.cv.dto.CVAutoSaveDTO body // Use DTO
         ) {
+                String title = body.getTitle();
                 String content = body.getContent();
                 String dataJson = body.getDataJson();
                 if (content == null && dataJson == null) {
                         return ResponseEntity.badRequest().build();
                 }
-                cvService.autoSave(principal.getId(), cvId, content, dataJson);
+                cvService.autoSave(principal.getId(), cvId, title, content, dataJson);
                 return ResponseEntity.ok().build();
         }
 

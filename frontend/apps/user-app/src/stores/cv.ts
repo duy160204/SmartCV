@@ -207,7 +207,10 @@ export const useCVStore = defineStore('cv', () => {
 
         try {
             isSaving.value = true;
-            await cvApi.autosave(currentCV.value.id, buildPayload(currentCV.value.content));
+            await cvApi.autosave(currentCV.value.id, { 
+                title: currentCV.value.title, 
+                content: buildPayload(currentCV.value.content) 
+            });
 
             lastSaved.value = new Date();
         } catch (e) {

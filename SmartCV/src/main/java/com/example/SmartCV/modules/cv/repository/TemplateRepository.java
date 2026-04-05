@@ -12,13 +12,13 @@ import com.example.SmartCV.modules.subscription.domain.PlanType;
 
 public interface TemplateRepository extends JpaRepository<Template, Long> {
 
-    Page<TemplateSummaryProjection> findByIsActiveTrue(Pageable pageable);
+    Page<Template> findByIsActiveTrue(Pageable pageable);
 
-    Page<TemplateSummaryProjection> findByIsActiveTrueAndPlanRequiredIn(List<PlanType> plans, Pageable pageable);
+    Page<Template> findByIsActiveTrueAndPlanRequiredIn(List<PlanType> plans, Pageable pageable);
 
-    Page<TemplateSummaryProjection> findByIsActiveTrueAndPlanRequired(PlanType planRequired, Pageable pageable);
+    Page<Template> findByIsActiveTrueAndPlanRequired(PlanType planRequired, Pageable pageable);
 
-    Page<TemplateSummaryProjection> findByIsActiveTrueOrderByCreatedAtDesc(Pageable pageable);
+    Page<Template> findByIsActiveTrueOrderByCreatedAtDesc(Pageable pageable);
 
     long countByIsActiveTrue();
 }

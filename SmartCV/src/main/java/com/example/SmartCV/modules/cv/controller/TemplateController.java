@@ -39,7 +39,7 @@ public class TemplateController {
      * Lấy danh sách template user được phép thấy (CÓ PHÂN TRANG, KHÔNG LOB)
      */
     @GetMapping
-    public ResponseEntity<Page<TemplateSummaryProjection>> getTemplates(
+    public ResponseEntity<com.example.SmartCV.common.dto.PageResponse<com.example.SmartCV.modules.cv.dto.TemplateSummaryDTO>> getTemplates(
             Authentication authentication,
             Pageable pageable) {
         Long userId = getUserId(authentication);
