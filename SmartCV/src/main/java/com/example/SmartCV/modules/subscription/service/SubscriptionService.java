@@ -237,68 +237,43 @@ public class SubscriptionService {
     }
 
     // =========================
-    // ACTIVATE SUBSCRIPTION (AUTO)
+    // ACTIVATE SUBSCRIPTION (SAFE) 
     // =========================
-    public void activateSubscription(com.example.SmartCV.modules.payment.domain.PaymentTransaction tx) {
-
-        if (tx.getStatus() != com.example.SmartCV.modules.payment.domain.PaymentStatus.SUCCESS) {
-            throw new RuntimeException("Payment is not successful");
-        }
+    public void activateSubscriptionSafe(Long userId, PlanType newPlan, Long paymentId) {
 
         PlanDefinition planDef = planDefinitionRepository
-                .findByPlanAndDurationMonths(tx.getPlan(), tx.getMonths())
-                .orElseThrow(() -> new RuntimeException(
-                        "Plan not found for type=" + tx.getPlan() + " months=" + tx.getMonths()));
+                .findByPlan(newPlan)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + newPlan));
 
-        UserSubscription sub = userSubscriptionRepository.findByUserId(tx.getUserId())
+        UserSubscription sub = userSubscriptionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User subscription not found"));
 
         PlanType oldPlanType = sub.getPlan();
-
-        // --- AUDIT HISTORY START ---
-        // Use available Enums: PAYMENT_SUCCESS covers New, Renew, Upgrade triggered by
-        // payment.
-        SubscriptionChangeType changeType = SubscriptionChangeType.PAYMENT_SUCCESS;
-        // --- AUDIT HISTORY END ---
-
         LocalDate start = LocalDate.now();
         LocalDate end;
 
-        // LIFECYCLE LOGIC:
-        // 1. Same Plan (Renewal) -> Extend endDate
-        // 2. Different Plan (Upgrade/Downgrade/New) -> New Start Date
-        if (sub.isActive() && sub.getPlan() == tx.getPlan()) {
+        // LIFECYCLE LOGIC: Same plan extends | Different plan overrides
+        if (sub.isActive() && sub.getPlan() == newPlan) {
             LocalDate baseDate = sub.getEndDate().isBefore(start) ? start : sub.getEndDate();
             end = baseDate.plusDays(planDef.getDurationDays());
         } else {
-            // OVERRIDE
             sub.setStartDate(start);
             end = start.plusDays(planDef.getDurationDays());
         }
 
-        sub.setPlan(tx.getPlan());
+        sub.setPlan(newPlan);
         sub.setStatus(SubscriptionStatus.ACTIVE);
         sub.setEndDate(end);
 
         userSubscriptionRepository.save(sub);
 
-        // RECORD HISTORY
-        subscriptionHistoryService.saveHistory(
-                tx.getUserId(),
-                oldPlanType,
-                tx.getPlan(),
-                changeType,
-                ChangeReason.PAYMENT,
-                tx.getId(),
-                null);
-
         // Notify
-        User user = userRepository.findById(tx.getUserId()).orElse(null);
+        User user = userRepository.findById(userId).orElse(null);
         if (user != null) {
             emailService.sendPlanUpdatedEmail(
                     user.getEmail(),
                     oldPlanType.name(),
-                    tx.getPlan().name());
+                    newPlan.name());
         }
     }
 

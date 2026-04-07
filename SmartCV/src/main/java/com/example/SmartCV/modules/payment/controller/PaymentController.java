@@ -3,8 +3,12 @@ package com.example.SmartCV.modules.payment.controller;
 import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.payment.domain.*;
 import com.example.SmartCV.modules.payment.dto.CreatePaymentRequest;
+import com.example.SmartCV.modules.payment.dto.PaymentResponse;
 import com.example.SmartCV.modules.payment.repository.PaymentTransactionRepository;
-import com.example.SmartCV.modules.payment.service.VNPayClientService;
+import com.example.SmartCV.modules.payment.service.PaymentService;
+import com.example.SmartCV.modules.payment.service.PaymentServiceFactory;
+import com.example.SmartCV.modules.payment.service.PaymentTransactionService;
+import com.example.SmartCV.modules.subscription.repository.PlanDefinitionRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +24,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final com.example.SmartCV.modules.subscription.repository.PlanDefinitionRepository planDefinitionRepository;
+    private final PlanDefinitionRepository planDefinitionRepository;
     private final PaymentTransactionRepository paymentRepo;
-    private final com.example.SmartCV.modules.payment.service.PaymentTransactionService paymentTransactionService;
-    private final VNPayClientService vnpayClientService;
+    private final PaymentTransactionService paymentTransactionService;
+    private final PaymentServiceFactory paymentServiceFactory;
 
     @PostMapping
     public ResponseEntity<?> createPayment(
@@ -64,21 +68,21 @@ public class PaymentController {
 
         paymentRepo.save(tx);
 
-        // ========= Gateway routing =========
-        String paymentUrl;
-        switch (tx.getProvider()) {
-            case VNPAY -> paymentUrl = vnpayClientService.buildPaymentUrl(tx);
-            default -> {
-                return ResponseEntity
-                        .badRequest()
-                        .body("Unsupported payment provider: " + tx.getProvider());
-            }
+        // ========= Gateway routing via Strategy Pattern =========
+        PaymentService service = paymentServiceFactory.get(tx.getProvider());
+        
+        if (service == null || !service.isEnabled()) {
+            return ResponseEntity.badRequest().body("Payment provider is not available: " + tx.getProvider());
         }
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "paymentUrl", paymentUrl,
-                        "transactionCode", tx.getTransactionCode()));
+        PaymentResponse response = service.createPayment(tx);
+
+        return ResponseEntity.ok(Map.of(
+                "provider", response.getProvider() != null ? response.getProvider() : "",
+                "paymentUrl", response.getPaymentUrl() != null ? response.getPaymentUrl() : "",
+                "clientSecret", response.getClientSecret() != null ? response.getClientSecret() : "",
+                "transactionCode", response.getTransactionCode() != null ? response.getTransactionCode() : ""
+        ));
     }
 
     @GetMapping("/{transactionCode}")

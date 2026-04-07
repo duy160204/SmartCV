@@ -66,25 +66,25 @@ export const useUserPlanStore = defineStore('user-plan', () => {
         }
     }
 
-    async function upgradePlan(planCode: string) {
+    async function upgradePlan(planCode: string, provider: string = 'VNPAY') {
         try {
             isLoading.value = true;
             error.value = null;
 
-            // Assume VNPAY for now as per requirements
-            // Ideally backend could default provider if not sent, 
-            // but api requires it.
             const res = await import('@/api/user.api').then(m => m.paymentApi.create({
                 planCode: planCode,
-                provider: 'VNPAY'
+                provider: provider
             }));
 
-            // Response: { paymentUrl: "...", transactionCode: "..." }
-            const { paymentUrl } = res.data;
-            if (paymentUrl) {
+            // Response: { paymentUrl: "...", clientSecret: "...", provider: "VNPAY/STRIPE" }
+            const { paymentUrl, clientSecret, provider: resProvider } = res.data;
+            
+            if (resProvider === 'VNPAY' && paymentUrl) {
                 window.location.href = paymentUrl;
+            } else if (resProvider === 'STRIPE' && clientSecret) {
+                return clientSecret; // Return the secret so that the flow can render Stripe Elements 
             } else {
-                throw new Error("No payment URL received");
+                throw new Error("Invalid payment gateway response");
             }
 
         } catch (e: any) {

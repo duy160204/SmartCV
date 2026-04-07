@@ -80,6 +80,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/payment-method',
+            name: 'payment-method',
+            component: () => import('../pages/PaymentMethodPage.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/payment/return',
             name: 'payment-return',
             component: PaymentReturn,

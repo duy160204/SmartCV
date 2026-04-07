@@ -80,6 +80,12 @@ public class PaymentTransaction {
     private String transactionCode;
 
     /**
+     * ID từ bảng gateway ngoài.
+     */
+    @Column(name = "external_id")
+    private String externalId;
+
+    /**
      * Thời điểm thanh toán thành công
      * (chỉ set khi status = SUCCESS)
      */

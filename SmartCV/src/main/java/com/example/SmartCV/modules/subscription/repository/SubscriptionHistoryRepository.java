@@ -9,4 +9,6 @@ import com.example.SmartCV.modules.subscription.domain.SubscriptionHistory;
 public interface SubscriptionHistoryRepository extends JpaRepository<SubscriptionHistory, Long> {
 
     List<SubscriptionHistory> findByUserIdOrderByChangedAtDesc(Long userId);
+    
+    boolean existsByPaymentId(Long paymentId);
 }

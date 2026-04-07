@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.SmartCV.modules.payment.domain.PaymentStatus;
 import com.example.SmartCV.modules.payment.domain.PaymentTransaction;
 import com.example.SmartCV.modules.payment.repository.PaymentTransactionRepository;
-// import com.example.SmartCV.modules.admin.service.AdminSubscriptionRequestService; // REMOVED
+import com.example.SmartCV.modules.admin.service.AdminSubscriptionRequestService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +32,7 @@ public class VNPayCallbackService implements PaymentCallbackService {
     }
 
     private final PaymentTransactionRepository paymentRepo;
-    // private final AdminSubscriptionRequestService
-    // adminSubscriptionRequestService; // REMOVED PHASE 4
+    private final AdminSubscriptionRequestService adminSubscriptionRequestService;
     private final com.example.SmartCV.modules.subscription.service.SubscriptionService subscriptionService;
 
     @Override
@@ -100,8 +99,8 @@ public class VNPayCallbackService implements PaymentCallbackService {
 
         log.info("[VNPAY][IPN][SUCCESS] txnRef={}, userId={}", txnRef, tx.getUserId());
 
-        // AUTO ACTIVE SUBSCRIPTION
-        subscriptionService.activateSubscription(tx);
+        // FIX: ROUTE TO ADMIN PREVIEW INSTEAD OF DIRECT ACTIVATION
+        adminSubscriptionRequestService.createFromPaymentSuccess(tx);
     }
 
     private boolean verifySignature(Map<String, String> params) {

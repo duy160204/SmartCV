@@ -9,13 +9,15 @@ import java.util.TreeMap;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.example.SmartCV.modules.payment.domain.PaymentProvider;
 import com.example.SmartCV.modules.payment.domain.PaymentTransaction;
+import com.example.SmartCV.modules.payment.dto.PaymentResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-public class VNPayClientService {
+public class VNPayClientService implements PaymentService {
 
     @Value("${vnpay.tmn-code}")
     private String tmnCode;
@@ -31,8 +33,28 @@ public class VNPayClientService {
 
     @jakarta.annotation.PostConstruct
     public void init() {
-        this.tmnCode = this.tmnCode.trim();
-        this.hashSecret = this.hashSecret.trim();
+        this.tmnCode = this.tmnCode != null ? this.tmnCode.trim() : "";
+        this.hashSecret = this.hashSecret != null ? this.hashSecret.trim() : "";
+    }
+
+    @Override
+    public PaymentProvider getProvider() {
+        return PaymentProvider.VNPAY;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return tmnCode != null && !tmnCode.isBlank();
+    }
+
+    @Override
+    public PaymentResponse createPayment(PaymentTransaction tx) {
+        String paymentUrl = buildPaymentUrl(tx);
+        return PaymentResponse.builder()
+                .paymentUrl(paymentUrl)
+                .provider(getProvider().name())
+                .transactionCode(tx.getTransactionCode())
+                .build();
     }
 
     public String buildPaymentUrl(PaymentTransaction tx) {

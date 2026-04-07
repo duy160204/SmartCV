@@ -15,6 +15,12 @@ import com.example.SmartCV.modules.payment.domain.PaymentStatus;
 import com.example.SmartCV.modules.payment.domain.PaymentTransaction;
 import com.example.SmartCV.modules.payment.repository.PaymentTransactionRepository;
 
+import com.example.SmartCV.modules.subscription.service.SubscriptionService;
+import com.example.SmartCV.modules.subscription.repository.SubscriptionHistoryRepository;
+import com.example.SmartCV.modules.subscription.domain.SubscriptionChangeType;
+import com.example.SmartCV.modules.subscription.domain.ChangeReason;
+import com.example.SmartCV.modules.subscription.domain.SubscriptionHistory;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -27,6 +33,8 @@ public class AdminSubscriptionRequestService {
 
     private final AdminSubscriptionRequestRepository requestRepository;
     private final PaymentTransactionRepository paymentRepository;
+    private final SubscriptionService subscriptionService;
+    private final SubscriptionHistoryRepository subscriptionHistoryRepository;
 
     // ==================================================
     // LIST ALL (ADMIN)
@@ -148,6 +156,27 @@ public class AdminSubscriptionRequestService {
                 "Cannot confirm subscription: payment is not SUCCESS"
             );
         }
+
+        // MUST NOT BE DUPLICATED
+        if (subscriptionHistoryRepository.existsByPaymentId(payment.getId())) {
+             throw new RuntimeException("Subscription history already tracks this payment");
+        }
+
+        // SAFE ACTIVATE
+        subscriptionService.activateSubscriptionSafe(request.getUserId(), request.getRequestedPlan(), payment.getId());
+
+        // RECORD HISTORY ADMIN UPDATE
+        SubscriptionHistory history = SubscriptionHistory.builder()
+                .userId(request.getUserId())
+                .oldPlan(null) // Handled effectively inside safe activate 
+                .newPlan(request.getRequestedPlan())
+                .changeType(SubscriptionChangeType.ADMIN_UPDATE)
+                .reason(ChangeReason.PAYMENT)
+                .paymentId(payment.getId())
+                .confirmedByAdminId(adminId)
+                .changedAt(LocalDateTime.now())
+                .build();
+        subscriptionHistoryRepository.save(history);
 
         // ✅ CONFIRM
         request.setStatus(AdminSubscriptionRequestStatus.CONFIRMED);

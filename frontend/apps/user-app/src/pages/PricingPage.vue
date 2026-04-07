@@ -3,8 +3,12 @@ import { useAuthStore } from '@/stores/auth';
 import { useUserPlanStore } from '@/stores/user-plan.store';
 import { onMounted } from 'vue';
 
+import { useRouter } from 'vue-router';
+
+// Make sure to add this inside setup
 const auth = useAuthStore();
 const planStore = useUserPlanStore();
+const router = useRouter();
 
 onMounted(() => {
     planStore.fetchPlans();
@@ -17,13 +21,14 @@ const handlePlanAction = async (plan: any) => {
     }
 
     try {
-        await planStore.upgradePlan(plan.code);
+        if (plan.price === 0) {
+            // Free plan doesn't need payment selection
+            await planStore.upgradePlan(plan.code, 'VNPAY');
+        } else {
+            router.push(`/payment-method?planId=${plan.code}`);
+        }
     } catch (e: any) {
-        // Error is handled in store (setting error state) or we can alert specific failure
-        // But per rules, we just want flow to work. 
-        // Showing extensive error UI is not "mocking" but "error handling". 
-        // We will just let the store handle internal state or console error.
-        console.error("Upgrade failed", e);
+        console.error("Upgrade routing failed", e);
     }
 };
 </script>
