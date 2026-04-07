@@ -16,43 +16,10 @@ const interestsText = computed({
         }
     }
 });
-import AIImproveModal from './AIImproveModal.vue';
 
 const props = defineProps<{
     activeTab: string;
 }>();
-
-// AI State
-const showAI = ref(false);
-const aiTargetField = ref('');
-const aiTargetValue = ref('');
-const aiLoading = ref(false);
-
-const openAI = (fieldPath: string, val: string) => {
-    aiTargetField.value = fieldPath;
-    aiTargetValue.value = val;
-    showAI.value = true;
-};
-
-const handleAIApply = async (instruction: string) => {
-    showAI.value = false;
-    aiLoading.value = true;
-    try {
-        const improved = await store.improveText(aiTargetField.value, aiTargetValue.value, instruction);
-        if (improved) {
-            if (aiTargetField.value === 'profile.summary') {
-                if (store.currentCV?.content?.profile) {
-                    store.currentCV.content.profile.summary = improved;
-                }
-            }
-        }
-    } catch (e: any) {
-        alert("AI Failed: " +  (e.message || e));
-    } finally {
-        aiLoading.value = false;
-    }
-};
-
 const addItem = (section: string) => {
     if (!store.currentCV?.content) return;
     if (!store.currentCV.content[section]) store.currentCV.content[section] = [];
@@ -125,21 +92,6 @@ const uploadAvatar = async (event: Event) => {
 
 <template>
   <div class="flex flex-col h-full relative">
-    
-    <AIImproveModal 
-        v-if="showAI"
-        :isOpen="showAI" 
-        :currentText="aiTargetValue"
-        @close="showAI = false"
-        @apply="handleAIApply"
-    />
-    
-    <div v-if="aiLoading" class="absolute inset-0 bg-white bg-opacity-75 z-40 flex items-center justify-center">
-        <div class="flex flex-col border p-6 bg-white shadow-lg rounded items-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
-            <span class="text-purple-600 font-bold">✨ AI Improving...</span>
-        </div>
-    </div>
 
     <!-- Content -->
     <div class="p-6 flex-1 overflow-y-auto" v-if="store.currentCV?.content && store.currentCV.content.profile">
@@ -198,14 +150,8 @@ const uploadAvatar = async (event: Event) => {
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Summary / Career Objective</label>
-                <div class="relative">
+                <div>
                     <textarea v-model="store.currentCV.content.profile.summary" rows="4" class="w-full border p-2 rounded"></textarea>
-                    <button 
-                        @click="openAI('profile.summary', store.currentCV.content.profile.summary)" 
-                        class="absolute bottom-2 right-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded shadow hover:bg-purple-200"
-                    >
-                        ✨ AI Improve
-                    </button>
                 </div>
             </div>
 

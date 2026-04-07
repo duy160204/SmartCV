@@ -51,17 +51,38 @@ const render = () => {
         // structuredClone ensures a deep copy without Vue reactivity pointers
         const rawData = props.data ? structuredClone(toRaw(props.data)) : {};
         
-        // 3️⃣ Hydrate Flex Schema (EXTRAS) For Legacy Templates
-        // Legacy templates use {{profile.facebook}} while data is in profile.extras.facebook
-        // Since rawData is a detached clone, we safely flatten extras into their parents for rendering
-        if (rawData.profile && typeof rawData.profile.extras === 'object') {
-             Object.assign(rawData.profile, rawData.profile.extras);
+        // 🚀 Fix 2 & 3: Environment Context & Schema Normalization 
+        if (rawData.profile) {
+            // Normalize image path for absolute rendering in legacy templates
+            if (rawData.profile.photo) {
+                const url = rawData.profile.photo;
+                if (!url.startsWith('http') && !url.startsWith('blob:') && !url.startsWith('data:')) {
+                    const backendBaseUrl = (import.meta as any).env.VITE_BACKEND_URL || '';
+                    rawData.profile.photo = backendBaseUrl + (url.startsWith('/') ? url : '/' + url);
+                }
+            }
+
+            // Fix 3: Schema Alias: Ensure templates expecting 'dob' gracefully find normalized 'birthday'
+            if (rawData.profile.birthday && !rawData.profile.dob) {
+                rawData.profile.dob = rawData.profile.birthday;
+            }
+            if (rawData.profile.dob && !rawData.profile.birthday) {
+                rawData.profile.birthday = rawData.profile.dob;
+            }
+
+            // Fix: Ensure Extras are forcibly merged BEFORE template rendering 
+            // So any extra fields like custom_label directly resolve if queried at the root level
+            if (typeof rawData.profile.extras === 'object' && rawData.profile.extras !== null) {
+                 Object.assign(rawData.profile, rawData.profile.extras);
+            }
         }
+        
+        // Merge extras for array sections too
         const sectionsToHydrate = ['experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards'];
         sectionsToHydrate.forEach(sec => {
              if (Array.isArray(rawData[sec])) {
                  rawData[sec].forEach((item: any) => {
-                     if (item && typeof item.extras === 'object') {
+                     if (item && typeof item.extras === 'object' && item.extras !== null) {
                          Object.assign(item, item.extras);
                      }
                  });
@@ -111,9 +132,12 @@ onMounted(() => {
 
 // 1️⃣ Fix Watch Strategy (CRITICAL)
 // Watch data deeply and explicitly to catch nested changes
+// Watch the props structure dynamically so direct mutations to the deeply bound pinia proxy fire rerender
 watch(
   () => props.data,
-  render,
+  (newVal, oldVal) => {
+      render();
+  },
   { deep: true }
 );
 

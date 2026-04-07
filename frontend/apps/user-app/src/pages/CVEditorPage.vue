@@ -219,7 +219,7 @@ const downloadCV = async () => {
                     </button>
                 </div>
 
-                <div class="flex-1 overflow-visible">
+                <div class="flex-1 min-h-0 overflow-hidden relative">
                     <CVForm :activeTab="activeFormTab" />
                 </div>
             </div>
