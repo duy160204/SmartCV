@@ -92,6 +92,9 @@ public class PaymentTransaction {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    @Column(name = "ip_address")
+    private String ipAddress;
+
     /**
      * Thời điểm tạo giao dịch
      */

@@ -3,6 +3,7 @@ package com.example.SmartCV.modules.payment.service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -71,7 +72,7 @@ public class VNPayClientService implements PaymentService {
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", "vn");
         params.put("vnp_ReturnUrl", returnUrl);
-        params.put("vnp_IpAddr", "127.0.0.1");
+        params.put("vnp_IpAddr", tx.getIpAddress() != null ? tx.getIpAddress() : "127.0.0.1");
 
         params.put(
                 "vnp_CreateDate",
@@ -99,41 +100,53 @@ public class VNPayClientService implements PaymentService {
     /* ================= HELPERS ================= */
 
     private String buildHashData(Map<String, String> params) {
+        // CRITICAL: VNPay official Java demo encodes VALUES with US_ASCII before hashing
+        // Ref: sandbox.vnpayment.vn official servlet demo
+        // hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            sb.append(e.getKey());
-            sb.append("=");
-            sb.append(e.getValue());
-            sb.append("&");
-        }
-        if (sb.length() > 0) {
-            sb.deleteCharAt(sb.length() - 1);
+        Iterator<Map.Entry<String, String>> itr = params.entrySet().iterator();
+        while (itr.hasNext()) {
+            Map.Entry<String, String> e = itr.next();
+            String value = e.getValue();
+            if (value != null && !value.isEmpty()) {
+                sb.append(e.getKey());
+                sb.append('=');
+                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
+                if (itr.hasNext()) {
+                    sb.append('&');
+                }
+            }
         }
         return sb.toString();
     }
 
     private String buildQueryUrl(Map<String, String> params) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8));
-            sb.append("=");
-            sb.append(URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
-            sb.append("&");
-        }
-        if (sb.length() > 0) {
-            sb.deleteCharAt(sb.length() - 1);
+        Iterator<Map.Entry<String, String>> itr = params.entrySet().iterator();
+        while (itr.hasNext()) {
+            Map.Entry<String, String> e = itr.next();
+            String value = e.getValue();
+            if (value != null && !value.isEmpty()) {
+                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII));
+                sb.append('=');
+                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
+                if (itr.hasNext()) {
+                    sb.append('&');
+                }
+            }
         }
         return sb.toString();
     }
 
+
     private String hmacSHA512(String key, String data) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA512");
-            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(), "HmacSHA512");
+            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
 
             mac.init(secretKey);
 
-            byte[] raw = mac.doFinal(data.getBytes());
+            byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             StringBuilder hex = new StringBuilder(2 * raw.length);
 
             for (byte b : raw) {

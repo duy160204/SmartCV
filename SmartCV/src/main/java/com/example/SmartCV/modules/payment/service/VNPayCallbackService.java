@@ -3,6 +3,7 @@ package com.example.SmartCV.modules.payment.service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -111,27 +112,26 @@ public class VNPayCallbackService implements PaymentCallbackService {
                 filtered.put(k, v);
             }
         });
-        String data = buildQuery(filtered);
+        String data = buildHashData(filtered);
         String expectedHash = hmacSHA512(hashSecret, data);
         return expectedHash.equalsIgnoreCase(receivedHash);
     }
 
-    private String buildQuery(Map<String, String> params) {
+    private String buildHashData(Map<String, String> params) {
+        // Must match VNPayClientService.buildHashData exactly
         StringBuilder sb = new StringBuilder();
-        params.forEach((k, v) -> {
-            if (v != null && !v.isEmpty()) {
-                try {
-                    sb.append(URLEncoder.encode(k, StandardCharsets.UTF_8.toString()));
-                    sb.append("=");
-                    sb.append(URLEncoder.encode(v, StandardCharsets.UTF_8.toString()));
-                    sb.append("&");
-                } catch (Exception e) {
-                    log.error("Encoding error", e);
+        Iterator<Map.Entry<String, String>> itr = params.entrySet().iterator();
+        while (itr.hasNext()) {
+            Map.Entry<String, String> e = itr.next();
+            String value = e.getValue();
+            if (value != null && !value.isEmpty()) {
+                sb.append(e.getKey());
+                sb.append('=');
+                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
+                if (itr.hasNext()) {
+                    sb.append('&');
                 }
             }
-        });
-        if (sb.length() > 0) {
-            sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
     }
@@ -139,9 +139,9 @@ public class VNPayCallbackService implements PaymentCallbackService {
     private String hmacSHA512(String key, String data) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA512");
-            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(), "HmacSHA512");
+            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
             mac.init(secretKey);
-            byte[] raw = mac.doFinal(data.getBytes());
+            byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             StringBuilder hex = new StringBuilder(2 * raw.length);
             for (byte b : raw) {
                 hex.append(String.format("%02x", b & 0xff));

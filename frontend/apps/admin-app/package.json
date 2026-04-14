@@ -21,7 +21,7 @@
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
-        "@vitejs/plugin-vue": "^5.0.0",
+        "@vitejs/plugin-vue": "^6.0.5",
         "autoprefixer": "^10.4.0",
         "monaco-editor": "^0.45.0",
         "postcss": "^8.4.0",

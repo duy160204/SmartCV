@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -32,7 +33,8 @@ public class PaymentController {
     @PostMapping
     public ResponseEntity<?> createPayment(
             @AuthenticationPrincipal UserPrincipal user,
-            @RequestBody CreatePaymentRequest request) {
+            @RequestBody CreatePaymentRequest request,
+            HttpServletRequest httpRequest) {
         if (user == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
@@ -55,6 +57,13 @@ public class PaymentController {
 
         long amount = planDef.getPrice().longValue();
 
+        String ipAddress = httpRequest.getRemoteAddr();
+        // Handle proxies (e.g. Nginx, Cloudflare)
+        String xForwardedFor = httpRequest.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            ipAddress = xForwardedFor.split(",")[0].trim();
+        }
+
         PaymentTransaction tx = PaymentTransaction.builder()
                 .userId(user.getId())
                 .plan(planDef.getPlan()) // ENUM
@@ -63,6 +72,7 @@ public class PaymentController {
                 .provider(request.getProvider())
                 .status(PaymentStatus.PENDING)
                 .transactionCode(UUID.randomUUID().toString())
+                .ipAddress(ipAddress)
                 .createdAt(LocalDateTime.now())
                 .build();
 
