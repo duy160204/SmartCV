@@ -1,21 +1,19 @@
 package com.example.SmartCV.modules.payment.service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeMap;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.SmartCV.modules.payment.config.VnpayConfig;
 import com.example.SmartCV.modules.payment.domain.PaymentStatus;
 import com.example.SmartCV.modules.payment.domain.PaymentTransaction;
 import com.example.SmartCV.modules.payment.repository.PaymentTransactionRepository;
 import com.example.SmartCV.modules.admin.service.AdminSubscriptionRequestService;
+import com.example.SmartCV.modules.payment.util.VnpaySignatureUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,131 +22,129 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class VNPayCallbackService implements PaymentCallbackService {
 
-    @Value("${vnpay.hash-secret}")
-    private String hashSecret;
-
-    @jakarta.annotation.PostConstruct
-    public void init() {
-        this.hashSecret = this.hashSecret.trim();
-    }
-
+    private final VnpayConfig vnpayConfig;
     private final PaymentTransactionRepository paymentRepo;
     private final AdminSubscriptionRequestService adminSubscriptionRequestService;
-    private final com.example.SmartCV.modules.subscription.service.SubscriptionService subscriptionService;
 
     @Override
-    @Transactional
-    public void handleVNPayReturn(Map<String, String> params) {
-        processCallback(params, false);
-    }
-
-    @Override
-    @Transactional
-    public boolean handleVNPayIpn(Map<String, String> params) {
-        try {
-            processCallback(params, true);
-            return true;
-        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-            log.warn(
-                    "[VNPAY][IPN] Concurrent update detected for params: {}. Transaction already processed or processing.",
-                    params);
-            return true; // Treat as handled (idempotent)
-        } catch (Exception e) {
-            log.error("[VNPAY][IPN] Error", e);
-            return false;
-        }
-    }
-
-    private void processCallback(Map<String, String> params, boolean isIpn) {
-
-        if (!verifySignature(params)) {
-            log.error("[VNPAY] Invalid signature");
-            throw new RuntimeException("Invalid VNPay signature");
-        }
-
+    @Transactional(readOnly = true)
+    public void handleVNPayReturn(HttpServletRequest request) {
+        Map<String, String> params = VnpaySignatureUtil.extractRawParams(request);
         String txnRef = params.get("vnp_TxnRef");
-        String responseCode = params.get("vnp_ResponseCode");
+        String ipAddress = params.getOrDefault("vnp_IpAddr", "unknown");
 
-        // If it's just a Return URL (redirect), we don't update DB.
-        // We just verify signature (done above) and return.
-        if (!isIpn) {
-            log.info("[VNPAY][RETURN] User returned from VNPay. txnRef={}, code={}", txnRef, responseCode);
+        log.info("[VNPAY][RETURN] Displaying return page for txnRef={} IP={}", txnRef, ipAddress);
+        
+        boolean isValid = VnpaySignatureUtil.verifySignature(params, vnpayConfig.getHashSecret().trim());
+        if (!isValid) {
+            log.error("[VNPAY][RETURN] Signature invalid! txnRef={}", txnRef);
             return;
         }
-
-        // --- BELOW IS IPN LOGIC ONLY ---
-
-        PaymentTransaction tx = paymentRepo
-                .findByTransactionCode(txnRef)
-                .orElseThrow(() -> new RuntimeException("Transaction not found: " + txnRef));
-
-        if (tx.getStatus() == PaymentStatus.SUCCESS) {
-            log.info("[VNPAY] Transaction already SUCCESS: {}", txnRef);
-            return;
-        }
-
-        if (!"00".equals(responseCode)) {
-            tx.setStatus(PaymentStatus.FAILED);
-            paymentRepo.save(tx);
-            log.warn("[VNPAY] Payment FAILED: {}", txnRef);
-            return;
-        }
-
-        tx.setStatus(PaymentStatus.SUCCESS);
-        tx.setPaidAt(LocalDateTime.now());
-        paymentRepo.save(tx);
-
-        log.info("[VNPAY][IPN][SUCCESS] txnRef={}, userId={}", txnRef, tx.getUserId());
-
-        // FIX: ROUTE TO ADMIN PREVIEW INSTEAD OF DIRECT ACTIVATION
-        adminSubscriptionRequestService.createFromPaymentSuccess(tx);
+        
+        log.info("[VNPAY][RETURN] Signature valid! Frontend will display status based on vnp_ResponseCode.");
     }
 
-    private boolean verifySignature(Map<String, String> params) {
-        String receivedHash = params.get("vnp_SecureHash");
-        Map<String, String> filtered = new TreeMap<>();
-        params.forEach((k, v) -> {
-            if (k.startsWith("vnp_") && !k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType")) {
-                filtered.put(k, v);
-            }
-        });
-        String data = buildHashData(filtered);
-        String expectedHash = hmacSHA512(hashSecret, data);
-        return expectedHash.equalsIgnoreCase(receivedHash);
-    }
-
-    private String buildHashData(Map<String, String> params) {
-        // Must match VNPayClientService.buildHashData exactly
-        StringBuilder sb = new StringBuilder();
-        Iterator<Map.Entry<String, String>> itr = params.entrySet().iterator();
-        while (itr.hasNext()) {
-            Map.Entry<String, String> e = itr.next();
-            String value = e.getValue();
-            if (value != null && !value.isEmpty()) {
-                sb.append(e.getKey());
-                sb.append('=');
-                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
-                if (itr.hasNext()) {
-                    sb.append('&');
-                }
-            }
-        }
-        return sb.toString();
-    }
-
-    private String hmacSHA512(String key, String data) {
+    @Override
+    @Transactional
+    public boolean handleVNPayIpn(HttpServletRequest request) {
         try {
-            var mac = javax.crypto.Mac.getInstance("HmacSHA512");
-            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
-            mac.init(secretKey);
-            byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder(2 * raw.length);
-            for (byte b : raw) {
-                hex.append(String.format("%02x", b & 0xff));
+            log.info("================ IPN WEBHOOK RECEIVED ================");
+            
+            // Step 1: Print full raw query string
+            log.info("[VNPAY DEBUG] Step 1 - Raw QueryString: {}", request.getQueryString());
+            
+            // Step 2: Extract params
+            Map<String, String> params = VnpaySignatureUtil.extractRawParams(request);
+
+            // Step 3: Log critical fields
+            String txnRef = params.get("vnp_TxnRef");
+            String responseCode = params.get("vnp_ResponseCode");
+            String vnpAmountStr = params.get("vnp_Amount");
+            String vnpSecureHash = params.get("vnp_SecureHash");
+            
+            log.info("[VNPAY DEBUG] Step 2 & 3 - Extracted Params:");
+            log.info("   vnp_TxnRef       : {}", txnRef);
+            log.info("   vnp_Amount       : {}", vnpAmountStr);
+            log.info("   vnp_ResponseCode : {}", responseCode);
+            log.info("   vnp_SecureHash   : {}", vnpSecureHash);
+
+            if (txnRef == null || responseCode == null || vnpAmountStr == null) {
+                log.error("[VNPAY DEBUG] FAILED: Missing required params (txnRef, responseCode, or vnpAmountStr is null)");
+                return false;
             }
-            return hex.toString();
+
+            // Step 4: Validate signature 
+            // (Note: verifySignature method already logs raw hashData, calculated hash, received hash)
+            log.info("[VNPAY DEBUG] Step 4 - Beginning Signature Validation...");
+            boolean isSignatureValid = VnpaySignatureUtil.verifySignature(params, vnpayConfig.getHashSecret().trim());
+            if (!isSignatureValid) {
+                log.error("[VNPAY DEBUG] FAILED: Signature mismatch. Secret used for hashing=" + vnpayConfig.getHashSecret().trim().substring(0,4) + "...");
+                return false;
+            }
+            log.info("[VNPAY DEBUG] SUCCESS: Signature is absolutely valid.");
+
+            // Step 5: Validate transaction existence
+            log.info("[VNPAY DEBUG] Step 5 - Validating Transaction in DB...");
+            var optionalTx = paymentRepo.findByTransactionCode(txnRef);
+            if (optionalTx.isEmpty()) {
+                log.error("[VNPAY DEBUG] FAILED: TRANSACTION NOT FOUND in database for txnRef={}", txnRef);
+                return false;
+            }
+            PaymentTransaction tx = optionalTx.get();
+            log.info("[VNPAY DEBUG] SUCCESS: Transaction found in DB. DB amount={}", tx.getAmount());
+
+            // Step 6: Validate amount
+            log.info("[VNPAY DEBUG] Step 6 - Validating Amount...");
+            long vnpAmount;
+            try {
+                vnpAmount = Long.parseLong(vnpAmountStr);
+            } catch (NumberFormatException e) {
+                log.error("[VNPAY DEBUG] FAILED: Amount parse error! raw={}", vnpAmountStr);
+                return false;
+            }
+
+            long expectedAmount = tx.getAmount() * 100L;
+            if (vnpAmount != expectedAmount) {
+                log.error("[VNPAY DEBUG] FAILED: Amount mismatch! txnRef={}, DB AMOUNT (cents)={}, VNPay AMOUNT={}", 
+                          txnRef, expectedAmount, vnpAmount);
+                return false;
+            }
+            log.info("[VNPAY DEBUG] SUCCESS: Amount perfectly matches.");
+
+            // Step 7: Validate idempotency
+            log.info("[VNPAY DEBUG] Step 7 - Validating Idempotency...");
+            if (tx.isSuccess()) {
+                log.info("[VNPAY DEBUG] SUCCESS (ALREADY PROCESSED): Transaction already SUCCESS in DB. Skipping exact duplicate.");
+                return true; 
+            }
+            log.info("[VNPAY DEBUG] SUCCESS: Transaction is PENDING/new, proceeding to update.");
+
+            // Step 8: Validate responseCode
+            log.info("[VNPAY DEBUG] Step 8 - Validating vnp_ResponseCode...");
+            if ("00".equals(responseCode)) {
+                log.info("[VNPAY DEBUG] SUCCESS: Response code is 00 (Payment successful). Updating DB...");
+                // Success case update
+                int rows = paymentRepo.updateStatusAtomically(txnRef, PaymentStatus.PENDING, PaymentStatus.SUCCESS, LocalDateTime.now());
+                if (rows == 0) {
+                    log.info("[VNPAY DEBUG] SUCCESS (ALREADY PROCESSED CONCURRENTLY): Duplicate success IPN ignored.");
+                    return true;
+                }
+
+                log.info("[VNPAY][IPN][SUCCESS] Database successfully updated to SUCCESS for txnRef={}", txnRef);
+                PaymentTransaction fresh = paymentRepo.findByTransactionCode(txnRef).orElse(tx);
+                adminSubscriptionRequestService.createFromPaymentSuccess(fresh);
+            } else {
+                log.warn("[VNPAY DEBUG] FAILED: Payment unsuccessful. ResponseCode={}. Marking FAILED in DB.", responseCode);
+                paymentRepo.updateStatusAtomically(txnRef, PaymentStatus.PENDING, PaymentStatus.FAILED, null);
+                // Return true so VNPay knows we processed the failure and doesn't retry
+            }
+
+            log.info("================ IPN WEBHOOK COMPLETE ================ ");
+            return true;
+
         } catch (Exception e) {
-            throw new RuntimeException("Cannot verify VNPay signature", e);
+            log.error("[VNPAY DEBUG] FAILED: Unexpected fatal IPN error: ", e);
+            return false;
         }
     }
 }

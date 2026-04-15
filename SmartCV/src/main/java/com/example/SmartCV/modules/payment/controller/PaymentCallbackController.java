@@ -8,26 +8,18 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.SmartCV.modules.payment.service.PaymentCallbackService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/payments/vnpay")
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentCallbackController {
 
     private final PaymentCallbackService paymentCallbackService;
 
-    /**
-     * =========================
-     * VNPay RETURN URL
-     * - User browser redirect về
-     * - Chỉ để hiển thị kết quả
-     * - KHÔNG dùng để xác nhận giao dịch
-     * =========================
-     *
-     * Ví dụ:
-     * /api/payments/vnpay/return?vnp_ResponseCode=00&vnp_TxnRef=xxx
-     */
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
@@ -36,25 +28,25 @@ public class PaymentCallbackController {
      * VNPay RETURN URL
      * - User browser redirect về
      * - Chỉ để hiển thị kết quả
-     * - KHÔNG dùng để xác nhận giao dịch
+     * - KHÔNG dùng để xác nhận giao dịch (DO NOT update DB here)
      * =========================
-     *
-     * Ví dụ:
-     * /api/payments/vnpay/return?vnp_ResponseCode=00&vnp_TxnRef=xxx
      */
     @GetMapping("/return")
-    public ResponseEntity<Void> vnpayReturn(@RequestParam Map<String, String> params) {
+    public ResponseEntity<Void> vnpayReturn(HttpServletRequest request) {
 
         try {
-            // Verify signature only, do NOT update DB
-            paymentCallbackService.handleVNPayReturn(params);
+            // Verify signature only, do NOT update DB. Only log what happens.
+            paymentCallbackService.handleVNPayReturn(request);
         } catch (Exception e) {
+            log.error("[VNPAY][RETURN] Error rendering return url", e);
             // Log error but still redirect to failure page
         }
 
-        String responseCode = params.get("vnp_ResponseCode");
-        String txnRef = params.get("vnp_TxnRef");
+        // Extract display values from query string for redirect to frontend
+        String responseCode = request.getParameter("vnp_ResponseCode");
+        String txnRef       = request.getParameter("vnp_TxnRef");
 
+        // Redirect user browser to frontend application result page
         String redirectUrl = String.format("%s/payment/return?vnp_ResponseCode=%s&vnp_TxnRef=%s",
                 frontendUrl, responseCode, txnRef);
 
@@ -67,13 +59,15 @@ public class PaymentCallbackController {
      * =========================
      * VNPay IPN (Instant Payment Notification)
      * - Server VNPay gọi -> Server mình
-     * - DÙNG IPN để xác nhận giao dịch
+     * - DÙNG IPN để xác nhận giao dịch (Validate and update DB)
      * =========================
      */
     @GetMapping("/ipn")
-    public ResponseEntity<Map<String, String>> vnpayIpn(
-            @RequestParam Map<String, String> params) {
-        boolean success = paymentCallbackService.handleVNPayIpn(params);
+    public ResponseEntity<Map<String, String>> vnpayIpn(HttpServletRequest request) {
+
+        log.info("[VNPAY][IPN] Received IPN webhook notification from VNPAY");
+        
+        boolean success = paymentCallbackService.handleVNPayIpn(request);
 
         if (success) {
             return ResponseEntity.ok(Map.of(

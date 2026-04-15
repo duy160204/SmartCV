@@ -23,6 +23,21 @@ public interface PaymentTransactionRepository
     Optional<PaymentTransaction>
         findByTransactionCode(String transactionCode);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+    UPDATE PaymentTransaction p 
+    SET p.status = :newStatus, 
+        p.paidAt = :paidAt 
+    WHERE p.transactionCode = :txnRef 
+    AND p.status = :expectedStatus
+    """)
+    int updateStatusAtomically(
+        @Param("txnRef") String txnRef, 
+        @Param("expectedStatus") PaymentStatus expectedStatus, 
+        @Param("newStatus") PaymentStatus newStatus, 
+        @Param("paidAt") LocalDateTime paidAt
+    );
+
     // ==================================================
     // USER PAYMENT HISTORY
     // ==================================================
@@ -98,12 +113,13 @@ public interface PaymentTransactionRepository
             FUNCTION('DATE', p.createdAt),
             SUM(p.amount)
         FROM PaymentTransaction p
-        WHERE p.status = 'SUCCESS'
+        WHERE p.status = :status
           AND p.createdAt BETWEEN :from AND :to
         GROUP BY FUNCTION('DATE', p.createdAt)
         ORDER BY FUNCTION('DATE', p.createdAt)
     """)
     List<Object[]> revenueByDay(
+            @Param("status") PaymentStatus status,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
@@ -117,7 +133,7 @@ public interface PaymentTransactionRepository
             FUNCTION('MONTH', p.createdAt),
             SUM(p.amount)
         FROM PaymentTransaction p
-        WHERE p.status = 'SUCCESS'
+        WHERE p.status = :status
         GROUP BY
             FUNCTION('YEAR', p.createdAt),
             FUNCTION('MONTH', p.createdAt)
@@ -125,5 +141,5 @@ public interface PaymentTransactionRepository
             FUNCTION('YEAR', p.createdAt),
             FUNCTION('MONTH', p.createdAt)
     """)
-    List<Object[]> revenueByMonth();
+    List<Object[]> revenueByMonth(@Param("status") PaymentStatus status);
 }

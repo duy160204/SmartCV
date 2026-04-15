@@ -8,17 +8,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(
-    name = "payment_transactions",
-    uniqueConstraints = {
+@Table(name = "payment_transactions", uniqueConstraints = {
         @UniqueConstraint(columnNames = "transaction_code")
-    },
-    indexes = {
+}, indexes = {
         @Index(name = "idx_payment_user", columnList = "user_id"),
         @Index(name = "idx_payment_status", columnList = "status"),
         @Index(name = "idx_payment_txn_code", columnList = "transaction_code")
-    }
-)
+})
 @Getter
 @Setter
 @NoArgsConstructor

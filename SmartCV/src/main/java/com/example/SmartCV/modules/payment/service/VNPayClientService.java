@@ -1,161 +1,85 @@
 package com.example.SmartCV.modules.payment.service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.TreeMap;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.example.SmartCV.modules.payment.config.VnpayConfig;
 import com.example.SmartCV.modules.payment.domain.PaymentProvider;
 import com.example.SmartCV.modules.payment.domain.PaymentTransaction;
 import com.example.SmartCV.modules.payment.dto.PaymentResponse;
+import com.example.SmartCV.modules.payment.util.VnpaySignatureUtil;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class VNPayClientService implements PaymentService {
 
-    @Value("${vnpay.tmn-code}")
-    private String tmnCode;
+    private final VnpayConfig vnpayConfig;
 
-    @Value("${vnpay.hash-secret}")
-    private String hashSecret;
-
-    @Value("${vnpay.pay-url}")
-    private String payUrl;
-
-    @Value("${vnpay.return-url}")
-    private String returnUrl;
-
-    @jakarta.annotation.PostConstruct
-    public void init() {
-        this.tmnCode = this.tmnCode != null ? this.tmnCode.trim() : "";
-        this.hashSecret = this.hashSecret != null ? this.hashSecret.trim() : "";
+    @Override
+    public PaymentProvider getProvider() { 
+        return PaymentProvider.VNPAY; 
     }
 
     @Override
-    public PaymentProvider getProvider() {
-        return PaymentProvider.VNPAY;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return tmnCode != null && !tmnCode.isBlank();
+    public boolean isEnabled() { 
+        return vnpayConfig.getTmnCode() != null && !vnpayConfig.getTmnCode().isBlank(); 
     }
 
     @Override
     public PaymentResponse createPayment(PaymentTransaction tx) {
-        String paymentUrl = buildPaymentUrl(tx);
         return PaymentResponse.builder()
-                .paymentUrl(paymentUrl)
+                .paymentUrl(buildPaymentUrl(tx))
                 .provider(getProvider().name())
                 .transactionCode(tx.getTransactionCode())
                 .build();
     }
 
     public String buildPaymentUrl(PaymentTransaction tx) {
+        long vnpAmount = tx.getAmount().longValue() * 100L;
+        
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        LocalDateTime createTime = tx.getCreatedAt();
 
-        Map<String, String> params = new TreeMap<>();
+        TreeMap<String, String> params = new TreeMap<>();
+        params.put("vnp_Version",    "2.1.0");
+        params.put("vnp_Command",    "pay");
+        params.put("vnp_TmnCode",    vnpayConfig.getTmnCode().trim());
+        params.put("vnp_Amount",     String.valueOf(vnpAmount));
+        params.put("vnp_CurrCode",   "VND");
+        params.put("vnp_TxnRef",     tx.getTransactionCode());
+        params.put("vnp_OrderInfo",  "Thanh toan goi " + tx.getPlan());
+        params.put("vnp_OrderType",  "other");
+        params.put("vnp_Locale",     "vn");
+        params.put("vnp_ReturnUrl",  vnpayConfig.getReturnUrl().trim());
+        params.put("vnp_IpAddr",     normalizeIp(tx.getIpAddress()));
+        params.put("vnp_CreateDate", fmt.format(createTime));
+        params.put("vnp_ExpireDate", fmt.format(createTime.plusMinutes(15)));
 
-        params.put("vnp_Version", "2.1.0");
-        params.put("vnp_Command", "pay");
-        params.put("vnp_TmnCode", tmnCode);
-        params.put("vnp_Amount", String.valueOf(tx.getAmount() * 100));
-        params.put("vnp_CurrCode", "VND");
-        params.put("vnp_TxnRef", tx.getTransactionCode());
-        params.put("vnp_OrderInfo", "Thanh toan goi " + tx.getPlan());
-        params.put("vnp_OrderType", "other");
-        params.put("vnp_Locale", "vn");
-        params.put("vnp_ReturnUrl", returnUrl);
-        params.put("vnp_IpAddr", tx.getIpAddress() != null ? tx.getIpAddress() : "127.0.0.1");
+        // Hash data encoded by utility
+        String hashData = VnpaySignatureUtil.buildHashData(params);
+        
+        // Final secure hash
+        String secureHash = VnpaySignatureUtil.hmacSHA512(vnpayConfig.getHashSecret().trim(), hashData);
 
-        params.put(
-                "vnp_CreateDate",
-                DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
-                        .format(tx.getCreatedAt()));
+        // Query string is exactly the hash data for VNPAY
+        String finalUrl = vnpayConfig.getPayUrl().trim() + "?" + hashData + "&vnp_SecureHash=" + secureHash;
 
-        // 1. Build Raw Hash Data (No Encoding)
-        String hashData = buildHashData(params);
+        log.info("[VNPAY] URL Built OK. txnRef={}, amount={}, url={}", tx.getTransactionCode(), vnpAmount, finalUrl);
 
-        // 2. Calculate Hash
-        String secureHash = hmacSHA512(hashSecret, hashData);
-
-        // 3. Build Encoded URL Query
-        String queryUrl = buildQueryUrl(params);
-        String finalQuery = queryUrl + "&vnp_SecureHash=" + secureHash;
-
-        log.info("[VNPAY REQUEST] Params: {}", params);
-        log.info("[VNPAY REQUEST] Hash Input (RAW): {}", hashData);
-        log.info("[VNPAY REQUEST] Generated Hash: {}", secureHash);
-        log.info("[VNPAY REQUEST] Final Query: {}", finalQuery);
-
-        return payUrl + "?" + finalQuery;
+        return finalUrl;
     }
 
-    /* ================= HELPERS ================= */
-
-    private String buildHashData(Map<String, String> params) {
-        // CRITICAL: VNPay official Java demo encodes VALUES with US_ASCII before hashing
-        // Ref: sandbox.vnpayment.vn official servlet demo
-        // hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-        StringBuilder sb = new StringBuilder();
-        Iterator<Map.Entry<String, String>> itr = params.entrySet().iterator();
-        while (itr.hasNext()) {
-            Map.Entry<String, String> e = itr.next();
-            String value = e.getValue();
-            if (value != null && !value.isEmpty()) {
-                sb.append(e.getKey());
-                sb.append('=');
-                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
-                if (itr.hasNext()) {
-                    sb.append('&');
-                }
-            }
-        }
-        return sb.toString();
-    }
-
-    private String buildQueryUrl(Map<String, String> params) {
-        StringBuilder sb = new StringBuilder();
-        Iterator<Map.Entry<String, String>> itr = params.entrySet().iterator();
-        while (itr.hasNext()) {
-            Map.Entry<String, String> e = itr.next();
-            String value = e.getValue();
-            if (value != null && !value.isEmpty()) {
-                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII));
-                sb.append('=');
-                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII));
-                if (itr.hasNext()) {
-                    sb.append('&');
-                }
-            }
-        }
-        return sb.toString();
-    }
-
-
-    private String hmacSHA512(String key, String data) {
-        try {
-            var mac = javax.crypto.Mac.getInstance("HmacSHA512");
-            var secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
-
-            mac.init(secretKey);
-
-            byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder(2 * raw.length);
-
-            for (byte b : raw) {
-                hex.append(String.format("%02x", b & 0xff));
-            }
-            return hex.toString();
-
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot generate VNPay hash", e);
-        }
+    private String normalizeIp(String ip) {
+        if (ip == null || ip.isBlank()) return "127.0.0.1";
+        if ("::1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip)) return "127.0.0.1";
+        if (ip.contains(":")) return "127.0.0.1";
+        return ip;
     }
 }
