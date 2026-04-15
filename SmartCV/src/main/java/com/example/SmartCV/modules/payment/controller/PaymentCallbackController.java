@@ -45,6 +45,8 @@ public class PaymentCallbackController {
         // Extract display values from query string for redirect to frontend
         String responseCode = request.getParameter("vnp_ResponseCode");
         String txnRef       = request.getParameter("vnp_TxnRef");
+        
+        log.info("[RETURN HIT - UI ONLY] txnRef=" + txnRef);
 
         // Redirect user browser to frontend application result page
         String redirectUrl = String.format("%s/payment/return?vnp_ResponseCode=%s&vnp_TxnRef=%s",
@@ -65,7 +67,12 @@ public class PaymentCallbackController {
     @GetMapping("/ipn")
     public ResponseEntity<Map<String, String>> vnpayIpn(HttpServletRequest request) {
 
-        log.info("[VNPAY][IPN] Received IPN webhook notification from VNPAY");
+        String txnRef = request.getParameter("vnp_TxnRef");
+        log.error("🔥 [IPN ENTRY] CONTROLLER HIT");
+        log.error("🔥 [IPN METHOD] {}", request.getMethod());
+        log.error("🔥 [IPN URL] {}", request.getRequestURL());
+        log.error("🔥 [IPN QUERY] {}", request.getQueryString());
+        log.error("🔥 [IPN REMOTE IP] {}", request.getRemoteAddr());
         
         boolean success = paymentCallbackService.handleVNPayIpn(request);
 

@@ -58,21 +58,28 @@ public class VNPayClientService implements PaymentService {
         params.put("vnp_OrderType",  "other");
         params.put("vnp_Locale",     "vn");
         params.put("vnp_ReturnUrl",  vnpayConfig.getReturnUrl().trim());
+
+        // IPN URL is INTERNAL ONLY — configured at VNPay merchant portal, NOT sent as param
+        String ipnUrl = vnpayConfig.getIpnUrl();
+        log.info("[VNPAY] Using internal IPN config: {}", ipnUrl);
+
         params.put("vnp_IpAddr",     normalizeIp(tx.getIpAddress()));
         params.put("vnp_CreateDate", fmt.format(createTime));
         params.put("vnp_ExpireDate", fmt.format(createTime.plusMinutes(15)));
 
-        // Hash data encoded by utility
-        String hashData = VnpaySignatureUtil.buildHashData(params);
-        
-        // Final secure hash
-        String secureHash = VnpaySignatureUtil.hmacSHA512(vnpayConfig.getHashSecret().trim(), hashData);
+        // STEP 1: Build canonical hash string (sorted, URL-encoded values, vnp_* only)
+        TreeMap<String, String> sortedParams = new TreeMap<>(params);
+        String hashData = VnpaySignatureUtil.buildHashData(sortedParams);
+        log.info("[VNPAY][canonical_string_create] {}", hashData);
 
-        // Query string is exactly the hash data for VNPAY
+        // STEP 2: Compute HMAC-SHA512
+        String secureHash = VnpaySignatureUtil.hmacSHA512(vnpayConfig.getHashSecret().trim(), hashData);
+        log.info("[VNPAY][final_secure_hash_create] {}", secureHash);
+
+        // STEP 3: Build URL — hash string IS the query string (URL-encoded values)
         String finalUrl = vnpayConfig.getPayUrl().trim() + "?" + hashData + "&vnp_SecureHash=" + secureHash;
 
-        log.info("[VNPAY] URL Built OK. txnRef={}, amount={}, url={}", tx.getTransactionCode(), vnpAmount, finalUrl);
-
+        log.info("[VNPAY] URL Built OK. txnRef={}, amount={}", tx.getTransactionCode(), vnpAmount);
         return finalUrl;
     }
 

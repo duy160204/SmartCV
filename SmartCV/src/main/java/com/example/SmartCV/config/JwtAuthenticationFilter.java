@@ -39,10 +39,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/auth/") || 
+        boolean skip = path.startsWith("/api/auth/") || 
                path.startsWith("/api/public/") || 
                path.startsWith("/api/payments/vnpay/") || 
                path.startsWith("/uploads/");
+        
+        if (skip && path.contains("/vnpay/ipn")) {
+            log.error("🔥 [IPN BYPASS JWT FILTER] Path: {}", path);
+        }
+        return skip;
     }
 
     @Override
