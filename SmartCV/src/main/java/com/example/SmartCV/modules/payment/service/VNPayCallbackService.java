@@ -29,21 +29,31 @@ public class VNPayCallbackService implements PaymentCallbackService {
     private final AdminSubscriptionRequestService adminSubscriptionRequestService;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void handleVNPayReturn(HttpServletRequest request) {
         Map<String, String> params = VnpaySignatureUtil.extractRawParams(request);
         String txnRef = params.get("vnp_TxnRef");
         String ipAddress = params.getOrDefault("vnp_IpAddr", "unknown");
 
-        log.info("[VNPAY][RETURN] Displaying return page for txnRef={} IP={}", txnRef, ipAddress);
+        log.info("[VNPAY][RETURN] Handling return flow for txnRef={} IP={}", txnRef, ipAddress);
 
-        boolean isValid = VnpaySignatureUtil.verifySignature(params, vnpayConfig.getHashSecret().trim());
-        if (!isValid) {
-            log.error("[VNPAY][RETURN] Signature invalid! txnRef={}", txnRef);
-            return;
+        try {
+            // [NGUYÊN BẢN] Verify signature (BLACKBOX)
+            boolean isValid = VnpaySignatureUtil.verifySignature(params, vnpayConfig.getHashSecret().trim());
+            if (!isValid) {
+                log.error("[VNPAY][RETURN] Signature invalid! txnRef={}", txnRef);
+                return; // Fallback redirect to frontend error page later in controller
+            }
+            log.info("[VNPAY][RETURN] Signature valid!");
+
+            // [MỚI] Simulate IPN bằng cách gọi chung hàm processPayment để update DB nếu IPN chưa kịp đến
+            boolean result = processPayment(params);
+            log.info("[VNPAY][RETURN] Simulate IPN result status for txnRef={}: {}", txnRef, result);
+
+        } catch (Exception e) {
+            // [MỚI] Nuốt chặt Exception để KHÔNG văng lỗi 500, controller vẫn giữ quyền redirect browser
+            log.error("[VNPAY][RETURN] Unexpected error during simulated IPN on return, txnRef={}", txnRef, e);
         }
-
-        log.info("[VNPAY][RETURN] Signature valid! Frontend will display status based on vnp_ResponseCode.");
     }
 
     @Override
@@ -53,112 +63,101 @@ public class VNPayCallbackService implements PaymentCallbackService {
             writer.println("================ IPN WEBHOOK RECEIVED ================");
             writer.println("Time: " + LocalDateTime.now());
             log.info("================ IPN WEBHOOK RECEIVED ================");
-
-            // Step 1: Print full raw query string
-            writer.println("[VNPAY DEBUG] Step 1 - Raw QueryString: " + request.getQueryString());
-            log.info("[VNPAY DEBUG] Step 1 - Raw QueryString: {}", request.getQueryString());
-
-            // Step 2: Extract params
+            writer.println("[VNPAY DEBUG] Raw QueryString: " + request.getQueryString());
+            
+            // [NGUYÊN BẢN] Lấy Raw params
             Map<String, String> params = VnpaySignatureUtil.extractRawParams(request);
 
-            // Step 3: Log critical fields
-            String txnRef = params.get("vnp_TxnRef");
-            String responseCode = params.get("vnp_ResponseCode");
-            String vnpAmountStr = params.get("vnp_Amount");
-            String vnpSecureHash = params.get("vnp_SecureHash");
-
-            writer.println("[VNPAY DEBUG] Step 2 & 3 - Extracted Params: " + txnRef + ", " + vnpAmountStr + ", " + responseCode);
-            log.info("[VNPAY DEBUG] Step 2 & 3 - Extracted Params:");
-            log.info("   vnp_TxnRef       : {}", txnRef);
-            log.info("   vnp_Amount       : {}", vnpAmountStr);
-            log.info("   vnp_ResponseCode : {}", responseCode);
-            log.info("   vnp_SecureHash   : {}", vnpSecureHash);
-
-            if (txnRef == null || responseCode == null || vnpAmountStr == null) {
-                log.error(
-                        "[VNPAY DEBUG] FAILED: Missing required params (txnRef, responseCode, or vnpAmountStr is null)");
-                return false;
-            }
-
-            log.error("🔥 [IPN VERIFY START] txnRef={}", txnRef);
+            // [NGUYÊN BẢN] Verify Signature (BLACKBOX)
             boolean isValid = VnpaySignatureUtil.verifySignature(params, vnpayConfig.getHashSecret().trim());
-            log.error("🔥 [IPN VERIFY RESULT] valid={}", isValid);
             if (!isValid) {
-                log.error("[VNPAY DEBUG] FAILED: Signature mismatch. Secret used for hashing="
-                        + vnpayConfig.getHashSecret().trim().substring(0, 4) + "...");
+                log.error("[VNPAY DEBUG] FAILED: Signature mismatch.");
+                writer.println("[VNPAY DEBUG] FAILED: Signature mismatch.");
                 return false;
             }
+
             log.info("[VNPAY DEBUG] SUCCESS: Signature is absolutely valid.");
-
-            // Step 5: Validate transaction existence
-            writer.println("[VNPAY DEBUG] Step 5 - Validating Transaction in DB for " + txnRef);
-            log.info("[VNPAY DEBUG] Step 5 - Validating Transaction in DB...");
-            var optionalTx = paymentRepo.findByTransactionCode(txnRef);
-            if (optionalTx.isEmpty()) {
-                log.error("[VNPAY DEBUG] FAILED: TRANSACTION NOT FOUND in database for txnRef={}", txnRef);
-                return false;
-            }
-            PaymentTransaction tx = optionalTx.get();
-            log.info("[VNPAY DEBUG] SUCCESS: Transaction found in DB. DB amount={}", tx.getAmount());
-
-            // Step 6: Validate amount
-            log.info("[VNPAY DEBUG] Step 6 - Validating Amount...");
-            long vnpAmount;
-            try {
-                vnpAmount = Long.parseLong(vnpAmountStr);
-            } catch (NumberFormatException e) {
-                log.error("[VNPAY DEBUG] FAILED: Amount parse error! raw={}", vnpAmountStr);
-                return false;
-            }
-
-            long expectedAmount = tx.getAmount() * 100L;
-            if (vnpAmount != expectedAmount) {
-                log.error("[VNPAY DEBUG] FAILED: Amount mismatch! txnRef={}, DB AMOUNT (cents)={}, VNPay AMOUNT={}",
-                        txnRef, expectedAmount, vnpAmount);
-                return false;
-            }
-            log.info("[VNPAY DEBUG] SUCCESS: Amount perfectly matches.");
-
-            // Step 7: Validate idempotency
-            log.info("[VNPAY DEBUG] Step 7 - Validating Idempotency...");
-            if (tx.isSuccess()) {
-                log.info(
-                        "[VNPAY DEBUG] SUCCESS (ALREADY PROCESSED): Transaction already SUCCESS in DB. Skipping exact duplicate.");
-                return true;
-            }
-            log.info("[VNPAY DEBUG] SUCCESS: Transaction is PENDING/new, proceeding to update.");
-
-            // Step 8: Validate responseCode
-            log.info("[VNPAY DEBUG] Step 8 - Validating vnp_ResponseCode...");
-            if ("00".equals(responseCode)) {
-                log.info("[VNPAY DEBUG] SUCCESS: Response code is 00 (Payment successful). Updating DB...");
-                log.error("🔥 [IPN DB UPDATE START]");
-                int rows = paymentRepo.updateStatusAtomically(txnRef, PaymentStatus.PENDING, PaymentStatus.SUCCESS,
-                        LocalDateTime.now());
-                log.error("🔥 [IPN DB UPDATE SUCCESS]");
-            writer.println("   rows updated: " + rows);
-            if (rows == 0) {
-                    log.info("[VNPAY DEBUG] SUCCESS (ALREADY PROCESSED CONCURRENTLY): Duplicate success IPN ignored.");
-                    return true;
-                }
-
-                log.error("🔥 [IPN SUBSCRIPTION CREATE]");
-                PaymentTransaction fresh = paymentRepo.findByTransactionCode(txnRef).orElse(tx);
-                adminSubscriptionRequestService.createFromPaymentSuccess(fresh);
-            } else {
-                log.warn("[VNPAY DEBUG] FAILED: Payment unsuccessful. ResponseCode={}. Marking FAILED in DB.",
-                        responseCode);
-                paymentRepo.updateStatusAtomically(txnRef, PaymentStatus.PENDING, PaymentStatus.FAILED, null);
-                // Return true so VNPay knows we processed the failure and doesn't retry
-            }
-
+            
+            // [MỚI] Delegate toàn bộ business logic cho method dùng chung
+            boolean processSuccess = processPayment(params);
+            
             writer.println("================ IPN WEBHOOK COMPLETE ================");
-            log.info("================ IPN WEBHOOK COMPLETE ================ ");
-            return true;
+            log.info("================ IPN WEBHOOK COMPLETE ================");
+            
+            return processSuccess;
 
         } catch (Exception e) {
             log.error("[VNPAY DEBUG] FAILED: Unexpected fatal IPN error: ", e);
             return false;
         }
+    }
+
+    /**
+     * [MỚI] Method cốt lõi xử lý update Transaction và kích hoạt Subscription.
+     * Chạy an toàn kể cả khi gọi n lần.
+     */
+    private boolean processPayment(Map<String, String> params) {
+        String txnRef = params.get("vnp_TxnRef");
+        String responseCode = params.get("vnp_ResponseCode");
+        String vnpAmountStr = params.get("vnp_Amount");
+
+        log.info("[CORE PAYMENT PROCESS] Verifying logic for txnRef={}", txnRef);
+
+        if (txnRef == null || responseCode == null || vnpAmountStr == null) {
+            log.error("[CORE PAYMENT PROCESS] Missing explicit required params txnRef or responseCode.");
+            return false;
+        }
+
+        // 1. Validate transaction existence
+        var optionalTx = paymentRepo.findByTransactionCode(txnRef);
+        if (optionalTx.isEmpty()) {
+            log.error("[CORE PAYMENT PROCESS] FAILED: TRANSACTION NOT FOUND txnRef={}", txnRef);
+            return false;
+        }
+        PaymentTransaction tx = optionalTx.get();
+
+        // 2. Validate amount
+        long vnpAmount;
+        try {
+            vnpAmount = Long.parseLong(vnpAmountStr);
+        } catch (NumberFormatException e) {
+            log.error("[CORE PAYMENT PROCESS] Amount parse error! raw={}", vnpAmountStr);
+            return false;
+        }
+
+        long expectedAmount = tx.getAmount() * 100L;
+        if (vnpAmount != expectedAmount) {
+            log.error("[CORE PAYMENT PROCESS] Amount mismatch! txnRef={}, DB={}, VNPay={}", txnRef, expectedAmount, vnpAmount);
+            return false;
+        }
+
+        // 3. Validate idempotency (đã thanh toán chưa)
+        if (tx.isSuccess()) {
+            log.info("[CORE PAYMENT PROCESS] SUCCESS (ALREADY PROCESSED): Transaction already SUCCESS in DB. Skipping duplicated events.");
+            return true;
+        }
+
+        // 4. Validate ResponseCode & Update DB Atomically
+        if ("00".equals(responseCode)) {
+            log.info("[CORE PAYMENT PROCESS] Output response == 00, processing SUCCESS in DB.");
+            
+            int rows = paymentRepo.updateStatusAtomically(txnRef, PaymentStatus.PENDING, PaymentStatus.SUCCESS, LocalDateTime.now());
+            if (rows == 0) {
+                log.info("[CORE PAYMENT PROCESS] Duplicate concurrent processing ignored (no rows updated).");
+                return true;
+            }
+
+            // Kích hoạt Subscription
+            log.info("🔥 [CORE PAYMENT PROCESS] SUBSCRIPTION CREATE BEGIN");
+            PaymentTransaction fresh = paymentRepo.findByTransactionCode(txnRef).orElse(tx);
+            adminSubscriptionRequestService.createFromPaymentSuccess(fresh);
+            log.info("🔥 [CORE PAYMENT PROCESS] SUBSCRIPTION CREATE FINISHED");
+            
+        } else {
+            log.warn("[CORE PAYMENT PROCESS] FAILED: Payment unsuccessful. ResponseCode={}.", responseCode);
+            paymentRepo.updateStatusAtomically(txnRef, PaymentStatus.PENDING, PaymentStatus.FAILED, null);
+        }
+
+        return true;
     }
 }
