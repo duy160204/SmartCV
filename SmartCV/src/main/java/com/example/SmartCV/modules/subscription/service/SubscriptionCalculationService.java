@@ -28,23 +28,13 @@ public class SubscriptionCalculationService {
 
         LocalDate startDate;
 
-        // ===== CASE 1: chưa có hoặc đã hết hạn =====
-        if (current == null || current.isExpired()) {
-            startDate = LocalDate.now();
-        }
-
-        // ===== CASE 2: gia hạn cùng plan =====
-        else if (current.getPlan() == newPlan) {
-            startDate = current.getEndDate() != null
-                    ? current.getEndDate()
-                    : LocalDate.now();
-        }
-
-        // ===== CASE 3: upgrade / downgrade plan =====
-        else {
-            // ghi đè từ hôm nay (an toàn – dễ kiểm soát)
-            startDate = LocalDate.now();
-        }
+        // Start from current endDate if it's in the future, else start from now.
+        // This ensures "No Data Loss" by stacking time regardless of plan change,
+        // while granting benefits immediately (startDate is handled by upsert logic if needed).
+        // For simple logic, we always calculate endDate based on the furthest point.
+        startDate = (current != null && current.getEndDate() != null && current.getEndDate().isAfter(LocalDate.now()))
+                ? current.getEndDate()
+                : LocalDate.now();
 
         LocalDate endDate = startDate.plusMonths(months);
 

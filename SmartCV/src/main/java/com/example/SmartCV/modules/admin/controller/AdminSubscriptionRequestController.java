@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.SmartCV.common.utils.UserPrincipal;
@@ -49,33 +50,50 @@ public class AdminSubscriptionRequestController {
         // PREVIEW (ADMIN)
         // ==================================================
         @PostMapping("/{id}/preview")
+        @Transactional(readOnly = true)
         public ResponseEntity<SubscriptionPreviewResponse> preview(
                         @AuthenticationPrincipal UserPrincipal admin,
                         @PathVariable("id") Long requestId) {
-                AdminSubscriptionRequest req = requestService.markPreviewed(requestId, admin.getId());
+                // FIXED: Pure Read - No Database Update here
+                AdminSubscriptionRequest req = requestService.getOrThrow(requestId);
 
-                // 🔥 build DTO ĐÚNG CÁCH (KHÔNG new constructor)
                 SubscriptionPreviewRequest previewRequest = new SubscriptionPreviewRequest();
                 previewRequest.setUserId(req.getUserId());
                 previewRequest.setNewPlan(req.getRequestedPlan());
+                previewRequest.setDurationMonths(req.getMonths()); // FIXED: Missing mapping
 
                 return ResponseEntity.ok(
                                 subscriptionService.preview(previewRequest));
+        }
+
+        // Optional: Manual mark as previewed if needed by UI
+        @PostMapping("/{id}/mark-previewed")
+        public ResponseEntity<?> markPreviewed(
+                        @AuthenticationPrincipal UserPrincipal admin,
+                        @PathVariable("id") Long requestId) {
+                requestService.markPreviewed(requestId, admin.getId());
+                return ResponseEntity.ok("Request marked as previewed");
         }
 
         // ==================================================
         // CONFIRM (ADMIN)
         // ==================================================
         @PostMapping("/{id}/confirm")
+        @Transactional // FIXED: Atomic Transaction
         public ResponseEntity<?> confirm(
                         @AuthenticationPrincipal UserPrincipal admin,
                         @PathVariable("id") Long requestId) {
+                
+                // 1. Mark request as confirmed (updates request table)
                 AdminSubscriptionRequest req = requestService.markConfirmed(requestId, admin.getId());
 
+                // 2. Activate subscription (updates subscription and history tables)
                 SubscriptionConfirmRequest confirmRequest = new SubscriptionConfirmRequest();
                 confirmRequest.setUserId(req.getUserId());
                 confirmRequest.setNewPlan(req.getRequestedPlan());
+                confirmRequest.setDurationMonths(req.getMonths());
                 confirmRequest.setConfirm(true);
+                confirmRequest.setPaymentId(req.getPaymentId());
 
                 subscriptionService.confirm(
                                 admin.getId(),

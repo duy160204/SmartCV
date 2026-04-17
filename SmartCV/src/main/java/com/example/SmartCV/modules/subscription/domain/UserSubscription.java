@@ -70,4 +70,7 @@ public class UserSubscription {
         return status == SubscriptionStatus.EXPIRED
                 || (endDate != null && endDate.isBefore(LocalDate.now()));
     }
+
+    @Version
+    private Long version;
 }

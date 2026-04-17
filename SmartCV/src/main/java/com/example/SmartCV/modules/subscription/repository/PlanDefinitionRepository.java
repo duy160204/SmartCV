@@ -13,5 +13,7 @@ public interface PlanDefinitionRepository extends JpaRepository<PlanDefinition, 
 
     Optional<PlanDefinition> findByCode(String code);
 
+    java.util.List<PlanDefinition> findByIsActiveTrue();
+
     Optional<PlanDefinition> findByPlanAndDurationMonths(PlanType plan, int durationMonths);
 }

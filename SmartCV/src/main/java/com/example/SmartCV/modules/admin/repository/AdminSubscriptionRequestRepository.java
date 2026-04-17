@@ -10,27 +10,26 @@ import com.example.SmartCV.modules.admin.domain.AdminSubscriptionRequestStatus;
 
 @Repository
 public interface AdminSubscriptionRequestRepository
-        extends JpaRepository<AdminSubscriptionRequest, Long> {
+                extends JpaRepository<AdminSubscriptionRequest, Long> {
 
-    // =========================
-    // IDENTITY / SAFETY
-    // =========================
+        // =========================
+        // IDENTITY / SAFETY
+        // =========================
+        // [LOCKING] Using Optimistic Locking (@Version) for admin dashboard safety.
+
     boolean existsByPaymentId(Long paymentId);
 
-    // =========================
-    // ADMIN LISTING
-    // =========================
-    List<AdminSubscriptionRequest>
-        findByStatus(AdminSubscriptionRequestStatus status);
+    boolean existsByRequestedPlanAndStatus(com.example.SmartCV.modules.subscription.domain.PlanType requestedPlan, AdminSubscriptionRequestStatus status);
 
-    List<AdminSubscriptionRequest>
-        findByUserId(Long userId);
+        // =========================
+        // ADMIN LISTING
+        // =========================
+        List<AdminSubscriptionRequest> findByStatus(AdminSubscriptionRequestStatus status);
 
-    List<AdminSubscriptionRequest>
-        findByStatusOrderByCreatedAtDesc(
-            AdminSubscriptionRequestStatus status
-        );
+        List<AdminSubscriptionRequest> findByUserId(Long userId);
 
-    List<AdminSubscriptionRequest>
-        findAllByOrderByCreatedAtDesc();
+        List<AdminSubscriptionRequest> findByStatusOrderByCreatedAtDesc(
+                        AdminSubscriptionRequestStatus status);
+
+        List<AdminSubscriptionRequest> findAllByOrderByCreatedAtDesc();
 }

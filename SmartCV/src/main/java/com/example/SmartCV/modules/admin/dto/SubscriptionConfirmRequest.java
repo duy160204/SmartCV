@@ -18,4 +18,6 @@ public class SubscriptionConfirmRequest {
     private int durationMonths;
 
     private boolean confirm;
+
+    private Long paymentId;
 }

@@ -75,6 +75,32 @@ export const usePlanStore = defineStore('plan', () => {
         }
     }
 
+    const deletePlan = async (id: number) => {
+        loading.value = true;
+        try {
+            await adminPlanApi.delete(id);
+            await fetchPlans();
+        } catch (err: any) {
+            console.error('[PlanStore] Deactivation failed', err);
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    const activatePlan = async (id: number) => {
+        loading.value = true;
+        try {
+            await adminPlanApi.activate(id);
+            await fetchPlans();
+        } catch (err: any) {
+            console.error('[PlanStore] Activation failed', err);
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     return {
         plans,
         loading,
@@ -82,6 +108,8 @@ export const usePlanStore = defineStore('plan', () => {
         fetchPlans,
         createPlan,
         updatePlan,
-        toggleStatus
+        toggleStatus,
+        deletePlan,
+        activatePlan
     };
 });

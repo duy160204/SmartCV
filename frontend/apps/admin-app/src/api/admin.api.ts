@@ -164,4 +164,13 @@ export const adminPlanApi = {
 
     // PATCH /api/admin/plans/{id}/status
     toggleStatus: (id: number) => api.patch(`/admin/plans/${id}/status`),
+
+    // PATCH /api/admin/plans/{id}/activate
+    activate: (id: number) => api.patch(`/admin/plans/${id}/activate`),
+
+    // PATCH /api/admin/plans/{id}/deactivate
+    deactivate: (id: number) => api.patch(`/admin/plans/${id}/deactivate`),
+
+    // DELETE /api/admin/plans/{id}
+    delete: (id: number) => api.delete(`/admin/plans/${id}`),
 };

@@ -96,10 +96,13 @@ const cancel = () => {
                         <label class="block text-sm font-bold mb-2 text-gray-700">Tier / Type <span class="text-red-500">*</span></label>
                         <select v-model="formData.planType" 
                                 class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="FREE">Free</option>
+                            <!-- [STRICT RULE] FREE plan is managed by system, not creatable here -->
                             <option value="PRO">Pro</option>
                             <option value="PREMIUM">Premium</option>
                         </select>
+                        <p class="text-xs text-blue-600 mt-1 font-medium italic">
+                            * FREE plan is system-managed and cannot be created.
+                        </p>
                     </div>
                 </div>
 

@@ -28,8 +28,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class AdminSubscriptionRequestService {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(AdminSubscriptionRequestService.class);
+    private static final Logger log = LoggerFactory.getLogger(AdminSubscriptionRequestService.class);
 
     private final AdminSubscriptionRequestRepository requestRepository;
     private final PaymentTransactionRepository paymentRepository;
@@ -49,8 +48,7 @@ public class AdminSubscriptionRequestService {
     // ==================================================
     @Transactional(readOnly = true)
     public List<AdminSubscriptionRequest> findByStatus(
-            AdminSubscriptionRequestStatus status
-    ) {
+            AdminSubscriptionRequestStatus status) {
         return requestRepository.findByStatusOrderByCreatedAtDesc(status);
     }
 
@@ -61,34 +59,42 @@ public class AdminSubscriptionRequestService {
 
         Long paymentId = payment.getId();
 
-        // ===== Idempotent =====
-        if (requestRepository.existsByPaymentId(paymentId)) {
-            log.warn(
-                "[ADMIN_SUB_REQUEST] already exists for paymentId={}",
-                paymentId
-            );
+        // [VALIDATION] Hardening durationMonths
+        if (payment.getMonths() == null || payment.getMonths() <= 0) {
+            log.error("[ADMIN_SUB_REQUEST] Critical: Payment {} has invalid months {}", paymentId, payment.getMonths());
             return;
         }
 
-        AdminSubscriptionRequest request =
-                AdminSubscriptionRequest.builder()
-                        .userId(payment.getUserId())
-                        .requestedPlan(payment.getPlan())
-                        .months(payment.getMonths())
-                        .paymentId(paymentId)
-                        .status(AdminSubscriptionRequestStatus.PENDING)
-                        .createdAt(LocalDateTime.now())
-                        .build();
+        // [VALIDATION] Plan must NOT be FREE
+        if (payment.getPlan() == com.example.SmartCV.modules.subscription.domain.PlanType.FREE) {
+            throw new IllegalArgumentException("Cannot create paid request for FREE plan from payment " + paymentId);
+        }
+
+        // ===== Idempotent check =====
+        if (requestRepository.existsByPaymentId(paymentId)) {
+            log.warn(
+                    "[ADMIN_SUB_REQUEST] already exists for paymentId={}",
+                    paymentId);
+            return;
+        }
+
+        AdminSubscriptionRequest request = AdminSubscriptionRequest.builder()
+                .userId(payment.getUserId())
+                .requestedPlan(payment.getPlan())
+                .months(payment.getMonths())
+                .paymentId(paymentId)
+                .status(AdminSubscriptionRequestStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
 
         requestRepository.save(request);
 
         log.info(
-            "[ADMIN_SUB_REQUEST][CREATE] userId={} plan={} months={} paymentId={}",
-            payment.getUserId(),
-            payment.getPlan(),
-            payment.getMonths(),
-            paymentId
-        );
+                "[ADMIN_SUB_REQUEST][CREATE] userId={} plan={} months={} paymentId={}",
+                payment.getUserId(),
+                payment.getPlan(),
+                payment.getMonths(),
+                paymentId);
     }
 
     // ==================================================
@@ -96,14 +102,13 @@ public class AdminSubscriptionRequestService {
     // ==================================================
     public AdminSubscriptionRequest markPreviewed(
             Long requestId,
-            Long adminId
-    ) {
+            Long adminId) {
+        // [STRATEGY] Optimistic Locking (@Version) handles concurrency safety.
         AdminSubscriptionRequest request = getOrThrow(requestId);
 
-        if (request.getStatus() != AdminSubscriptionRequestStatus.PENDING) {
-            throw new RuntimeException(
-                "Only PENDING request can be previewed"
-            );
+        // [IDEMPOTENCY] If already confirmed, no-op the preview status
+        if (request.getStatus() == AdminSubscriptionRequestStatus.CONFIRMED) {
+            return request;
         }
 
         request.setStatus(AdminSubscriptionRequestStatus.PREVIEWED);
@@ -111,10 +116,9 @@ public class AdminSubscriptionRequestService {
         request.setPreviewedAt(LocalDateTime.now());
 
         log.info(
-            "[ADMIN_SUB_REQUEST][PREVIEW] requestId={} adminId={}",
-            requestId,
-            adminId
-        );
+                "[ADMIN_SUB_REQUEST][PREVIEW] requestId={} adminId={}",
+                requestId,
+                adminId);
 
         return requestRepository.save(request);
     }
@@ -124,71 +128,37 @@ public class AdminSubscriptionRequestService {
     // ==================================================
     public AdminSubscriptionRequest markConfirmed(
             Long requestId,
-            Long adminId
-    ) {
+            Long adminId) {
+        // [STRATEGY] Optimistic Locking (@Version) handles multi-admin race conditions.
         AdminSubscriptionRequest request = getOrThrow(requestId);
 
-        // ❌ confirm nhiều lần
+        // ✅ [IDEMPOTENCY] Already confirmed → return success without re-processing.
         if (request.getStatus() == AdminSubscriptionRequestStatus.CONFIRMED) {
-            throw new RuntimeException(
-                "Subscription request already CONFIRMED"
-            );
+            return request;
         }
 
-        // ❌ sai thứ tự
-        if (request.getStatus() != AdminSubscriptionRequestStatus.PREVIEWED) {
-            throw new RuntimeException(
-                "Request must be PREVIEWED before confirm"
-            );
-        }
-
-        // 🔥 CHECK PAYMENT
-        PaymentTransaction payment =
-                paymentRepository.findById(request.getPaymentId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                    "Payment not found: " + request.getPaymentId()
-                                )
-                        );
+        // 🔥 [CHECK PAYMENT]
+        PaymentTransaction payment = paymentRepository.findById(request.getPaymentId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Payment not found: " + request.getPaymentId()));
 
         if (payment.getStatus() != PaymentStatus.SUCCESS) {
             throw new RuntimeException(
-                "Cannot confirm subscription: payment is not SUCCESS"
-            );
+                    "Cannot confirm subscription: payment is not SUCCESS");
         }
 
-        // MUST NOT BE DUPLICATED
-        if (subscriptionHistoryRepository.existsByPaymentId(payment.getId())) {
-             throw new RuntimeException("Subscription history already tracks this payment");
-        }
-
-        // SAFE ACTIVATE
-        subscriptionService.activateSubscriptionSafe(request.getUserId(), request.getRequestedPlan(), payment.getId());
-
-        // RECORD HISTORY ADMIN UPDATE
-        SubscriptionHistory history = SubscriptionHistory.builder()
-                .userId(request.getUserId())
-                .oldPlan(null) // Handled effectively inside safe activate 
-                .newPlan(request.getRequestedPlan())
-                .changeType(SubscriptionChangeType.ADMIN_UPDATE)
-                .reason(ChangeReason.PAYMENT)
-                .paymentId(payment.getId())
-                .confirmedByAdminId(adminId)
-                .changedAt(LocalDateTime.now())
-                .build();
-        subscriptionHistoryRepository.save(history);
-
+        // DELEGATED activation to AdminSubscriptionService to ensure Single Write Authority.
+        
         // ✅ CONFIRM
         request.setStatus(AdminSubscriptionRequestStatus.CONFIRMED);
         request.setConfirmedByAdminId(adminId);
         request.setConfirmedAt(LocalDateTime.now());
 
         log.info(
-            "[ADMIN_SUB_REQUEST][CONFIRMED] requestId={} adminId={} paymentId={}",
-            requestId,
-            adminId,
-            payment.getId()
-        );
+                "[ADMIN_SUB_REQUEST][CONFIRMED] requestId={} adminId={} paymentId={}",
+                requestId,
+                adminId,
+                payment.getId());
 
         return requestRepository.save(request);
     }
@@ -196,11 +166,9 @@ public class AdminSubscriptionRequestService {
     // ==================================================
     // HELPER
     // ==================================================
-    private AdminSubscriptionRequest getOrThrow(Long id) {
+    public AdminSubscriptionRequest getOrThrow(Long id) {
         return requestRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                            "AdminSubscriptionRequest not found: " + id
-                        ));
+                .orElseThrow(() -> new RuntimeException(
+                        "AdminSubscriptionRequest not found: " + id));
     }
 }

@@ -106,11 +106,14 @@ const handleSubmit = async () => {
                   <!-- Tier (Immutable in Edit for simplicity, or complex logic needed) -->
                   <div>
                       <label class="block text-sm font-medium">Tier</label>
-                      <select v-model="formData.planType" class="border p-2 w-full rounded" :disabled="editMode">
-                          <option value="FREE">Free</option>
+                      <select v-model="formData.planType" class="border p-2 w-full rounded" :disabled="editMode || formData.planType === 'FREE'">
+                          <option v-if="formData.planType === 'FREE'" value="FREE">Free (System Default - Non-editable)</option>
                           <option value="PRO">Pro</option>
                           <option value="PREMIUM">Premium</option>
                       </select>
+                      <p v-if="formData.planType === 'FREE'" class="text-[10px] text-gray-500 mt-1">
+                          The FREE plan is the system default state and cannot be modified.
+                      </p>
                   </div>
 
                   <!-- Price -->

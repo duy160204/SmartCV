@@ -57,4 +57,7 @@ public class AdminSubscriptionRequest {
     // ===== TIME =====
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Version
+    private Long version;
 }

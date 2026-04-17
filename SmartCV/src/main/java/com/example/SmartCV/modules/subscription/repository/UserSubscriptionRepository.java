@@ -11,6 +11,8 @@ import com.example.SmartCV.modules.subscription.domain.UserSubscription;
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
 
     Optional<UserSubscription> findByUserId(Long userId);
+    
+    boolean existsByPlanAndStatus(PlanType plan, SubscriptionStatus status);
 
     boolean existsByUserId(Long userId);
 

@@ -52,6 +52,10 @@ public class PlanDefinition {
     @Column(name = "public_link_expire_days", nullable = false)
     private int publicLinkExpireDays;
 
+    public void setIsActive(boolean isActive) {
+        this.isActive = isActive;
+    }
+
     public long getDurationDays() {
         return (long) durationMonths * 30;
     }

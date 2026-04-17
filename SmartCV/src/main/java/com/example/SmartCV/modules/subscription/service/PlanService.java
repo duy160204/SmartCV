@@ -19,6 +19,22 @@ public class PlanService {
 
     private final PlanDefinitionRepository planRepository;
 
+    public PlanDefinition findByIdOrThrow(Long id) {
+        return planRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + id));
+    }
+
+    public PlanDefinition save(PlanDefinition plan) {
+        return planRepository.save(plan);
+    }
+
+    public PlanDefinition activatePlan(Long id) {
+        PlanDefinition plan = planRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + id));
+        plan.setIsActive(true);
+        return planRepository.save(plan);
+    }
+
     public List<PlanDefinitionDTO> getAllPlans() {
         return planRepository.findAll().stream()
                 .map(this::toDTO)
@@ -26,13 +42,19 @@ public class PlanService {
     }
 
     public List<PlanDefinitionDTO> getActivePlans() {
-        return planRepository.findAll().stream()
-                .filter(PlanDefinition::isActive)
+        return planRepository.findByIsActiveTrue().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public PlanDefinitionDTO createPlan(CreatePlanRequest req) {
+        // [STRICT RULE] FREE plan MUST NOT exist as a database plan entity.
+        if (req.getPlanType() == com.example.SmartCV.modules.subscription.domain.PlanType.FREE) {
+            throw new com.example.SmartCV.common.exception.BusinessException(
+                    "FREE plan cannot be managed as a database entity. It is the system default state.",
+                    org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
+
         if (planRepository.findByCode(req.getCode()).isPresent()) {
             throw new com.example.SmartCV.common.exception.BusinessException(
                     "Plan code already exists: " + req.getCode(), org.springframework.http.HttpStatus.CONFLICT);
@@ -77,7 +99,33 @@ public class PlanService {
     public void togglePlanStatus(Long id) {
         PlanDefinition plan = planRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Plan not found"));
-        plan.setActive(!plan.isActive());
+        plan.setIsActive(!plan.isActive());
+        planRepository.save(plan);
+    }
+
+    private final com.example.SmartCV.modules.subscription.repository.UserSubscriptionRepository userSubscriptionRepository;
+    private final com.example.SmartCV.modules.admin.repository.AdminSubscriptionRequestRepository adminRequestRepository;
+
+    public void deletePlan(Long id) {
+        PlanDefinition plan = planRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Plan not found"));
+
+        // 1. Prevent if currently used in ACTIVE subscriptions
+        if (userSubscriptionRepository.existsByPlanAndStatus(plan.getPlan(), com.example.SmartCV.modules.subscription.domain.SubscriptionStatus.ACTIVE)) {
+            throw new com.example.SmartCV.common.exception.BusinessException(
+                    "Cannot delete plan: It is currently used by active subscribers.",
+                    org.springframework.http.HttpStatus.CONFLICT);
+        }
+
+        // 2. Prevent if referenced by PENDING requests
+        if (adminRequestRepository.existsByRequestedPlanAndStatus(plan.getPlan(), com.example.SmartCV.modules.admin.domain.AdminSubscriptionRequestStatus.PENDING)) {
+            throw new com.example.SmartCV.common.exception.BusinessException(
+                    "Cannot delete plan: It is referenced by pending subscription requests.",
+                    org.springframework.http.HttpStatus.CONFLICT);
+        }
+
+        // [STRICT RULE] SOFT DELETE ONLY
+        plan.setIsActive(false);
         planRepository.save(plan);
     }
 

@@ -12,6 +12,7 @@ import com.example.SmartCV.modules.auth.domain.User;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
 import com.example.SmartCV.modules.auth.service.EmailService;
 import com.example.SmartCV.modules.subscription.domain.*;
+import com.example.SmartCV.modules.subscription.repository.SubscriptionHistoryRepository;
 import com.example.SmartCV.modules.subscription.repository.UserSubscriptionRepository;
 import com.example.SmartCV.modules.subscription.service.SubscriptionCalculationService;
 import com.example.SmartCV.modules.subscription.service.SubscriptionHistoryService;
@@ -26,6 +27,7 @@ public class AdminSubscriptionService {
         private static final Logger log = LoggerFactory.getLogger(AdminSubscriptionService.class);
 
         private final UserSubscriptionRepository userSubscriptionRepository;
+        private final SubscriptionHistoryRepository historyRepository; // 🔥 Added for idempotency
         private final UserRepository userRepository;
         private final SubscriptionCalculationService calculationService;
         private final SubscriptionHistoryService historyService;
@@ -40,6 +42,11 @@ public class AdminSubscriptionService {
                 Long userId = request.getUserId();
                 PlanType newPlan = request.getNewPlan();
                 int months = request.getDurationMonths();
+
+                // [VALIDATION] Essential safety
+                if (months <= 0) {
+                        throw new IllegalArgumentException("Duration must be at least 1 month.");
+                }
 
                 UserSubscription currentSub = userSubscriptionRepository.findByUserId(userId).orElse(null);
 
@@ -92,6 +99,13 @@ public class AdminSubscriptionService {
 
                 PlanType oldPlan = currentSub != null ? currentSub.getPlan() : null;
 
+                // [IDEMPOTENCY] Crucial check: Has this specific payment already been credited?
+                // Using both Repository check AND DB Unique Constraint for maximum safety.
+                if (request.getPaymentId() != null && historyRepository.existsByPaymentId(request.getPaymentId())) {
+                        log.info("[ADMIN][CONFIRM] Payment {} already processed (checked via repo). Skipping.", request.getPaymentId());
+                        return;
+                }
+
                 validatePlanChange(oldPlan, newPlan);
 
                 SubscriptionPeriod period = calculationService.calculatePeriod(
@@ -104,20 +118,29 @@ public class AdminSubscriptionService {
                                 currentSub,
                                 userId,
                                 newPlan,
-                                period);
+                                period,
+                                request.getPaymentId()); // Pass paymentId for trace
 
                 userSubscriptionRepository.save(updatedSub);
 
-                // ===== SAVE HISTORY =====
-                historyService.saveHistory(
-                                userId,
-                                oldPlan,
-                                newPlan,
-                                SubscriptionChangeType.ADMIN_UPDATE,
-                                ChangeReason.ADMIN,
-                                adminId, // operator
-                                null // paymentId (admin thao tác)
-                );
+                // ===== SAVE HISTORY (DB UNIQUE CONSTRAINT SAFE) =====
+                try {
+                        historyService.saveHistory(
+                                        userId,
+                                        oldPlan,
+                                        newPlan,
+                                        SubscriptionChangeType.ADMIN_UPDATE,
+                                        ChangeReason.ADMIN,
+                                        request.getPaymentId(),
+                                        adminId
+                        );
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                        log.warn("[ADMIN][CONFIRM] Race condition detected for paymentId {}. History already exists.", request.getPaymentId());
+                        // If history already exists, it means another thread just finished this confirm.
+                        // Since we are in @Transactional, this will trigger rollback properly if needed,
+                        // but since we caught it, we can just return.
+                        return; 
+                }
 
                 // ===== SEND EMAIL =====
                 emailService.sendPlanUpdatedEmail(
@@ -126,14 +149,10 @@ public class AdminSubscriptionService {
                                 newPlan.name());
 
                 log.info(
-                                "[ADMIN][CONFIRM] adminId={} userId={} oldPlan={} newPlan={} months={} start={} end={}",
-                                adminId,
+                                "[ADMIN][CONFIRM] Success for userId={} newPlan={} paymentId={}",
                                 userId,
-                                oldPlan,
                                 newPlan,
-                                months,
-                                period.getStartDate(),
-                                period.getEndDate());
+                                request.getPaymentId());
         }
 
         // =========================
@@ -144,22 +163,27 @@ public class AdminSubscriptionService {
                         UserSubscription currentSub,
                         Long userId,
                         PlanType newPlan,
-                        SubscriptionPeriod period) {
-                if (currentSub == null) {
-                        return UserSubscription.builder()
+                        SubscriptionPeriod period,
+                        Long paymentId) {
+                
+                // [ENSURE EXISTS] New requirement: UserSubscription MUST always exist
+                UserSubscription sub = currentSub;
+                if (sub == null) {
+                        sub = UserSubscription.builder()
                                         .userId(userId)
-                                        .plan(newPlan)
+                                        .plan(PlanType.FREE) // Start at FREE if brand new 
                                         .status(SubscriptionStatus.ACTIVE)
-                                        .startDate(period.getStartDate())
-                                        .endDate(period.getEndDate())
+                                        .startDate(java.time.LocalDate.now())
                                         .build();
                 }
 
-                currentSub.setPlan(newPlan);
-                currentSub.setStatus(SubscriptionStatus.ACTIVE);
-                currentSub.setStartDate(period.getStartDate());
-                currentSub.setEndDate(period.getEndDate());
-                return currentSub;
+                sub.setPlan(newPlan);
+                sub.setStatus(SubscriptionStatus.ACTIVE);
+                sub.setStartDate(period.getStartDate());
+                sub.setEndDate(period.getEndDate());
+                sub.setLastPaymentId(paymentId); // Trace paymentId in sub as well
+                
+                return sub;
         }
 
         private User getUserOrThrow(Long userId) {
@@ -173,9 +197,24 @@ public class AdminSubscriptionService {
                         throw new RuntimeException("New plan must not be null");
                 }
 
+                // [STRICT RULE] FREE plan is not creatable via admin/payment flow
+                if (newPlan == PlanType.FREE) {
+                    throw new RuntimeException("FREE plan cannot be requested via paid workflow");
+                }
+
+                // [STRICT RULE] Prevent PREMIUM -> FREE downgrade
+                if (oldPlan == PlanType.PREMIUM && newPlan == PlanType.FREE) {
+                    throw new RuntimeException("Cannot downgrade from PREMIUM to FREE via admin request.");
+                }
+
                 if (oldPlan != null && oldPlan == newPlan) {
-                        throw new RuntimeException(
-                                        "User is already on plan: " + newPlan);
+                    // This is still a valid check for NEW activation requests.
+                    // But if it's a SAME PLAN EXTENSION, calculationService handles it.
+                    // The business requirement says "Same plan -> extend". 
+                    // So we should NOT throw exception if oldPlan == newPlan, 
+                    // unless it's a logic error in the flow.
+                    // Actually, for Admin Confirm flow, same plan extension is EXPECTED.
+                    log.debug("Extending same plan: {}", newPlan);
                 }
         }
 

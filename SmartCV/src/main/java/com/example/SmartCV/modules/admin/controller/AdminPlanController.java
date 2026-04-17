@@ -1,5 +1,6 @@
 package com.example.SmartCV.modules.admin.controller;
 
+import com.example.SmartCV.modules.subscription.domain.PlanDefinition;
 import com.example.SmartCV.modules.subscription.dto.CreatePlanRequest;
 import com.example.SmartCV.modules.subscription.dto.PlanDefinitionDTO;
 import com.example.SmartCV.modules.subscription.dto.UpdatePlanRequest;
@@ -35,9 +36,21 @@ public class AdminPlanController {
         return ResponseEntity.ok(planService.updatePlan(id, req));
     }
 
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<Void> toggleStatus(@PathVariable Long id) {
-        planService.togglePlanStatus(id);
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<Void> activatePlan(@PathVariable Long id) {
+        PlanDefinition plan = planService.activatePlan(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<Void> deactivatePlan(@PathVariable Long id) {
+        planService.deletePlan(id); // Uses the soft-delete/usage check logic
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePlan(@PathVariable Long id) {
+        planService.deletePlan(id);
         return ResponseEntity.ok().build();
     }
 }
