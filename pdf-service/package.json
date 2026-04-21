@@ -1,0 +1,10 @@
+{
+  "name": "pdf-service",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.22.1",
+    "puppeteer": "^22.15.0"
+  }
+}

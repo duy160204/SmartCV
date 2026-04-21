@@ -106,10 +106,12 @@ public class CVController {
         @GetMapping("/{cvId}/download")
         public ResponseEntity<byte[]> downloadCV(
                         @AuthenticationPrincipal UserPrincipal principal,
-                        @PathVariable Long cvId) {
+                        @PathVariable Long cvId,
+                        @RequestParam(defaultValue = "puppeteer") String engine) {
                 Long userId = principal.getId();
 
-                byte[] pdfBytes = cvService.downloadCV(userId, cvId);
+                boolean usePuppeteer = "puppeteer".equalsIgnoreCase(engine);
+                byte[] pdfBytes = cvService.downloadCV(userId, cvId, usePuppeteer);
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.CONTENT_DISPOSITION,

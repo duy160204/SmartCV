@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, toRaw } from 'vue';
+import { ref, onMounted, onUnmounted, watch, toRaw } from 'vue';
 import Handlebars from 'handlebars';
 import DOMPurify from 'dompurify';
 
@@ -9,156 +9,185 @@ const props = defineProps<{
   data: any;
 }>();
 
-const container = ref<HTMLElement | null>(null);
+// A4 at 96dpi = 794px wide
+const A4_WIDTH_PX = 794;
+
+const panelRef    = ref<HTMLElement | null>(null);  // The scrollable outer panel
+const a4HostRef   = ref<HTMLElement | null>(null);  // The 210mm × 297mm A4 element
+const scale       = ref(1);
+const scaledHeight = ref(1123); // 297mm ≈ 1123px default
+
 let shadow: ShadowRoot | null = null;
-let styleElement: HTMLStyleElement | null = null;
-let contentElement: HTMLDivElement | null = null;
+let styleEl: HTMLStyleElement | null = null;
+let contentEl: HTMLDivElement | null = null;
+let ro: ResizeObserver | null = null;
 
-const render = () => {
-    if (!shadow || !styleElement || !contentElement) return;
-
-    try {
-        // Safe Compile
-        if (!props.html) {
-             contentElement.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No Template Loaded</div>';
-             return;
-        }
-        // Register helper for truncating words
-        Handlebars.registerHelper('limitWords', function(str, limit) {
-             if (typeof str !== 'string') return '';
-             var words = str.split(' ');
-             if (words.length > limit) {
-                 return words.slice(0, limit).join(' ') + '...';
-             }
-             return str;
-        });
-        
-        // Prepare template - automatically truncating fields based on constraints
-        // Using regex to replace {{summary}} to {{limitWords summary 80}}, etc.
-        let processedHtml = props.html
-            .replace(/\{\{\s*profile\.summary\s*\}\}/g, '{{limitWords profile.summary 80}}')
-            .replace(/\{\{\s*description\s*\}\}/g, '{{limitWords description 60}}');
-
-        const template = Handlebars.compile(processedHtml);
-        
-        console.warn('-------- CVRenderer Debug --------');
-        console.warn('HTML Template Sample:', props.html.substring(0, 500));
-        console.warn('Data Received:', props.data);
-        console.warn('Has Profile Name?', props.data?.profile?.name);
-        
-        // 2️⃣ Sanitize Reactive Data Before Handlebars (CRITICAL)
-        // Convert Vue Proxy -> Plain Object snapshot to ensure Handlebars receives clean data
-        // structuredClone ensures a deep copy without Vue reactivity pointers
-        const rawData = props.data ? structuredClone(toRaw(props.data)) : {};
-        
-        // 🚀 Fix 2 & 3: Environment Context & Schema Normalization 
-        if (rawData.profile) {
-            // Normalize image path for absolute rendering in legacy templates
-            if (rawData.profile.photo) {
-                const url = rawData.profile.photo;
-                if (!url.startsWith('http') && !url.startsWith('blob:') && !url.startsWith('data:')) {
-                    const backendBaseUrl = (import.meta as any).env.VITE_BACKEND_URL || '';
-                    rawData.profile.photo = backendBaseUrl + (url.startsWith('/') ? url : '/' + url);
-                }
-            }
-
-            // Fix 3: Schema Alias: Ensure templates expecting 'dob' gracefully find normalized 'birthday'
-            if (rawData.profile.birthday && !rawData.profile.dob) {
-                rawData.profile.dob = rawData.profile.birthday;
-            }
-            if (rawData.profile.dob && !rawData.profile.birthday) {
-                rawData.profile.birthday = rawData.profile.dob;
-            }
-
-            // Fix: Ensure Extras are forcibly merged BEFORE template rendering 
-            // So any extra fields like custom_label directly resolve if queried at the root level
-            if (typeof rawData.profile.extras === 'object' && rawData.profile.extras !== null) {
-                 Object.assign(rawData.profile, rawData.profile.extras);
-            }
-        }
-        
-        // Merge extras for array sections too
-        const sectionsToHydrate = ['experience', 'education', 'skills', 'projects', 'languages', 'certifications', 'awards'];
-        sectionsToHydrate.forEach(sec => {
-             if (Array.isArray(rawData[sec])) {
-                 rawData[sec].forEach((item: any) => {
-                     if (item && typeof item.extras === 'object' && item.extras !== null) {
-                         Object.assign(item, item.extras);
-                     }
-                 });
-             }
-        });
-        
-        const result = template(rawData);
-        
-        // Sanitize HTML (Allowing style attributes might be needed for some templates, but safer to block scripts)
-        // DOMPurify defaults are good (no <script>, no onerror, etc)
-        const sanitized = DOMPurify.sanitize(result);
-
-        // Update content
-        contentElement.innerHTML = sanitized;
-        
-        // Ensure constraints CSS
-        const constraintCss = `
-            .cv-container { width:210mm; min-height:297mm; padding:20mm; box-sizing:border-box; }
-            section { margin-bottom:18px; }
-            .item { page-break-inside:avoid; }
-            body { margin: 0; padding: 0; }
-        `;
-        // Update CSS
-        styleElement.textContent = constraintCss + '\n' + props.css;
-
-    } catch (e: any) {
-        contentElement.innerHTML = `<div style="color:red; padding: 20px;">Template Error: ${e.message}</div>`;
-    }
+// ─── Scale Calculation ─────────────────────────────────────────────────────
+// Called whenever the RIGHT PANEL resizes.
+// We read the panel width, compute scale so A4 fits without overflow.
+// The A4 element itself never changes width — only transform:scale on a wrapper.
+const recalcScale = () => {
+  if (!panelRef.value) return;
+  const panelW = panelRef.value.clientWidth;
+  // padding 32px total (16px each side)
+  const available = panelW - 32;
+  scale.value = available < A4_WIDTH_PX ? available / A4_WIDTH_PX : 1;
 };
 
-onMounted(() => {
-    if (container.value) {
-        shadow = container.value.attachShadow({ mode: 'open' });
-        
-        // Create permanent elements in shadow dom to update efficiently
-        styleElement = document.createElement('style');
-        contentElement = document.createElement('div');
-        // Add a wrapper class often used by A4
-        contentElement.className = 'cv-container';
-        
-        shadow.appendChild(styleElement);
-        shadow.appendChild(contentElement);
+// ─── Render Logic ──────────────────────────────────────────────────────────
+const render = () => {
+  if (!shadow || !styleEl || !contentEl) return;
 
-        render();
+  try {
+    if (!props.html) {
+      contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#999;">No Template Loaded</div>';
+      return;
     }
+
+    // Handlebars helpers (idempotent registration)
+    Handlebars.registerHelper('limitWords', function(str: any, limit: number) {
+      if (typeof str !== 'string') return '';
+      const words = str.split(' ');
+      return words.length > limit ? words.slice(0, limit).join(' ') + '...' : str;
+    });
+
+    const processedHtml = props.html
+      .replace(/\{\{\s*profile\.summary\s*\}\}/g, '{{limitWords profile.summary 80}}')
+      .replace(/\{\{\s*description\s*\}\}/g,      '{{limitWords description 60}}');
+
+    const template = Handlebars.compile(processedHtml);
+
+    // Deep-clone to strip Vue Proxy
+    const rawData = props.data ? structuredClone(toRaw(props.data)) : {};
+
+    if (rawData.profile) {
+      // Resolve photo URL
+      if (rawData.profile.photo) {
+        const url = rawData.profile.photo;
+        if (!url.startsWith('http') && !url.startsWith('blob:') && !url.startsWith('data:')) {
+          const base = (import.meta as any).env.VITE_BACKEND_URL || '';
+          rawData.profile.photo = base + (url.startsWith('/') ? url : '/' + url);
+        }
+      }
+      // Schema aliases
+      if (rawData.profile.birthday && !rawData.profile.dob) rawData.profile.dob = rawData.profile.birthday;
+      if (rawData.profile.dob && !rawData.profile.birthday) rawData.profile.birthday = rawData.profile.dob;
+      // Extras merge
+      if (typeof rawData.profile.extras === 'object' && rawData.profile.extras !== null) {
+        Object.assign(rawData.profile, rawData.profile.extras);
+      }
+    }
+
+    ['experience','education','skills','projects','languages','certifications','awards'].forEach(sec => {
+      if (Array.isArray(rawData[sec])) {
+        rawData[sec].forEach((item: any) => {
+          if (item && typeof item.extras === 'object' && item.extras !== null) {
+            Object.assign(item, item.extras);
+          }
+        });
+      }
+    });
+
+    const sanitized = DOMPurify.sanitize(template(rawData));
+    contentEl.innerHTML = sanitized;
+
+    // A4 constraint CSS inside shadow DOM
+    styleEl.textContent = `
+      .cv-page {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 20mm;
+        box-sizing: border-box;
+        background: #fff;
+      }
+      section { margin-bottom: 18px; }
+      .item   { page-break-inside: avoid; }
+      body    { margin: 0; padding: 0; }
+    ` + '\n' + props.css;
+
+  } catch (e: any) {
+    if (contentEl) {
+      contentEl.innerHTML = `<div style="color:red;padding:20px;">Template Error: ${e.message}</div>`;
+    }
+  }
+};
+
+// ─── Mount ─────────────────────────────────────────────────────────────────
+onMounted(() => {
+  // Shadow DOM on the A4 host div
+  if (a4HostRef.value) {
+    shadow  = a4HostRef.value.attachShadow({ mode: 'open' });
+    styleEl   = document.createElement('style');
+    contentEl = document.createElement('div');
+    contentEl.className = 'cv-page';
+    shadow.appendChild(styleEl);
+    shadow.appendChild(contentEl);
+    render();
+  }
+
+  // Observe the OUTER PANEL (panelRef) for width changes → recalc scale
+  if (panelRef.value) {
+    ro = new ResizeObserver(() => recalcScale());
+    ro.observe(panelRef.value);
+    recalcScale(); // initial
+  }
 });
 
-// 1️⃣ Fix Watch Strategy (CRITICAL)
-// Watch data deeply and explicitly to catch nested changes
-// Watch the props structure dynamically so direct mutations to the deeply bound pinia proxy fire rerender
-watch(
-  () => props.data,
-  (newVal, oldVal) => {
-      render();
-  },
-  { deep: true }
-);
+onUnmounted(() => {
+  if (ro) {
+    ro.disconnect();
+    ro = null;
+  }
+});
 
-// Watch templates separately (shallow change is enough for strings)
-watch(
-  () => [props.html, props.css],
-  render
-);
+// ─── Watchers ──────────────────────────────────────────────────────────────
+watch(() => props.data, () => render(), { deep: true });
+watch(() => [props.html, props.css], () => render());
 </script>
 
 <template>
-  <div class="cv-render-wrapper flex justify-center bg-gray-200 py-8 overflow-auto h-full">
-      <!-- Host for Shadow DOM -->
-      <div 
-        ref="container" 
-        class="cv-host bg-white shadow-lg print:shadow-none"
-        style="width: 210mm; min-height: 297mm;"
-      ></div>
+  <!--
+    OUTER PANEL: fills the Right flex cell.
+    overflow-y-auto  → vertical scroll when A4 is taller than panel (scaled).
+    overflow-x-hidden → never show horizontal scrollbar.
+    We measure THIS element's width → compute scale.
+  -->
+  <div
+    ref="panelRef"
+    class="w-full h-full overflow-y-auto overflow-x-hidden bg-gray-200 flex flex-col items-center py-4 print:bg-transparent print:p-0"
+  >
+    <!--
+      SCALE WRAPPER: CSS transform:scale only on preview.
+      origin-top so scaling starts from the top of the page.
+      The trick to fix scroll height after scale-down:
+        scaledHeight = A4_element.offsetHeight * scale
+        We set the wrapper height explicitly so the scroll container
+        sees the correct document height.
+    -->
+    <div
+      class="flex-shrink-0 origin-top print:!transform-none print:!origin-top"
+      :style="{
+        transform:    `scale(${scale})`,
+        width:        '210mm',
+        marginBottom: `${(scale - 1) * 1123}px`,
+      }"
+    >
+      <!-- A4 Canvas — Shadow DOM host. Width/Height always 210mm × 297mm. -->
+      <div
+        ref="a4HostRef"
+        class="bg-white shadow-xl print:shadow-none"
+        style="width: 210mm; min-height: 297mm; display: block;"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* Scoped styles for the wrapper, NOT the CV content */
+/* No extra styles needed — layout is driven by Tailwind + inline :style */
+@media print {
+  .cv-render-wrapper {
+    overflow: visible !important;
+    height: auto !important;
+  }
+}
 </style>

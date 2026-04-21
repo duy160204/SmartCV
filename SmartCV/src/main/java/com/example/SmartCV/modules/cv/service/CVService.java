@@ -24,6 +24,7 @@ public class CVService {
 
     private final SubscriptionService subscriptionService;
     private final CVExportService cvExportService;
+    private final PuppeteerPdfService puppeteerPdfService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     // =========================
@@ -161,7 +162,7 @@ public class CVService {
     // UC-B05 – Download CV (PDF)
     // =========================
 
-    public byte[] downloadCV(Long userId, Long cvId) {
+    public byte[] downloadCV(Long userId, Long cvId, boolean usePuppeteer) {
 
         subscriptionService.checkDownloadPermission(userId);
 
@@ -172,7 +173,11 @@ public class CVService {
         cv.setViewCount(cv.getViewCount() + 1);
         cvRepository.save(cv);
 
-        return cvExportService.exportToPdf(cv);
+        if (usePuppeteer) {
+            return puppeteerPdfService.renderWithPuppeteer(cv);
+        } else {
+            return cvExportService.exportToPdf(cv);
+        }
     }
 
     // =========================

@@ -43,6 +43,14 @@ public class Template {
     @Column(name = "full_content", columnDefinition = "LONGTEXT")
     private String fullContent;
 
+    /** HTML template using TABLE layout — safe for openhtmltopdf (no flex/grid) */
+    @Column(name = "pdf_html", columnDefinition = "LONGTEXT")
+    private String pdfHtml;
+
+    /** CSS for PDF (A4 @page, NotoSans font-family) — separate from browser CSS */
+    @Column(name = "pdf_css", columnDefinition = "LONGTEXT")
+    private String pdfCss;
+
     @Column(name = "config_json", columnDefinition = "LONGTEXT")
     private String configJson;
 
