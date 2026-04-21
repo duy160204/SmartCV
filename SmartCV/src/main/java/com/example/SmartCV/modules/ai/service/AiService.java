@@ -55,22 +55,34 @@ public class AiService {
         maxAttempts = 3, 
         backoff = @Backoff(delay = 2000, multiplier = 2)
     )
-    public String chatWithCv(String cvContent, String userMessage) {
+    public String chatWithCv(String cvContent, String userMessage, String level) {
         aiRateLimiter.checkRateLimit(getCurrentUserId());
+        String systemMessage = AiPrompts.SAFETY_INSTRUCTIONS + "\nBạn là chuyên gia tuyển dụng..." + AiPrompts.buildLevelContext(level);
+        
         UnifiedAiRequest request = UnifiedAiRequest.builder()
-                .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\nBạn là chuyên gia tuyển dụng...")
+                .systemMessage(systemMessage)
                 .userMessage("=== NỘI DUNG CV ===\n" + cvContent + "\n\n=== CÂU HỎI CỦA NGƯỜI DÙNG ===\n" + userMessage)
                 .build();
         return executeChat(aiProviderFactory.getPrimaryProvider(), request);
     }
 
-    public String fallbackChatWithCv(String cvContent, String userMessage, Throwable t) {
+    public String chatWithCv(String cvContent, String userMessage) {
+        return chatWithCv(cvContent, userMessage, null);
+    }
+
+    public String fallbackChatWithCv(String cvContent, String userMessage, String level, Throwable t) {
         log.warn("Falling back to OpenAI for chatWithCv. Reason: {}", t.getMessage());
+        String systemMessage = AiPrompts.SAFETY_INSTRUCTIONS + "\nBạn là chuyên gia tuyển dụng..." + AiPrompts.buildLevelContext(level);
+        
         UnifiedAiRequest request = UnifiedAiRequest.builder()
-                .systemMessage(AiPrompts.SAFETY_INSTRUCTIONS + "\nBạn là chuyên gia tuyển dụng...")
+                .systemMessage(systemMessage)
                 .userMessage("=== NỘI DUNG CV ===\n" + cvContent + "\n\n=== CÂU HỎI CỦA NGƯỜI DÙNG ===\n" + userMessage)
                 .build();
         return executeChat(aiProviderFactory.getFallbackProvider(), request);
+    }
+
+    public String fallbackChatWithCv(String cvContent, String userMessage, Throwable t) {
+        return fallbackChatWithCv(cvContent, userMessage, null, t);
     }
 
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallbackGenerateCvContent")

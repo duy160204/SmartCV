@@ -34,7 +34,7 @@ public class AiController {
 
         CV cv = cvService.getMyCVDetail(userId, request.getCvId());
 
-        String result = aiService.chatWithCv(cv.getContent(), request.getMessage());
+        String result = aiService.chatWithCv(cv.getContent(), request.getMessage(), request.getLevel());
 
         return ResponseEntity.ok(new AiChatResponse(result));
     }

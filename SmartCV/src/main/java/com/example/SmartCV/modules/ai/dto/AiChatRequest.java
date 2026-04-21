@@ -6,4 +6,5 @@ import lombok.Data;
 public class AiChatRequest {
     private Long cvId;
     private String message;
+    private String level;
 }

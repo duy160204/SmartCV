@@ -133,4 +133,36 @@ public class AiPrompts {
                         Example format: {"html": "<div><h1>{{profile.name}}</h1>...</div>", "css": "div { color: red; }"}
                         Return ONLY valid JSON and nothing else. No markdown wrappers.
                         """;
+
+        public static String buildLevelContext(String level) {
+                if (level == null || level.isBlank())
+                        return "";
+
+                String normalized = level.trim().toUpperCase();
+                String detail;
+                switch (normalized) {
+                        case "INTERN":
+                                detail = "focus on potential, learning attitude";
+                                break;
+                        case "FRESHER":
+                                detail = "basic skills + entry readiness";
+                                break;
+                        case "JUNIOR":
+                                detail = "1–3 years production experience";
+                                break;
+                        case "MIDDLE":
+                                detail = "independent system contributor";
+                                break;
+                        case "SENIOR":
+                                detail = "architecture, leadership, scalability";
+                                break;
+                        default:
+                                return "";
+                }
+
+                return "\n\nEvaluation Level Context:\n" +
+                                "- Level: " + normalized + "\n" +
+                                "- " + normalized + " Expectation: " + detail + "\n" +
+                                "- Note: Score must be RELATIVE to this level standard.";
+        }
 }
