@@ -14,8 +14,50 @@ app.post("/render-pdf", async (req, res) => {
 
     const page = await browser.newPage();
 
-    await page.setContent(html, {
-      waitUntil: "networkidle0"
+    page.on("request", req => {
+      if (req.resourceType() === "image") {
+        console.log("➡️ IMAGE REQUEST:", req.url());
+      }
+    });
+
+    page.on("response", res => {
+      if (res.request().resourceType() === "image") {
+        console.log("📦 IMAGE RESPONSE:", res.status(), res.url());
+      }
+    });
+
+    page.on("requestfailed", req => {
+      if (req.resourceType() === "image") {
+        console.log("❌ IMAGE FAILED:", req.url(), req.failure());
+      }
+    });
+
+    let finalHtml = html;
+    if (finalHtml && finalHtml.includes("<head>")) {
+      finalHtml = finalHtml.replace("<head>", '<head><base href="http://localhost:8080/" />');
+    } else if (finalHtml) {
+      finalHtml = '<base href="http://localhost:8080/" />' + finalHtml;
+    }
+    
+    console.log("========== FINAL HTML START ==========");
+    console.log(finalHtml);
+    console.log("========== FINAL HTML END ==========");
+
+    await page.setContent(finalHtml, {
+      waitUntil: "networkidle0",
+      url: "http://localhost:8080"
+    });
+
+    // Wait for all images to naturally load
+    await page.evaluate(() => {
+      return Promise.all(
+        Array.from(document.images).map(img => {
+          if (img.complete) return;
+          return new Promise(resolve => {
+            img.onload = img.onerror = resolve;
+          });
+        })
+      );
     });
 
     const pdf = await page.pdf({

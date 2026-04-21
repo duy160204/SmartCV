@@ -87,6 +87,7 @@ public class PuppeteerPdfService {
 
             String fullHtml = "<!DOCTYPE html>\n" +
                     "<html>\n<head>\n<meta charset=\"UTF-8\"/>\n" +
+                    "<base href=\"http://localhost:8080/\" />\n" +
                     "<style>\n" + customFontCss + "\n" + css + "\n</style>\n</head>\n<body>\n" +
                     bodyHtml + "\n</body>\n</html>";
 
