@@ -30,7 +30,7 @@ public class CVService {
     // =========================
     // Validation Layer
     // =========================
-    private String validateDataJsonStrictly(String rawJson) {
+    private String validateDataJsonStrictly(String rawJson, boolean isUpdate) {
         if (rawJson == null || rawJson.isBlank()) return rawJson;
         if (rawJson.contains("\"dob\"") || rawJson.contains("\"birthdate\"") || rawJson.contains("\"experience.date\"")) {
             throw new BusinessException("SCHEMA_VIOLATION: Forbidden fields detected.", HttpStatus.BAD_REQUEST);
@@ -40,7 +40,19 @@ public class CVService {
             strictMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
             strictMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true);
             com.example.SmartCV.modules.cv.dto.UnifiedCVDTO cleanDto = strictMapper.readValue(rawJson, com.example.SmartCV.modules.cv.dto.UnifiedCVDTO.class);
+            
+            // 🛡️ ANTI-DATA-LOSS GUARD
+            // Reject if the CV is suspiciously empty (no name AND no experience records)
+            if (isUpdate) {
+                if ((cleanDto.getProfile() == null || cleanDto.getProfile().getName() == null || cleanDto.getProfile().getName().isBlank()) 
+                     && (cleanDto.getExperience() == null || cleanDto.getExperience().isEmpty())) {
+                    throw new BusinessException("DATA_LOSS_PREVENTION: CV content is suspiciously empty. Update rejected.", HttpStatus.BAD_REQUEST);
+                }
+            }
+
             return strictMapper.writeValueAsString(cleanDto);
+        } catch (BusinessException be) {
+            throw be;
         } catch (com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException e) {
             throw new BusinessException("SCHEMA_VIOLATION: Unrecognized field: " + e.getPropertyName(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -85,8 +97,8 @@ public class CVService {
                 .templateVersion(template.getVersion())
                 .templateSnapshot(template.getFullContent())
                 .title(title)
-                .content(validateDataJsonStrictly(content))
-                .dataJson(validateDataJsonStrictly(dataJson))
+                .content(validateDataJsonStrictly(content, false))
+                .dataJson(validateDataJsonStrictly(dataJson, false))
                 .status(CVStatus.DRAFT)
                 .isPublic(false)
                 .viewCount(0L)
@@ -110,8 +122,8 @@ public class CVService {
         }
 
         cv.setTitle(title);
-        cv.setContent(validateDataJsonStrictly(content));
-        cv.setDataJson(validateDataJsonStrictly(dataJson));
+        cv.setContent(validateDataJsonStrictly(content, true));
+        cv.setDataJson(validateDataJsonStrictly(dataJson, true));
 
         return cvRepository.save(cv);
     }
@@ -133,8 +145,8 @@ public class CVService {
         if (title != null && !title.isBlank()) {
             cv.setTitle(title);
         }
-        cv.setContent(validateDataJsonStrictly(content));
-        cv.setDataJson(validateDataJsonStrictly(dataJson));
+        cv.setContent(validateDataJsonStrictly(content, true));
+        cv.setDataJson(validateDataJsonStrictly(dataJson, true));
         cvRepository.save(cv);
     }
 

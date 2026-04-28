@@ -48,11 +48,10 @@ const resolveImage = (src: string | null) => {
 watch(selectedCVId, async (newId) => {
     if (!newId) return;
     try {
-        const res = await cvApi.getById(newId);
-        // Safe unwrap: handle res.data or res.data.data
-        selectedCVDetail.value = res.data?.data ?? res.data;
-        cvStore.currentCV = selectedCVDetail.value;
-        console.log("[CV DEBUG] Loaded:", selectedCVDetail.value);
+        // Use store's loadCV to ensure proper parsing and normalization
+        await cvStore.loadCV(newId);
+        selectedCVDetail.value = cvStore.currentCV;
+        console.log("[CV DEBUG] Loaded via Store:", selectedCVDetail.value);
     } catch (e) {
         console.error("[CV ERROR]", e);
     }

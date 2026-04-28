@@ -74,13 +74,13 @@ export const cvApi = {
         if (typeof payload.content !== 'string') {
             payload.content = JSON.stringify(payload.content);
         }
-        return api.put(`/cv/${id}`, payload);
+        return api.put(`/cv/${id}`, { title: payload.title, content: payload.content, dataJson: payload.content });
     },
 
     // PATCH /api/cv/{id}/autosave
     autosave: (id: number, payload: { title: string; content: any }) => {
         const finalContent = typeof payload.content === 'string' ? payload.content : JSON.stringify(payload.content);
-        return api.patch(`/cv/${id}/autosave`, { title: payload.title, content: finalContent });
+        return api.patch(`/cv/${id}/autosave`, { title: payload.title, content: finalContent, dataJson: finalContent });
     },
 
     // POST /api/cv/{id}/publish

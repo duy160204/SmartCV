@@ -28,6 +28,7 @@ export const useCVStore = defineStore('cv', () => {
     const error = ref<string | null>(null);
     const isSaving = ref(false);
     const lastSaved = ref<Date | null>(null);
+    const isDirty = ref(false); // ✅ Dirty flag for controlled autosave
 
     // Helper: Normalize CV Data Structure
     function normalizeCV(cv: any) {
@@ -111,31 +112,46 @@ export const useCVStore = defineStore('cv', () => {
         return cv;
     }
 
+    // ✅ Unified Setter for CV State - Forces Parsing & Normalization
+    function setCV(cvData: any) {
+        if (!cvData) return;
+
+        // Ensure content is parsed if it's a string
+        if (typeof cvData.content === 'string') {
+            try {
+                cvData.content = JSON.parse(cvData.content);
+            } catch (e) {
+                console.error("Failed to parse JSON content", e);
+                cvData.content = {};
+            }
+        }
+
+        // Run normalization logic
+        normalizeCV(cvData);
+
+        // Update state
+        isInitialLoad = true;
+        currentCV.value = cvData;
+        isDirty.value = false; // Reset dirty flag on load
+        
+        // Allow the watcher to skip the initial assignment
+        setTimeout(() => {
+            isInitialLoad = false;
+        }, 100);
+    }
+
     // Load CV by ID
     async function loadCV(id: number) {
         isLoading.value = true;
-        error.value = null; // Reset error
+        error.value = null;
         try {
             const res = await cvApi.getById(id);
-            const cvData = res.data;
+            // Use unified setter
+            setCV(res.data?.data ?? res.data);
 
-            // Parse content if string
-            if (typeof cvData.content === 'string') {
-                try {
-                    cvData.content = JSON.parse(cvData.content);
-                } catch (e) {
-                    console.error("Failed to parse JSON content", e);
-                    cvData.content = {};
-                }
+            if (currentCV.value) {
+                await loadTemplate(currentCV.value.templateId);
             }
-
-            // Normalization (CRITICAL FIX)
-            normalizeCV(cvData);
-
-            currentCV.value = cvData;
-
-            // Load Template
-            await loadTemplate(cvData.templateId);
         } catch (e: any) {
             console.error(e);
             error.value = e.response?.data?.message || e.message || "Failed to load CV";
@@ -162,24 +178,41 @@ export const useCVStore = defineStore('cv', () => {
         }
     }
 
-    // Autosave Logic
-    let saveTimeout: NodeJS.Timeout;
+    // ✅ Manual Dirty Marker (Called from UI inputs)
+    function markDirty() {
+        if (!isLoading.value) {
+            isDirty.value = true;
+        }
+    }
 
-    // Watch for deep changes in content
-    watch(() => currentCV.value?.content, (newVal) => {
-        if (!newVal) return;
-
-        // Set saving state UI
-        isSaving.value = true;
-
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-            await saveCV();
-        }, 2000); // 2s debounce
-
-    }, { deep: true });
+    // Auto-Save watch with debounce
+    let autosaveTimeout: any = null;
+    let isInitialLoad = false;
+    
+    watch(
+        () => currentCV.value,
+        () => {
+            if (isInitialLoad || isLoading.value || !currentCV.value) {
+                return;
+            }
+            markDirty();
+            
+            if (autosaveTimeout) clearTimeout(autosaveTimeout);
+            autosaveTimeout = setTimeout(() => {
+                saveCV();
+            }, 2000);
+        },
+        { deep: true }
+    );
 
     function buildPayload(form: any) {
+        // CRITICAL GUARD: Never build a payload from a string or null
+        // This prevents the "Empty Overwrite" bug when data is not yet parsed
+        if (!form || typeof form !== 'object' || (!form.profile && !form.experience)) {
+            console.error("[CV STORE] Refusing to build payload: Invalid form data structure", form);
+            return null;
+        }
+
         return {
             profile: {
                 name: form.profile?.name || '', title: form.profile?.title || '', email: form.profile?.email || '',
@@ -203,16 +236,22 @@ export const useCVStore = defineStore('cv', () => {
     }
 
     async function saveCV() {
-        if (!currentCV.value) return;
+        // ✅ Only save if dirty and not loading
+        if (!currentCV.value || !isDirty.value || isLoading.value) return;
+
+        const payload = buildPayload(currentCV.value.content);
+        // CRITICAL: Block save if payload construction failed (e.g. data was corrupted)
+        if (!payload) return; 
 
         try {
             isSaving.value = true;
             await cvApi.autosave(currentCV.value.id, { 
                 title: currentCV.value.title, 
-                content: buildPayload(currentCV.value.content) 
+                content: payload
             });
 
             lastSaved.value = new Date();
+            isDirty.value = false; // Reset flag after success
         } catch (e) {
             console.error("Autosave failed", e);
         } finally {
@@ -308,6 +347,7 @@ export const useCVStore = defineStore('cv', () => {
         improveText,
         generateCv,
         publishCV,
-        unpublishCV
+        unpublishCV,
+        markDirty
     };
 });
