@@ -25,6 +25,11 @@ api.interceptors.request.use(
     (config) => {
         // DO NOT rely on localStorage token
         // DO NOT send Authorization header if using cookies
+
+        // i18n: Send current locale to backend for localized responses
+        const locale = localStorage.getItem('smartcv_locale') || 'en';
+        config.headers['Accept-Language'] = locale;
+
         return config;
     },
     (error) => Promise.reject(error)

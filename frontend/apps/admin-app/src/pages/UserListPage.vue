@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import api from '@/api/axios';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const users = ref<any[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
@@ -53,24 +55,24 @@ const deleteUser = () => {
 
 <template>
   <div class="p-8">
-      <h1 class="text-2xl font-bold mb-6">User Management</h1>
+      <h1 class="text-2xl font-bold mb-6">{{ t('users.title') }}</h1>
       
       <!-- Loading State -->
       <div v-if="isLoading" class="text-center py-12">
           <div class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p class="text-gray-500">Loading users...</p>
+          <p class="text-gray-500">{{ t('users.loading') }}</p>
       </div>
       
       <!-- Error State -->
       <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-700 p-6 rounded text-center">
-          <p class="font-bold mb-2">Failed to load users</p>
+          <p class="font-bold mb-2">{{ t('users.error') }}</p>
           <p class="text-sm">{{ error }}</p>
-          <button @click="loadUsers" class="mt-4 text-blue-600 underline">Retry</button>
+          <button @click="loadUsers" class="mt-4 text-blue-600 underline">{{ t('common.retry') }}</button>
       </div>
       
       <!-- Empty State -->
       <div v-else-if="users.length === 0" class="bg-gray-50 p-8 text-center rounded">
-          <p class="text-gray-500">No users found</p>
+          <p class="text-gray-500">{{ t('users.no_users') }}</p>
       </div>
       
       <!-- Data Table -->
@@ -78,13 +80,13 @@ const deleteUser = () => {
           <table class="w-full text-left border-collapse">
               <thead>
                   <tr class="border-b bg-gray-50">
-                      <th class="p-4">ID</th>
-                      <th class="p-4">Email</th>
-                      <th class="p-4">Plan</th>
-                      <th class="p-4">Verified</th>
-                      <th class="p-4">Status</th>
-                      <th class="p-4">Created At</th>
-                      <th class="p-4">Actions</th>
+                      <th class="p-4">{{ t('table.col_id') }}</th>
+                      <th class="p-4">{{ t('table.col_email') }}</th>
+                      <th class="p-4">{{ t('table.col_plan') }}</th>
+                      <th class="p-4">{{ t('table.col_verified') }}</th>
+                      <th class="p-4">{{ t('table.col_status') }}</th>
+                      <th class="p-4">{{ t('table.col_date') }}</th>
+                      <th class="p-4">{{ t('table.col_actions') }}</th>
                   </tr>
               </thead>
               <tbody>
@@ -96,18 +98,18 @@ const deleteUser = () => {
                       </td>
                       <td class="p-4">
                           <span :class="user.verified ? 'text-green-600' : 'text-gray-400'">
-                              {{ user.verified ? 'Yes' : 'No' }}
+                               {{ user.verified ? t('status.YES') : t('status.NO') }}
                           </span>
                       </td>
                       <td class="p-4">
                           <span class="px-2 py-1 rounded text-xs" :class="user.locked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'">
-                              {{ user.locked ? 'Locked' : 'Active' }}
+                              {{ user.locked ? t('status.LOCKED') : t('status.ACTIVE') }}
                           </span>
                       </td>
                       <td class="p-4">{{ user.createdAt || '-' }}</td>
                       <td class="p-4 flex gap-2">
-                          <button v-if="user.locked" @click="toggleLock(user)" class="text-green-600 hover:underline">Unlock</button>
-                          <button v-else @click="toggleLock(user)" class="text-yellow-600 hover:underline">Lock</button>
+                          <button v-if="user.locked" @click="toggleLock(user)" class="text-green-600 hover:underline">{{ t('users.unlock') }}</button>
+                          <button v-else @click="toggleLock(user)" class="text-yellow-600 hover:underline">{{ t('users.lock') }}</button>
                       </td>
                   </tr>
               </tbody>

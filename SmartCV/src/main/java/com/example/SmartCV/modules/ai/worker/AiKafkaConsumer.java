@@ -1,21 +1,15 @@
 package com.example.SmartCV.modules.ai.worker;
 
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
-import org.springframework.kafka.retrytopic.DltStrategy;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.SmartCV.modules.ai.domain.AiAnalysisJob;
 import com.example.SmartCV.modules.ai.repository.AiAnalysisJobRepository;
-import com.example.SmartCV.modules.ai.service.AiService;
+import com.example.SmartCV.modules.ai.service.AiGateway;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.client.HttpServerErrorException;
-import java.util.concurrent.TimeoutException;
-import com.example.SmartCV.common.exception.BusinessException;
 import org.springframework.context.annotation.Profile;
 
 @Profile("prod")
@@ -24,29 +18,14 @@ import org.springframework.context.annotation.Profile;
 @Slf4j
 public class AiKafkaConsumer {
 
-    private final AiService aiService;
+    private final AiGateway aiGateway;
     private final AiAnalysisJobRepository jobRepository;
 
-    /**
-     * DLT Routing & Precise Exceptions:
-     * Only retries timeouts, API server crashes (5xx), and rate limits (mapped to BusinessException).
-     * Prevents endless loops on malformed user JSON/validation.
-     */
-    @RetryableTopic(
-        attempts = "3",
-        backoff = @Backoff(delay = 2000, multiplier = 2.0),
-        dltStrategy = DltStrategy.FAIL_ON_ERROR,
-        include = { BusinessException.class, TimeoutException.class, HttpServerErrorException.class } 
-    )
     @KafkaListener(topics = "ai-request", groupId = "smartcv-ai-group")
     @Transactional
     public void consumeAiRequest(String payload) {
         String jobId = extractFromJson(payload, "jobId");
         
-        // ==========================================
-        // 1. DB-LEVEL ATOMIC IDEMPOTENCY LOCK
-        // Prevents Race conditions between concurrent partition listeners
-        // ==========================================
         AiAnalysisJob job = jobRepository.findById(jobId).orElse(null);
         if (job == null) {
             log.error("AI Job {} not found. Discarding phantom message.", jobId);
@@ -55,15 +34,16 @@ public class AiKafkaConsumer {
         
         int rowsUpdated = jobRepository.lockJobForProcessing(jobId);
         if (rowsUpdated == 0) {
-            log.warn("Atomic Race Condition intercepted! Job {} is already claimed by another worker. Dropping message.", jobId);
-            return; // Successfully blocks Kafka replay duplications + thread race conditions
+            log.warn("Atomic Race Condition intercepted! Job {} is already claimed by another worker.", jobId);
+            return;
         }
 
         try {
             String cvContent = extractFromJson(payload, "cvContent");
             String userMessage = extractFromJson(payload, "prompt");
 
-            String result = aiService.chatWithCv(cvContent, userMessage);
+            // ENFORCE GATEWAY POLICY (System userId = 0L)
+            String result = aiGateway.chatWithCv(0L, cvContent, userMessage, null, "en");
             
             job.setResult(result);
             job.setStatus(AiAnalysisJob.JobStatus.DONE);
@@ -71,11 +51,10 @@ public class AiKafkaConsumer {
             
             log.info("Finished async AI job {}", jobId);
         } catch (Exception e) {
-            log.error("AI execution failed for job {}.", jobId);
-            // Reset to PENDING so retry logic can pick it up on the next Kafka attempt
+            log.error("AI execution failed for job {}: {}", jobId, e.getMessage());
             job.setStatus(AiAnalysisJob.JobStatus.PENDING);
             jobRepository.save(job);
-            throw e; // Pass to @RetryableTopic dispatcher
+            // No throw here to prevent Kafka retry storm if we are rate limited
         }
     }
 

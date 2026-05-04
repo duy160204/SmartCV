@@ -14,16 +14,35 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
+    private final MessageSource messageSource;
+
+    public GlobalExceptionHandler(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
         log.warn("Business Exception: {}", ex.getMessage());
+        
+        String resolvedMessage = ex.getMessage();
+        if (ex.getMessageKey() != null) {
+            try {
+                resolvedMessage = messageSource.getMessage(ex.getMessageKey(), null, LocaleContextHolder.getLocale());
+            } catch (Exception e) {
+                log.warn("Message key not found: {}", ex.getMessageKey());
+            }
+        }
+        
         return ResponseEntity
                 .status(ex.getStatus())
-                .body(new ErrorResponse(ex.getStatus().value(), ex.getMessage()));
+                .body(new ErrorResponse(ex.getStatus().value(), resolvedMessage, ex.getMessageKey()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -137,19 +156,29 @@ public class GlobalExceptionHandler {
     public static class ErrorResponse {
         private int status;
         private String message;
+        private String messageKey;  // i18n: optional key for frontend translation
         private Object details;
         private final LocalDateTime timestamp = LocalDateTime.now();
 
         public ErrorResponse(int status, String message) {
             this.status = status;
             this.message = message;
+            this.messageKey = null;
             this.details = null;
         }
 
         public ErrorResponse(int status, String message, Object details) {
             this.status = status;
             this.message = message;
+            this.messageKey = null;
             this.details = details;
+        }
+
+        public ErrorResponse(int status, String message, String messageKey) {
+            this.status = status;
+            this.message = message;
+            this.messageKey = messageKey;
+            this.details = null;
         }
     }
 }

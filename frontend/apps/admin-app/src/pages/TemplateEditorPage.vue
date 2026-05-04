@@ -4,13 +4,15 @@ import AITemplateModal from '@/components/editor/AITemplateModal.vue';
 import api from '@/api/axios';
 import { useRoute } from 'vue-router';
 import { ref, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const { t, locale } = useI18n();
 const route = useRoute();
 const id = route.params.id === 'create' ? null : Number(route.params.id);
 
 const html = ref('');
 const css = ref('');
-const name = ref('New Template');
+const name = ref(t('template.editor.new'));
 const plan = ref('FREE');
 const thumbnailUrl = ref('');
 const selectedThumbnailFile = ref<File | null>(null);
@@ -44,7 +46,7 @@ onMounted(async () => {
         const tmpl = res.data.data; 
         
         if (!tmpl) {
-            alert("Template not found or invalid response");
+            alert(t('cv.error'));
             return;
         }
 
@@ -117,7 +119,7 @@ const handleSave = async (content: { html: string, css: string }) => {
             selectedThumbnailFile.value = null;
         }
 
-        alert("Template saved!");
+        alert(t('template.editor.saved'));
     } catch (e: any) {
         alert("Error: " + (e.response?.data?.message || e.message));
     } finally {
@@ -139,7 +141,10 @@ const handleAIGenerate = async (file: File) => {
     aiLoading.value = true;
     try {
         const base64Str = await fileToBase64(file);
-        const res = await api.post('/ai/template/build', { imageUrl: base64Str });
+        const res = await api.post('/ai/template/build', { 
+            imageUrl: base64Str,
+            locale: locale.value
+        });
         const resultString = res.data.answer || res.data.content || res.data.message;
         
         let parsed;
@@ -164,9 +169,9 @@ const handleAIGenerate = async (file: File) => {
             } catch (e) {}
         }
         
-        alert("AI successfully generated the template structure!");
+        alert(t('template.editor.ai_success'));
     } catch (e: any) {
-        alert("AI Generation failed: " + (e.response?.data?.message || e.message));
+        alert(t('template.editor.ai_failed') + ": " + (e.response?.data?.message || e.message));
     } finally {
         aiLoading.value = false;
     }
@@ -174,7 +179,7 @@ const handleAIGenerate = async (file: File) => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col relative">
+  <div class="h-screen flex flex-col relative text-sm">
       <AITemplateModal 
           :isOpen="showAIModal" 
           @close="showAIModal = false" 
@@ -182,47 +187,57 @@ const handleAIGenerate = async (file: File) => {
       />
 
       <div v-if="aiLoading" class="absolute inset-0 bg-white bg-opacity-75 z-40 flex items-center justify-center">
-        <div class="flex flex-col border p-6 bg-white shadow-lg rounded items-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
-            <span class="text-purple-600 font-bold">✨ AI building template from image...</span>
+        <div class="flex flex-col border border-purple-100 p-8 bg-white shadow-2xl rounded-xl items-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-4"></div>
+            <span class="text-purple-600 font-bold tracking-wide">{{ t('template.editor.ai_building') }}</span>
         </div>
       </div>
 
-      <div class="h-16 bg-white border-b flex items-center px-4 gap-4 justify-between">
-          <div class="flex items-center gap-4">
-              <router-link to="/templates" class="text-gray-500 hover:text-black">← Back</router-link>
-              <input v-model="name" class="border px-2 py-1 rounded" placeholder="Template Name" />
-              <select v-model="plan" class="border px-2 py-1 rounded">
-                  <option value="FREE">FREE</option>
-                  <option value="PRO">PRO</option>
-                  <option value="PREMIUM">PREMIUM</option>
-              </select>
+      <div class="h-16 bg-white border-b flex items-center px-6 gap-4 justify-between shadow-sm">
+          <div class="flex items-center gap-6">
+              <router-link to="/templates" class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition">
+                  <span>&larr;</span>
+                  <span>{{ t('template.editor.back') }}</span>
+              </router-link>
+              <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-gray-400 uppercase">{{ t('template.editor.name') }}:</span>
+                  <input v-model="name" class="border border-gray-200 px-3 py-1 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 font-medium w-64" :placeholder="t('template.editor.name')" />
+              </div>
+              <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-gray-400 uppercase">{{ t('template.editor.plan') }}:</span>
+                  <select v-model="plan" class="border border-gray-200 px-3 py-1 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 font-bold text-xs">
+                      <option value="FREE">FREE</option>
+                      <option value="PRO">PRO</option>
+                      <option value="PREMIUM">PREMIUM</option>
+                  </select>
+              </div>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-6">
               <!-- AI Button -->
-              <button @click="showAIModal = true" class="bg-purple-100 text-purple-700 px-3 py-1 font-bold rounded shadow hover:bg-purple-200">
-                  ✨ AI Template Builder
+              <button @click="showAIModal = true" class="bg-purple-600 text-white px-4 py-1.5 font-bold rounded shadow-lg hover:bg-purple-700 transition flex items-center gap-2 text-xs uppercase tracking-wider">
+                  <span>✨</span>
+                  <span>{{ t('template.editor.ai_builder') }}</span>
               </button>
 
-              <div class="flex items-center gap-2 border-l pl-4">
-                  <span class="text-sm font-semibold">Thumbnail:</span>
-                  <img v-if="thumbnailUrl" :src="getImageUrl(thumbnailUrl)" class="h-10 w-10 object-cover rounded border" alt="Thumbnail" />
-                  <input type="file" ref="fileInput" accept="image/png, image/jpeg, image/webp" @change="handleThumbnailUpload" class="text-sm w-48" :disabled="uploading" />
-                  <span v-if="uploading" class="text-sm text-blue-500">Saving...</span>
+              <div class="flex items-center gap-3 border-l pl-6 border-gray-100">
+                  <span class="text-xs font-bold text-gray-400 uppercase">{{ t('template.editor.thumbnail') }}:</span>
+                  <img v-if="thumbnailUrl" :src="getImageUrl(thumbnailUrl)" class="h-10 w-10 object-cover rounded border border-gray-100 shadow-inner bg-gray-50" alt="Thumbnail" />
+                  <input type="file" ref="fileInput" accept="image/png, image/jpeg, image/webp" @change="handleThumbnailUpload" class="text-[10px] w-40 text-gray-500 font-medium" :disabled="uploading" />
+                  <span v-if="uploading" class="text-xs text-blue-500 font-bold animate-pulse">{{ t('template.editor.saving') }}</span>
               </div>
           </div>
       </div>
 
       <!-- Config Sections Selectors -->
-      <div class="bg-gray-50 border-b p-3 flex flex-wrap items-center gap-4 shrink-0">
-          <span class="font-bold text-sm text-gray-700">Template Sections:</span>
-          <label v-for="sec in availableSections" :key="sec" class="flex items-center gap-1 text-sm bg-white border px-2 py-1 rounded cursor-pointer hover:bg-gray-100">
-              <input type="checkbox" :value="sec" v-model="selectedSections" />
-              <span class="capitalize">{{ sec }}</span>
+      <div class="bg-gray-50 border-b px-6 py-3 flex flex-wrap items-center gap-4 shrink-0">
+          <span class="font-bold text-xs text-gray-500 uppercase tracking-widest mr-2">{{ t('template.editor.sections') }}:</span>
+          <label v-for="sec in availableSections" :key="sec" class="flex items-center gap-2 text-xs bg-white border border-gray-100 px-3 py-1.5 rounded-full cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm">
+              <input type="checkbox" :value="sec" v-model="selectedSections" class="rounded text-blue-600 focus:ring-blue-500" />
+              <span class="capitalize font-bold text-gray-700">{{ sec }}</span>
           </label>
       </div>
 
-      <div class="flex-1 overflow-hidden">
+      <div class="flex-1 overflow-hidden bg-gray-100">
           <TemplateEditor 
             v-if="!id || html"
             :initialHtml="html"

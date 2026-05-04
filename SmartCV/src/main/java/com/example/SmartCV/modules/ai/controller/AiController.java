@@ -34,7 +34,7 @@ public class AiController {
 
         CV cv = cvService.getMyCVDetail(userId, request.getCvId());
 
-        String result = aiService.chatWithCv(cv.getContent(), request.getMessage(), request.getLevel());
+        String result = aiService.chatWithCv(cv.getContent(), request.getMessage(), request.getLevel(), request.getLocale());
 
         return ResponseEntity.ok(new AiChatResponse(result));
     }
@@ -44,7 +44,7 @@ public class AiController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody com.example.SmartCV.modules.ai.dto.AiGenerateRequest request) {
         aiUsageService.checkAndRecordUsage(principal.getId());
-        String result = aiService.generateCvContent(request.getPrompt(), request.getTemplateConfigJson());
+        String result = aiService.generateCvContent(request.getPrompt(), request.getTemplateConfigJson(), request.getLocale());
         return ResponseEntity.ok(new AiChatResponse(result));
     }
 
@@ -53,7 +53,7 @@ public class AiController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody com.example.SmartCV.modules.ai.dto.AiImproveRequest request) {
         aiUsageService.checkAndRecordUsage(principal.getId());
-        String result = aiService.improveText(request.getText(), request.getInstruction());
+        String result = aiService.improveText(request.getText(), request.getInstruction(), request.getLocale());
         return ResponseEntity.ok(new AiChatResponse(result));
     }
 
@@ -64,7 +64,7 @@ public class AiController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody com.example.SmartCV.modules.ai.dto.AiBuildTemplateRequest request) {
         aiUsageService.checkAndRecordUsage(principal.getId());
-        String result = aiService.buildTemplateFromImage(request.getImageUrl());
+        String result = aiService.buildTemplateFromImage(request.getImageUrl(), request.getLocale());
         return ResponseEntity.ok(new AiChatResponse(result));
     }
 }

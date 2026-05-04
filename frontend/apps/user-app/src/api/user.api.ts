@@ -156,8 +156,8 @@ export const subscriptionApi = {
 // =========================
 export const aiApi = {
     // POST /api/ai/cv/chat
-    chat: (cvId: number, message: string, level?: string) =>
-        api.post('/ai/cv/chat', { cvId, message, level }),
+    chat: (cvId: number, message: string, level?: string, locale: string = 'en') =>
+        api.post('/ai/cv/chat', { cvId, message, level, locale }),
 
     // POST /api/ai/cv/generate
     generateCv: (prompt: string, templateConfigJson: string) =>

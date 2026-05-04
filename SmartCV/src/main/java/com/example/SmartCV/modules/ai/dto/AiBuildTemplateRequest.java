@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class AiBuildTemplateRequest {
     private String imageUrl;
+    private String locale;
 }

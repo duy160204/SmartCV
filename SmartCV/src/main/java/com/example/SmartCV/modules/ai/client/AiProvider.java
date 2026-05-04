@@ -2,16 +2,13 @@ package com.example.SmartCV.modules.ai.client;
 
 /**
  * Abstract interface for AI Providers.
- * This allows switching between OpenAI, Gemini, etc. without changing business
- * logic.
+ * Consolidated on OpenAI.
  */
 import com.example.SmartCV.modules.ai.dto.UnifiedAiRequest;
 import com.example.SmartCV.modules.ai.dto.UnifiedAiResponse;
 
 /**
  * Abstract interface for AI Providers.
- * This allows switching between OpenAI, Gemini, etc. without changing business
- * logic.
  */
 public interface AiProvider {
     /**

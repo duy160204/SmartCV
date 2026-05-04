@@ -6,4 +6,5 @@ import lombok.Data;
 public class AiImproveRequest {
     private String text;
     private String instruction;
+    private String locale;
 }

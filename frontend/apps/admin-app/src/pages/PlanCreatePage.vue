@@ -2,7 +2,9 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlanStore } from '@/stores/plan.store';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const router = useRouter();
 const store = usePlanStore();
 
@@ -40,7 +42,7 @@ const handleSubmit = async () => {
                  errorMessage.value = JSON.stringify(data);
              }
         } else {
-            errorMessage.value = e.message || 'Unknown error occurred';
+            errorMessage.value = e.message || t('cv.error');
         }
     } finally {
         isSubmitting.value = false;
@@ -55,14 +57,14 @@ const cancel = () => {
 <template>
     <div class="p-6 max-w-4xl mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Create New Subscription Plan</h1>
-            <button @click="cancel" class="text-gray-600 hover:underline">
-                &larr; Back to List
+            <h1 class="text-2xl font-bold text-gray-800">{{ t('plans.create') }}</h1>
+            <button @click="cancel" class="text-blue-600 hover:underline font-bold text-sm">
+                &larr; {{ t('plans.form.back') }}
             </button>
         </div>
 
-        <div class="bg-white rounded shadow-lg p-8 border border-gray-200">
-            <div v-if="errorMessage" class="mb-4 p-4 bg-red-100 text-red-700 rounded whitespace-pre-line font-medium border border-red-200">
+        <div class="bg-white rounded shadow-lg p-8 border border-gray-100">
+            <div v-if="errorMessage" class="mb-6 p-4 bg-red-50 text-red-700 rounded whitespace-pre-line font-medium border border-red-100 text-sm">
                 {{ errorMessage }}
             </div>
 
@@ -71,37 +73,36 @@ const cancel = () => {
                 <!-- Code & Name -->
                 <div class="grid grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Plan Code <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.code') }} <span class="text-red-500">*</span></label>
                         <input v-model="formData.code" type="text" 
-                               class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                               placeholder="e.g. PRO_MONTHLY" required />
-                        <p class="text-xs text-gray-500 mt-1">Unique identifier (internal use)</p>
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 font-mono text-sm" 
+                               :placeholder="t('plans.form.placeholder_code')" required />
+                        <p class="text-[10px] text-gray-400 mt-1 italic font-medium">{{ t('plans.form.unique_id') }}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Display Name <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.name') }} <span class="text-red-500">*</span></label>
                         <input v-model="formData.name" type="text" 
-                               class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                               placeholder="e.g. Pro Monthly Plan" required />
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" 
+                               :placeholder="t('plans.form.placeholder_name')" required />
                     </div>
                 </div>
 
                 <!-- Price & Tier -->
                 <div class="grid grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Price (VND) <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.price') }} <span class="text-red-500">*</span></label>
                         <input v-model.number="formData.price" type="number" min="0" 
-                               class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" required />
                     </div>
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Tier / Type <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.tier') }} <span class="text-red-500">*</span></label>
                         <select v-model="formData.planType" 
-                                class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <!-- [STRICT RULE] FREE plan is managed by system, not creatable here -->
+                                class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm">
                             <option value="PRO">Pro</option>
                             <option value="PREMIUM">Premium</option>
                         </select>
-                        <p class="text-xs text-blue-600 mt-1 font-medium italic">
-                            * FREE plan is system-managed and cannot be created.
+                        <p class="text-[10px] text-blue-500 mt-1 font-bold italic">
+                            {{ t('plans.form.free_managed') }}
                         </p>
                     </div>
                 </div>
@@ -109,37 +110,37 @@ const cancel = () => {
                 <!-- Duration & Limits -->
                 <div class="grid grid-cols-3 gap-6">
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Duration (Months) <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.duration') }} <span class="text-red-500">*</span></label>
                         <input v-model.number="formData.durationMonths" type="number" min="1" 
-                               class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" required />
                     </div>
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Max Share / Month <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.max_share') }} <span class="text-red-500">*</span></label>
                         <input v-model.number="formData.maxSharePerMonth" type="number" min="0" 
-                               class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" required />
                     </div>
                     <div>
-                        <label class="block text-sm font-bold mb-2 text-gray-700">Link Expiry (Days) <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.link_expiry') }} <span class="text-red-500">*</span></label>
                         <input v-model.number="formData.publicLinkExpireDays" type="number" min="1" 
-                               class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" required />
                     </div>
                 </div>
 
                 <!-- Description -->
                 <div>
-                    <label class="block text-sm font-bold mb-2 text-gray-700">Description</label>
+                    <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.description') }}</label>
                     <textarea v-model="formData.description" rows="4" 
-                              class="w-full border border-gray-300 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                              class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"></textarea>
                 </div>
 
                 <!-- Actions -->
-                <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-100">
-                    <button type="button" @click="cancel" class="px-6 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-medium">
-                        Cancel
+                <div class="flex items-center justify-end gap-4 pt-6 border-t border-gray-50">
+                    <button type="button" @click="cancel" class="px-6 py-2 border border-gray-200 rounded text-gray-600 hover:bg-gray-50 font-bold text-sm transition">
+                        {{ t('payments.reset') }}
                     </button>
                     <button type="submit" :disabled="isSubmitting" 
-                            class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold shadow-md disabled:bg-blue-300 disabled:cursor-not-allowed">
-                        {{ isSubmitting ? 'Creating...' : 'Create Plan' }}
+                            class="px-8 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold shadow-md disabled:bg-blue-300 disabled:cursor-not-allowed transition uppercase tracking-widest text-xs">
+                        {{ isSubmitting ? t('common.loading') : t('plans.create') }}
                     </button>
                 </div>
 

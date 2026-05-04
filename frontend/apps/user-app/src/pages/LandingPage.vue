@@ -4,7 +4,9 @@ import MainLayout from '@/layouts/MainLayout.vue';
 import TemplateSection from '@/components/landing/TemplateSection.vue';
 import { useAuthStore } from '@/stores/auth';
 import { Star } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const auth = useAuthStore();
 const layoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
 const templatesRef = ref<HTMLElement | null>(null);
@@ -15,15 +17,14 @@ onMounted(() => setTimeout(() => (showHero.value = true), 100));
 
 /* FEATURE */
 const activeFeature = ref(0);
-const features = ['Get Noticed','Get Hired','Get Paid More','Get Promoted'];
 
 /* FAQ */
 const faqs = ref([
-  { q: 'What is a resume?', a: 'A resume summarizes your skills and experience.', open: false },
-  { q: 'CV vs Resume?', a: 'Resume is shorter, CV is detailed.', open: false },
-  { q: 'ATS-friendly?', a: 'Optimized for hiring systems.', open: false },
-  { q: 'How long?', a: '1–2 pages.', open: false },
-  { q: 'Edit later?', a: 'Yes anytime.', open: false }
+  { qKey: 'landing.faq_q1', aKey: 'landing.faq_a1', open: false },
+  { qKey: 'landing.faq_q2', aKey: 'landing.faq_a2', open: false },
+  { qKey: 'landing.faq_q3', aKey: 'landing.faq_a3', open: false },
+  { qKey: 'landing.faq_q4', aKey: 'landing.faq_a4', open: false },
+  { qKey: 'landing.faq_q5', aKey: 'landing.faq_a5', open: false }
 ]);
 
 const toggleFAQ = (i: number) => faqs.value[i].open = !faqs.value[i].open;
@@ -49,13 +50,12 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
             class="text-5xl md:text-6xl font-extrabold leading-tight transition-all duration-700"
             :class="showHero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'"
         >
-          Create a <span class="text-blue-600">resume that gets interviews</span><br/>
-          and stands out from the crowd
+          {{ t('landing.hero_title_1') }} <span class="text-blue-600">{{ t('landing.hero_highlight') }}</span><br/>
+          {{ t('landing.hero_title_2') }}
         </h1>
 
         <p class="text-lg text-gray-600 mt-6 max-w-2xl mx-auto leading-relaxed">
-          Build a job-winning resume with professional templates, optimized structure,
-          and real-time preview — everything you need to land more interviews faster.
+          {{ t('landing.hero_desc') }}
         </p>
 
         <div class="flex justify-center gap-4 mt-10 flex-wrap">
@@ -64,14 +64,14 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
               class="px-8 py-4 bg-blue-600 text-white rounded-xl
             hover:bg-blue-700 hover:scale-105 transition shadow-md"
           >
-            Get Started
+            {{ t('landing.get_started') }}
           </button>
 
           <button
               @click="templatesRef?.scrollIntoView({ behavior: 'smooth' })"
               class="px-8 py-4 border rounded-xl hover:bg-gray-100 transition"
           >
-            View Templates
+            {{ t('landing.view_templates') }}
           </button>
         </div>
 
@@ -81,12 +81,12 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
             <div class="flex text-yellow-400">
               <Star v-for="i in 5" :key="i" class="w-4 h-4 fill-yellow-400"/>
             </div>
-            <span>4.8/5 rating</span>
+            <span>{{ t('landing.trust_rating') }}</span>
           </div>
 
-          <div>✔ No credit card</div>
-          <div>✔ 10 min build</div>
-          <div>✔ ATS-friendly</div>
+          <div>✔ {{ t('landing.trust_no_card') }}</div>
+          <div>✔ {{ t('landing.trust_10min') }}</div>
+          <div>✔ {{ t('landing.trust_ats') }}</div>
         </div>
 
       </div>
@@ -112,10 +112,10 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
       <div class="relative z-10 flex items-center justify-center h-full text-center px-6">
         <div>
           <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">
-            Build faster. Apply smarter.
+            {{ t('landing.video_title') }}
           </h2>
           <p class="text-gray-200 text-sm md:text-base">
-            Professional resumes in minutes
+            {{ t('landing.video_desc') }}
           </p>
         </div>
       </div>
@@ -132,43 +132,43 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
       <div class="max-w-7xl mx-auto px-6">
 
         <h2 class="text-4xl font-bold text-center mb-16">
-          Every tool you need is here...
+          {{ t('landing.tools_title') }}
         </h2>
 
         <div class="grid md:grid-cols-3 gap-10">
 
           <div class="bg-gray-50 border rounded-2xl p-4 space-y-2">
-            <div v-for="(item, i) in features"
+            <div v-for="(itemKey, i) in ['landing.feature_get_noticed', 'landing.feature_get_hired', 'landing.feature_get_paid', 'landing.feature_get_promoted']"
                  :key="i"
                  @click="activeFeature = i"
                  class="px-4 py-4 rounded-xl cursor-pointer transition"
                  :class="activeFeature === i
               ? 'bg-blue-100 text-blue-600 font-semibold'
               : 'hover:bg-gray-100 text-gray-700'">
-              {{ i + 1 }}. {{ item }}
+                {{ i + 1 }}. {{ t(itemKey) }}
             </div>
           </div>
 
           <div class="md:col-span-2 grid md:grid-cols-2 gap-6">
 
             <div class="bg-green-100/60 p-6 rounded-2xl hover:shadow-lg transition">
-              <h3 class="font-semibold text-lg mb-2">Interview Prep</h3>
+              <h3 class="font-semibold text-lg mb-2">{{ t('landing.interview_prep') }}</h3>
               <p class="text-sm text-gray-600 mb-4">
-                Practice interviews with real questions.
+                {{ t('landing.interview_desc') }}
               </p>
               <div class="bg-white p-4 rounded-xl shadow text-sm">
-                🎤 AI mock interview
+                🎤 {{ t('landing.ai_mock') }}
               </div>
             </div>
 
             <div class="bg-purple-100/60 p-6 rounded-2xl hover:shadow-lg transition">
-              <h3 class="font-semibold text-lg mb-2">Salary Analyzer</h3>
+              <h3 class="font-semibold text-lg mb-2">{{ t('landing.salary_analyzer') }}</h3>
               <p class="text-sm text-gray-600 mb-4">
-                Know your market value.
+                {{ t('landing.salary_desc') }}
               </p>
               <div class="bg-white p-4 rounded-xl shadow text-center">
                 <p class="text-2xl font-bold text-blue-600">+11.5%</p>
-                <p class="text-xs text-gray-500">above average</p>
+                <p class="text-xs text-gray-500">{{ t('landing.salary_above') }}</p>
               </div>
             </div>
 
@@ -180,7 +180,7 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
 
     <!-- TRUST -->
     <section class="py-16 bg-gray-50 text-center">
-      <p class="text-gray-500 mb-6">Trusted by candidates from</p>
+      <p class="text-gray-500 mb-6">{{ t('landing.trust_from') }}</p>
       <div class="flex justify-center gap-10 opacity-70">
         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" class="h-6"/>
         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/amazon.svg" class="h-6"/>
@@ -194,19 +194,19 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
       <div class="max-w-4xl mx-auto px-6">
 
         <h2 class="text-4xl font-bold mb-12 text-center">
-          Frequently Asked Questions
+          {{ t('landing.faq_title') }}
         </h2>
 
         <div class="divide-y">
           <div v-for="(item, i) in faqs" :key="i" class="py-6">
             <button @click="toggleFAQ(i)"
                     class="w-full flex justify-between text-left">
-              <span class="text-lg font-medium">{{ item.q }}</span>
+              <span class="text-lg font-medium">{{ t(item.qKey) }}</span>
               <span>{{ item.open ? '−' : '+' }}</span>
             </button>
 
             <div v-if="item.open" class="mt-4 text-gray-600 text-sm">
-              {{ item.a }}
+              {{ t(item.aKey) }}
             </div>
           </div>
         </div>
@@ -219,7 +219,7 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
       <div class="max-w-3xl mx-auto">
 
         <h2 class="text-4xl font-bold mb-6 text-gray-900">
-          Create your CV now
+          {{ t('landing.cta_title') }}
         </h2>
 
         <button
@@ -227,7 +227,7 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
             class="px-10 py-4 bg-blue-600 text-white rounded-xl
           hover:bg-blue-700 hover:scale-105 transition shadow-lg"
         >
-          Start Free
+          {{ t('landing.start_free') }}
         </button>
 
       </div>

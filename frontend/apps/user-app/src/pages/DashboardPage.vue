@@ -4,7 +4,10 @@ import api from '@/api/axios';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserPlanStore } from '@/stores/user-plan.store';
+import { useI18n } from 'vue-i18n';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const auth = useAuthStore();
 const router = useRouter();
 const cvs = ref<any[]>([]);
@@ -40,12 +43,12 @@ const createCV = () => {
 import { cvApi } from '@/api/user.api';
 
 const deleteCV = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this CV?")) return;
+    if (!confirm(t('common.confirm_delete'))) return;
     try {
         await cvApi.delete(id);
         cvs.value = cvs.value.filter(cv => cv.id !== id);
     } catch (e: any) {
-        alert("Failed to delete: " + e.message);
+        alert(t('common.delete_failed') + ": " + e.message);
     }
 };
 
@@ -56,7 +59,10 @@ const goSettings = () => router.push('/settings');
   <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
       <!-- Navbar -->
       <nav class="bg-white border-b px-8 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-          <h1 class="font-bold text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer" @click="router.push('/dashboard')">SmartCV</h1>
+          <div class="flex items-center gap-4">
+              <h1 class="font-bold text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer" @click="router.push('/dashboard')">{{ t('nav.brand') }}</h1>
+              <LanguageSwitcher />
+          </div>
           <div class="flex items-center gap-4">
                <div class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition" @click="goSettings">
                    <img v-if="auth.user?.avatarURL" :src="auth.user.avatarURL" class="w-8 h-8 rounded-full border">
@@ -65,7 +71,7 @@ const goSettings = () => router.push('/settings');
                    </div>
                    <span class="font-medium text-gray-700">{{ auth.user?.name }}</span>
                </div>
-               <button @click="auth.logout()" class="text-sm text-gray-500 hover:text-red-500 transition border-l pl-4">Logout</button>
+               <button @click="auth.logout()" class="text-sm text-gray-500 hover:text-red-500 transition border-l pl-4">{{ t('common.logout') }}</button>
           </div>
       </nav>
 
@@ -73,17 +79,17 @@ const goSettings = () => router.push('/settings');
           <!-- Header Actions -->
           <div class="flex justify-between items-center mb-10">
               <div>
-                  <h2 class="text-3xl font-bold text-gray-800">My CVs</h2>
-                  <p class="text-gray-500 mt-1">Manage and edit your professional resumes</p>
+                  <h2 class="text-3xl font-bold text-gray-800">{{ t('dashboard.title') }}</h2>
+                  <p class="text-gray-500 mt-1">{{ t('dashboard.subtitle') }}</p>
                   <p class="text-xs text-blue-600 mt-1 font-bold" v-if="planStore.currentSubscription">
-                      Plan: {{ planStore.currentSubscription.plan }}
+                      {{ t('dashboard.plan_label') }}: {{ planStore.currentSubscription.plan }}
                   </p>
               </div>
               <button 
                   @click="createCV" 
                   class="px-6 py-3 rounded-lg font-bold shadow transition flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
               >
-                  <span>+ Create New CV</span>
+                  <span>{{ t('dashboard.create_new') }}</span>
               </button>
           </div>
 
@@ -97,9 +103,9 @@ const goSettings = () => router.push('/settings');
           <!-- Empty State -->
           <div v-else-if="cvs.length === 0" class="text-center py-24 bg-white rounded-2xl shadow-sm border border-gray-100">
               <div class="text-6xl mb-6">📄</div>
-              <h3 class="text-2xl font-bold text-gray-800 mb-2">You haven't created any CVs yet.</h3>
-              <p class="text-gray-500 mb-8 max-w-md mx-auto">Start by choosing a professional template and let our AI help you write your perfect resume.</p>
-              <button @click="createCV" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition">Start Now</button>
+              <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ t('dashboard.empty_title') }}</h3>
+              <p class="text-gray-500 mb-8 max-w-md mx-auto">{{ t('dashboard.empty_desc') }}</p>
+              <button @click="createCV" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition">{{ t('dashboard.start_now') }}</button>
           </div>
           
           <!-- Grid -->
@@ -118,15 +124,15 @@ const goSettings = () => router.push('/settings');
                   <!-- Content -->
                   <div class="p-5 flex-1 flex flex-col">
                       <h3 class="font-bold text-lg text-gray-800 mb-1 truncate" :title="cv.title">{{ cv.title }}</h3>
-                      <p class="text-xs text-gray-500 mb-4">Last updated: {{ new Date(cv.updatedAt || Date.now()).toLocaleDateString() }}</p>
+                      <p class="text-xs text-gray-500 mb-4">{{ t('dashboard.last_updated') }}: {{ new Date(cv.updatedAt || Date.now()).toLocaleDateString() }}</p>
                       
                       <div class="mt-auto grid grid-cols-2 gap-3">
                            <router-link :to="`/cv/editor/${cv.id}`" class="col-span-2 text-center bg-blue-50 text-blue-600 font-bold py-2 rounded-lg hover:bg-blue-100 transition border border-blue-100">
-                               Edit
+                               {{ t('common.edit') }}
                            </router-link>
                            <!-- Secondary Actions -->
                            <!-- We could add Share/Preview here later -->
-                           <button @click="deleteCV(cv.id)" class="text-gray-400 hover:text-red-500 text-sm py-2">Delete</button>
+                           <button @click="deleteCV(cv.id)" class="text-gray-400 hover:text-red-500 text-sm py-2">{{ t('common.delete') }}</button>
                       </div>
                   </div>
               </div>

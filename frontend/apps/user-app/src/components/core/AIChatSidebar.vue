@@ -2,7 +2,9 @@
 import { ref } from 'vue';
 import { useCVStore } from '@/stores/cv';
 import { processAiAnswer } from '@/utils/aiMarkdown';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const store = useCVStore();
 
 const isOpen = ref(false);
@@ -18,12 +20,12 @@ const isProcessing = ref(false);
 const selectedLevel = ref<string | null>(null);
 
 const levels = [
-  { label: 'General', value: null },
-  { label: 'Intern', value: 'INTERN' },
-  { label: 'Fresher', value: 'FRESHER' },
-  { label: 'Junior', value: 'JUNIOR' },
-  { label: 'Middle', value: 'MIDDLE' },
-  { label: 'Senior', value: 'SENIOR' }
+  { label: t('ai.level_general'), value: null },
+  { label: t('ai.level_intern'), value: 'INTERN' },
+  { label: t('ai.level_fresher'), value: 'FRESHER' },
+  { label: t('ai.level_junior'), value: 'JUNIOR' },
+  { label: t('ai.level_middle'), value: 'MIDDLE' },
+  { label: t('ai.level_senior'), value: 'SENIOR' }
 ];
 
 const toggleChat = () => {
@@ -49,12 +51,16 @@ const sendMessage = async () => {
 
     const levelContext = selectedLevel.value;
 
-    const res = await aiApi.chat(store.currentCV?.id!, msg, levelContext);
+    const { useLanguageStore } = await import('@/stores/language.store');
+    const langStore = useLanguageStore();
+
+    // FIX TS2345: coalesce null → undefined for strict type compatibility
+    const res = await aiApi.chat(store.currentCV?.id!, msg, levelContext || undefined, langStore.locale);
 
     const rawContent =
       res.data?.answer ||
       res.data?.message ||
-      (typeof res.data === 'string' ? res.data : 'AI Response Received');
+      (typeof res.data === 'string' ? res.data : t('ai.default_response'));
 
     const processedHtml = await processAiAnswer(rawContent);
 
@@ -98,12 +104,12 @@ const sendMessage = async () => {
 
         <!-- LEFT TITLE -->
         <div class="font-semibold text-sm">
-          Chat with AI Assistant
+          {{ t('ai.chat_title') }}
         </div>
 
         <!-- RIGHT LEVEL SELECT (FORCED VISIBILITY) -->
         <div class="flex items-center gap-2">
-          <span class="text-[10px] opacity-80">Level</span>
+          <span class="text-[10px] opacity-80">{{ t('ai.level_label') }}</span>
 
           <select
             v-model="selectedLevel"
@@ -127,7 +133,7 @@ const sendMessage = async () => {
           v-if="messages.length === 0"
           class="text-center text-gray-500 text-sm mt-4"
         >
-          Ask me anything about your CV
+          {{ t('ai.empty_hint') }}
         </div>
 
         <div
@@ -144,7 +150,7 @@ const sendMessage = async () => {
             v-if="m.role === 'assistant' && m.level"
             class="text-[9px] text-indigo-500 mb-1"
           >
-            Level: {{ m.level }}
+            {{ t('ai.level_display') }}: {{ m.level }}
           </div>
 
           <div v-if="m.html" v-html="m.html"></div>
@@ -157,7 +163,7 @@ const sendMessage = async () => {
         <input
           v-model="currentInput"
           class="flex-1 border rounded px-2 py-1 text-sm"
-          placeholder="Type message..."
+          :placeholder="t('ai.input_placeholder')"
         />
 
         <button
@@ -165,7 +171,7 @@ const sendMessage = async () => {
           class="bg-indigo-600 text-white px-3 py-1 rounded text-sm"
           :disabled="isProcessing"
         >
-          Send
+          {{ t('ai.send') }}
         </button>
       </div>
     </div>

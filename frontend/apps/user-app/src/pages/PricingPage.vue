@@ -3,7 +3,9 @@ import { useAuthStore } from '@/stores/auth';
 import { useUserPlanStore } from '@/stores/user-plan.store';
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const auth = useAuthStore();
 const planStore = useUserPlanStore();
 const router = useRouter();
@@ -36,18 +38,18 @@ const handlePlanAction = async (plan: any) => {
     <!-- HERO -->
     <div class="bg-gradient-to-b from-blue-600 to-blue-500 text-white py-24 px-6 text-center">
       <h1 class="text-4xl md:text-5xl font-extrabold mb-6">
-        Simple, transparent pricing
+        {{ t('pricing.title') }}
       </h1>
 
       <p class="text-lg md:text-xl text-blue-100 max-w-2xl mx-auto">
-        Choose the plan that fits your career goals. Upgrade anytime.
+        {{ t('pricing.subtitle') }}
       </p>
 
       <!-- TRUST -->
       <div class="flex justify-center items-center gap-6 mt-8 text-sm text-blue-100 flex-wrap">
-        <div>⭐ 4.8/5 from 12,000+ users</div>
-        <div>✔ No hidden fees</div>
-        <div>✔ Cancel anytime</div>
+        <div>⭐ {{ t('pricing.trust_rating') }}</div>
+        <div>✔ {{ t('pricing.no_fees') }}</div>
+        <div>✔ {{ t('pricing.cancel_anytime') }}</div>
       </div>
     </div>
 
@@ -78,7 +80,7 @@ const handlePlanAction = async (plan: any) => {
           <div v-if="index === 1"
                class="absolute -top-4 left-1/2 -translate-x-1/2
                bg-blue-600 text-white text-xs px-4 py-1 rounded-full shadow">
-            Most Popular
+            {{ t('pricing.most_popular') }}
           </div>
 
           <!-- HEADER -->
@@ -95,7 +97,7 @@ const handlePlanAction = async (plan: any) => {
               }).format(plan.price) }}
               </span>
               <span class="text-gray-500 text-sm">
-                / {{ plan.durationMonths }} mo
+                / {{ plan.durationMonths }} {{ t('pricing.duration_suffix') }}
               </span>
             </div>
 
@@ -132,10 +134,10 @@ const handlePlanAction = async (plan: any) => {
             >
               {{
                 auth.isAuthenticated
-                    ? 'Upgrade Now'
+                    ? t('pricing.upgrade_now')
                     : (plan.price === 0
-                        ? 'Get Started Free'
-                        : 'Choose ' + plan.name)
+                        ? t('pricing.get_started_free')
+                        : t('pricing.choose_plan', { name: plan.name }))
               }}
             </button>
           </div>
@@ -148,7 +150,7 @@ const handlePlanAction = async (plan: any) => {
 
     <!-- BOTTOM TRUST -->
     <div class="text-center text-gray-500 text-sm pb-12">
-      Secure payments powered by VNPAY • Trusted by thousands of job seekers
+      {{ t('pricing.bottom_trust') }}
     </div>
 
   </div>

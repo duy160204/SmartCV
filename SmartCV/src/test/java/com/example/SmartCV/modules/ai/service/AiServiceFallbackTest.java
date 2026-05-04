@@ -1,7 +1,6 @@
 package com.example.SmartCV.modules.ai.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,10 +24,7 @@ class AiServiceFallbackTest {
     @MockBean
     private AiProviderFactory aiProviderFactory;
 
-    @MockBean(name = "primaryAiProvider")
-    private AiProvider geminiProvider;
-
-    @MockBean(name = "fallbackAiProvider")
+    @MockBean
     private AiProvider openAiProvider;
 
     @MockBean
@@ -39,44 +35,29 @@ class AiServiceFallbackTest {
 
     @BeforeEach
     void setUp() {
-        when(aiProviderFactory.getPrimaryProvider()).thenReturn(geminiProvider);
-        when(aiProviderFactory.getFallbackProvider()).thenReturn(openAiProvider);
+        when(aiProviderFactory.getPrimaryProvider()).thenReturn(openAiProvider);
     }
 
     @Test
-    void testPrimarySuccess() {
-        UnifiedAiResponse expectedResponse = new UnifiedAiResponse("Gemini Response", AiProviderType.GEMINI, 100);
-        when(geminiProvider.chat(any(UnifiedAiRequest.class))).thenReturn(expectedResponse);
-
-        String result = aiService.chatWithCv("CV Content", "Question");
-
-        assertEquals("Gemini Response", result);
-        verify(geminiProvider, times(1)).chat(any());
-        verify(openAiProvider, times(0)).chat(any());
-    }
-
-    @Test
-    void testPrimaryFail_FallbackSuccess() {
-        when(geminiProvider.chat(any(UnifiedAiRequest.class))).thenThrow(new RuntimeException("Gemini Down"));
-
-        UnifiedAiResponse fallbackResponse = new UnifiedAiResponse("OpenAI Response", AiProviderType.OPENAI, 150);
-        when(openAiProvider.chat(any(UnifiedAiRequest.class))).thenReturn(fallbackResponse);
+    void testOpenAiSuccess() {
+        UnifiedAiResponse expectedResponse = new UnifiedAiResponse("OpenAI Response", AiProviderType.OPENAI, 100);
+        when(openAiProvider.chat(any(UnifiedAiRequest.class))).thenReturn(expectedResponse);
 
         String result = aiService.chatWithCv("CV Content", "Question");
 
         assertEquals("OpenAI Response", result);
-        verify(geminiProvider, times(1)).chat(any());
         verify(openAiProvider, times(1)).chat(any());
     }
 
     @Test
-    void testBothFail() {
-        when(geminiProvider.chat(any(UnifiedAiRequest.class))).thenThrow(new RuntimeException("Gemini Down"));
+    void testOpenAiFailure_GenericFallback() {
+        // Simulating OpenAI failure
         when(openAiProvider.chat(any(UnifiedAiRequest.class))).thenThrow(new RuntimeException("OpenAI Down"));
 
-        assertThrows(RuntimeException.class, () -> aiService.chatWithCv("CV Content", "Question"));
+        // The fallback is managed by Resilience4j. In @SpringBootTest, it should trigger the fallback method.
+        String result = aiService.chatWithCv("CV Content", "Question");
 
-        verify(geminiProvider, times(1)).chat(any());
+        assertEquals("The AI assistant is temporarily unavailable. Please try again in a few minutes.", result);
         verify(openAiProvider, times(1)).chat(any());
     }
 }

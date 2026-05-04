@@ -1,0 +1,157 @@
+{
+  "admin": {
+    "title": "SmartCV Admin"
+  },
+  "common": {
+    "logout": "Đăng xuất",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "retry": "Thử lại",
+    "refresh": "Làm mới dữ liệu",
+    "error_title": "Lỗi khi tải dữ liệu bảng điều khiển"
+  },
+  "nav": {
+    "brand": "Quản lý CV",
+    "templates": "Mẫu CV",
+    "ai_feature": "Tính năng AI",
+    "pricing": "Bảng giá",
+    "dashboard": "Bảng điều khiển",
+    "users": "Người dùng"
+  },
+  "dashboard": {
+    "title": "Tổng quan hệ thống",
+    "total_users": "Tổng người dùng",
+    "verified": "Đã xác minh",
+    "locked": "Đã khóa",
+    "new_7days": "trong 7 ngày qua",
+    "total_revenue": "Tổng doanh thu",
+    "from_paid": "Từ {count} người dùng trả phí",
+    "active_content": "Nội dung hoạt động",
+    "total_cvs": "Tổng CV",
+    "templates": "Mẫu",
+    "success_payments": "Thanh toán thành công",
+    "total_transactions": "Trên tổng {count} giao dịch",
+    "revenue_trend": "Xu hướng doanh thu",
+    "subscription_dist": "Phân bổ đăng ký",
+    "recent_payments": "Thanh toán gần đây",
+    "no_payments": "Không có thanh toán gần đây",
+    "recent_subs": "Đăng ký gần đây",
+    "no_subs": "Không có đăng ký gần đây"
+  },
+  "table": {
+    "col_id": "Mã số",
+    "col_amount": "Số tiền",
+    "col_method": "Phương thức",
+    "col_status": "Trạng thái",
+    "col_date": "Ngày",
+    "col_user_id": "Mã người dùng",
+    "col_upgrade": "Lộ trình nâng cấp",
+    "col_reason": "Lý do",
+    "col_actions": "Hành động",
+    "col_email": "Email",
+    "col_plan": "Gói",
+    "col_verified": "Đã xác minh",
+    "col_code": "Mã gói",
+    "col_name": "Tên gói",
+    "col_tier": "Cấp độ",
+    "col_price": "Giá",
+    "col_duration": "Thời hạn",
+    "col_title": "Tiêu đề",
+    "col_owner": "Email chủ sở hữu",
+    "col_id_template": "ID / Mẫu",
+    "col_req_plan": "Gói yêu cầu",
+    "col_transaction_id": "Mã giao dịch"
+  },
+  "status": {
+    "SUCCESS": "Thành công",
+    "PENDING": "Chờ xử lý",
+    "FAILED": "Thất bại",
+    "APPROVED": "Đã phê duyệt",
+    "REJECTED": "Đã từ chối",
+    "ACTIVE": "Hoạt động",
+    "LOCKED": "Đã khóa",
+    "YES": "Có",
+    "NO": "Không"
+  },
+  "users": {
+    "title": "Quản lý người dùng",
+    "loading": "Đang tải người dùng...",
+    "error": "Lỗi khi tải người dùng",
+    "no_users": "Không tìm thấy người dùng",
+    "unlock": "Mở khóa",
+    "lock": "Khóa"
+  },
+  "payments": {
+    "title": "Quản lý thanh toán",
+    "total_revenue": "Tổng doanh thu",
+    "all_status": "Tất cả trạng thái",
+    "all_providers": "Tất cả nhà cung cấp",
+    "search": "Tìm kiếm",
+    "reset": "Đặt lại",
+    "no_payments": "Không tìm thấy thanh toán"
+  },
+  "subscriptions": {
+    "title": "Quản lý đăng ký",
+    "direct_update": "Cập nhật đăng ký trực tiếp",
+    "months": "Tháng",
+    "preview": "Xem trước",
+    "confirm": "Xác nhận",
+    "all": "Tất cả",
+    "pending": "Chờ xử lý",
+    "approved": "Đã phê duyệt",
+    "rejected": "Đã từ chối",
+    "no_requests": "Không tìm thấy yêu cầu"
+  },
+  "plans": {
+    "title": "Gói đăng ký",
+    "subtitle": "Quản lý các cấp bậc chức năng và tùy chọn mua hàng",
+    "create": "Tạo mới",
+    "syncing": "Đang đồng bộ các gói...",
+    "no_plans": "Không tìm thấy gói phù hợp.",
+    "edit": "Sửa",
+    "deactivate": "Ngừng kích hoạt",
+    "enable": "Kích hoạt",
+    "system_core": "Hệ thống",
+    "retired": "Đã nghỉ",
+    "form": {
+      "code": "Mã gói",
+      "name": "Tên hiển thị",
+      "price": "Giá (VNĐ)",
+      "tier": "Cấp độ / Loại",
+      "duration": "Thời hạn (Tháng)",
+      "max_share": "Số lần chia sẻ tối đa / Tháng",
+      "link_expiry": "Thời hạn liên kết (Ngày)",
+      "description": "Mô tả",
+      "back": "Quay lại danh sách",
+      "free_managed": "* Gói FREE do hệ thống quản lý và không thể tạo mới.",
+      "placeholder_code": "ví dụ: PRO_MONTHLY",
+      "placeholder_name": "ví dụ: Gói Pro Hàng Tháng",
+      "unique_id": "Định danh duy nhất (sử dụng nội bộ)"
+    }
+  },
+  "template": {
+    "management": "Quản lý mẫu",
+    "editor": {
+      "new": "Mẫu mới",
+      "back": "Quay lại",
+      "name": "Tên mẫu",
+      "plan": "Gói",
+      "thumbnail": "Ảnh đại diện",
+      "saving": "Đang lưu...",
+      "sections": "Các phần mẫu",
+      "ai_builder": "Trình tạo mẫu AI",
+      "ai_building": "AI đang tạo mẫu từ hình ảnh...",
+      "ai_success": "AI đã tạo cấu trúc mẫu thành công!",
+      "ai_failed": "Tạo bằng AI thất bại",
+      "saved": "Đã lưu mẫu!"
+    }
+  },
+  "cv": {
+    "title": "Quản lý CV",
+    "loading": "Đang tải CV...",
+    "error": "Lỗi khi tải CV",
+    "no_cvs": "Không tìm thấy CV",
+    "detail_title": "Chi tiết CV",
+    "untitled": "Chưa đặt tên"
+  }
+}

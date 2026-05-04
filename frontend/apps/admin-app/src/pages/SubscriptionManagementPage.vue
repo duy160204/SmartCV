@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import api from '@/api/axios';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 interface SubscriptionRequest {
     id: number;
     userId: number;
@@ -113,19 +115,19 @@ const getStatusClass = (status: string) => {
 </script>
 
 <template>
-  <div class="p-8">
-      <h1 class="text-2xl font-bold mb-6">Subscription Management</h1>
+  <div class="p-8 text-sm">
+      <h1 class="text-2xl font-bold mb-6">{{ t('subscriptions.title') }}</h1>
       
       <!-- Direct Subscription Update -->
       <div class="bg-white p-6 rounded-lg shadow mb-8">
-          <h2 class="font-bold text-lg mb-4">Direct Subscription Update</h2>
+          <h2 class="font-bold text-lg mb-4">{{ t('subscriptions.direct_update') }}</h2>
           <div class="flex gap-4 items-end">
               <div>
-                  <label class="block text-sm font-medium mb-1">User ID</label>
+                  <label class="block text-xs font-medium mb-1">{{ t('table.col_user_id') }}</label>
                   <input v-model.number="previewUserId" type="number" class="border p-2 rounded w-32" placeholder="User ID" />
               </div>
               <div>
-                  <label class="block text-sm font-medium mb-1">Plan</label>
+                  <label class="block text-xs font-medium mb-1">{{ t('table.col_plan') }}</label>
                   <select v-model="previewPlan" class="border p-2 rounded">
                       <option value="FREE">FREE</option>
                       <option value="PRO">PRO</option>
@@ -133,66 +135,66 @@ const getStatusClass = (status: string) => {
                   </select>
               </div>
               <div>
-                  <label class="block text-sm font-medium mb-1">Months</label>
+                  <label class="block text-xs font-medium mb-1">{{ t('subscriptions.months') }}</label>
                   <input v-model.number="previewDuration" type="number" min="1" class="border p-2 rounded w-20" />
               </div>
-              <button @click="directPreview" class="bg-blue-600 text-white px-4 py-2 rounded">Preview</button>
-              <button @click="directConfirm" class="bg-green-600 text-white px-4 py-2 rounded">Confirm</button>
+              <button @click="directPreview" class="bg-blue-600 text-white px-4 py-2 rounded">{{ t('subscriptions.preview') }}</button>
+              <button @click="directConfirm" class="bg-green-600 text-white px-4 py-2 rounded">{{ t('subscriptions.confirm') }}</button>
           </div>
       </div>
       
       <!-- Tabs -->
       <div class="flex gap-2 mb-4">
           <button @click="loadRequests(); activeTab = 'all'" 
-                  :class="['px-4 py-2 rounded', activeTab === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200']">
-              All
+                  :class="['px-4 py-2 rounded font-medium', activeTab === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200']">
+              {{ t('subscriptions.all') }}
           </button>
           <button @click="loadByStatus('PENDING')" 
-                  :class="['px-4 py-2 rounded', activeTab === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-200']">
-              Pending
+                  :class="['px-4 py-2 rounded font-medium', activeTab === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-200']">
+              {{ t('subscriptions.pending') }}
           </button>
           <button @click="loadByStatus('APPROVED')" 
-                  :class="['px-4 py-2 rounded', activeTab === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-gray-200']">
-              Approved
+                  :class="['px-4 py-2 rounded font-medium', activeTab === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-gray-200']">
+              {{ t('subscriptions.approved') }}
           </button>
           <button @click="loadByStatus('REJECTED')" 
-                  :class="['px-4 py-2 rounded', activeTab === 'REJECTED' ? 'bg-red-600 text-white' : 'bg-gray-200']">
-              Rejected
+                  :class="['px-4 py-2 rounded font-medium', activeTab === 'REJECTED' ? 'bg-red-600 text-white' : 'bg-gray-200']">
+              {{ t('subscriptions.rejected') }}
           </button>
       </div>
       
       <!-- Table -->
       <div class="bg-white rounded shadow">
-          <div v-if="isLoading" class="p-8 text-center text-gray-500">Loading...</div>
+          <div v-if="isLoading" class="p-8 text-center text-gray-500">{{ t('common.loading') }}</div>
           <table v-else class="w-full text-left border-collapse">
               <thead>
-                  <tr class="border-b bg-gray-50">
-                      <th class="p-4">ID</th>
-                      <th class="p-4">User ID</th>
-                      <th class="p-4">Requested Plan</th>
-                      <th class="p-4">Status</th>
-                      <th class="p-4">Created</th>
-                      <th class="p-4">Actions</th>
+                  <tr class="border-b bg-gray-50 text-xs text-gray-500">
+                      <th class="p-4 uppercase">{{ t('table.col_id') }}</th>
+                      <th class="p-4 uppercase">{{ t('table.col_user_id') }}</th>
+                      <th class="p-4 uppercase">{{ t('table.col_req_plan') }}</th>
+                      <th class="p-4 uppercase">{{ t('table.col_status') }}</th>
+                      <th class="p-4 uppercase">{{ t('table.col_date') }}</th>
+                      <th class="p-4 uppercase">{{ t('table.col_actions') }}</th>
                   </tr>
               </thead>
               <tbody>
                   <tr v-for="req in requests" :key="req.id" class="border-b hover:bg-gray-50">
                       <td class="p-4">{{ req.id }}</td>
-                      <td class="p-4">{{ req.userId }}</td>
-                      <td class="p-4 font-medium">{{ req.requestedPlan }}</td>
+                      <td class="p-4 font-mono">#{{ req.userId }}</td>
+                      <td class="p-4 font-bold text-indigo-600">{{ req.requestedPlan }}</td>
                       <td class="p-4">
-                          <span class="px-2 py-1 rounded text-xs font-medium" :class="getStatusClass(req.status)">
-                              {{ req.status }}
+                          <span class="px-2 py-1 rounded text-xs font-semibold" :class="getStatusClass(req.status)">
+                              {{ t('status.' + req.status) }}
                           </span>
                       </td>
-                      <td class="p-4 text-sm">{{ new Date(req.createdAt).toLocaleString() }}</td>
+                      <td class="p-4 text-gray-500">{{ new Date(req.createdAt).toLocaleString() }}</td>
                       <td class="p-4 space-x-2">
-                          <button @click="previewRequest(req.id)" class="text-blue-600 hover:underline">Preview</button>
-                          <button v-if="req.status === 'PENDING'" @click="confirmRequest(req.id)" class="text-green-600 hover:underline">Confirm</button>
+                          <button @click="previewRequest(req.id)" class="text-blue-600 hover:underline">{{ t('subscriptions.preview') }}</button>
+                          <button v-if="req.status === 'PENDING'" @click="confirmRequest(req.id)" class="text-green-600 hover:underline font-bold">{{ t('subscriptions.confirm') }}</button>
                       </td>
                   </tr>
                   <tr v-if="requests.length === 0">
-                      <td colspan="6" class="p-8 text-center text-gray-500">No requests found</td>
+                      <td colspan="6" class="p-8 text-center text-gray-500">{{ t('subscriptions.no_requests') }}</td>
                   </tr>
               </tbody>
           </table>

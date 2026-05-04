@@ -1,5 +1,8 @@
 <script setup lang="ts">
-// Logic here
+import { useLanguageStore } from '@/stores/language.store';
+
+// Initialize the store immediately so it runs before any route render
+const langStore = useLanguageStore();
 </script>
 
 <template>

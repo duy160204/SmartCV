@@ -4,7 +4,10 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserPlanStore } from '@/stores/user-plan.store';
 import { cvApi } from '@/api/user.api';
+import { useI18n } from 'vue-i18n';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const auth = useAuthStore();
 const planStore = useUserPlanStore();
 const router = useRouter();
@@ -25,7 +28,7 @@ const loadCVs = async () => {
 };
 
 const deleteCV = async (id: number) => {
-  if (!confirm("Are you sure you want to delete this CV?")) return;
+  if (!confirm(t('common.confirm_delete'))) return;
   await cvApi.delete(id);
   userCVs.value = userCVs.value.filter(cv => cv.id !== id);
 };
@@ -52,9 +55,12 @@ onMounted(async () => {
 
       <!-- NAV -->
       <nav class="bg-white border border-slate-200 px-6 py-4 flex justify-between items-center rounded-2xl shadow-sm">
-        <h1 class="font-bold text-xl text-slate-800">
-          <router-link to="/">SmartCV</router-link>
-        </h1>
+        <div class="flex items-center gap-4">
+          <h1 class="font-bold text-xl text-slate-800">
+            <router-link to="/">{{ t('nav.brand') }}</router-link>
+          </h1>
+          <LanguageSwitcher />
+        </div>
 
         <div class="flex items-center gap-4">
           <span class="font-medium text-slate-700">
@@ -65,7 +71,7 @@ onMounted(async () => {
               @click="auth.logout()"
               class="text-sm text-red-500 hover:text-red-600 transition"
           >
-            Logout
+            {{ t('common.logout') }}
           </button>
         </div>
       </nav>
@@ -73,7 +79,7 @@ onMounted(async () => {
       <!-- TITLE -->
       <div class="text-center mt-10 mb-6">
         <h2 class="text-3xl font-bold text-slate-800">
-          My Workspace
+          {{ t('profile.workspace') }}
         </h2>
       </div>
 
@@ -92,7 +98,7 @@ onMounted(async () => {
               class="relative z-10 px-8 py-2 text-sm font-medium transition"
               :class="activeTab === 'cvs' ? 'text-white' : 'text-slate-600'"
           >
-            📄 My CVs
+            📄 {{ t('profile.tab_cvs') }}
           </button>
 
           <button
@@ -100,7 +106,7 @@ onMounted(async () => {
               class="relative z-10 px-8 py-2 text-sm font-medium transition"
               :class="activeTab === 'account' ? 'text-white' : 'text-slate-600'"
           >
-            👤 Account
+            👤 {{ t('profile.tab_account') }}
           </button>
 
         </div>
@@ -114,25 +120,25 @@ onMounted(async () => {
 
           <div class="flex justify-between items-center">
             <h3 class="text-xl font-bold text-slate-800">
-              My Resumes
+              {{ t('profile.my_resumes') }}
             </h3>
 
             <router-link
                 to="/"
                 class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm"
             >
-              + Create New
+              {{ t('profile.create_new') }}
             </router-link>
           </div>
 
           <!-- loading -->
           <div v-if="isLoadingCVs" class="text-center py-10 text-slate-400">
-            Loading CVs...
+            {{ t('profile.loading_cvs') }}
           </div>
 
           <!-- empty -->
           <div v-else-if="userCVs.length === 0" class="text-center py-14 text-slate-500">
-            📝 No CVs yet
+            📝 {{ t('profile.no_cvs') }}
           </div>
 
           <!-- 🔥 HORIZONTAL CV LIST (LIKE TEMPLATES) -->
@@ -151,11 +157,11 @@ onMounted(async () => {
                 </div>
 
                 <div class="font-semibold text-slate-800">
-                  {{ cv.title || 'Untitled Resume' }}
+                  {{ cv.title || t('dashboard.untitled') }}
                 </div>
 
                 <div class="text-xs text-slate-400 mt-1">
-                  Updated: {{ formatDate(cv.updatedAt) }}
+                  {{ t('profile.updated') }}: {{ formatDate(cv.updatedAt) }}
                 </div>
               </div>
 
@@ -166,7 +172,7 @@ onMounted(async () => {
                     @click="openCV(cv.id)"
                     class="flex-1 bg-white border border-slate-200 text-slate-700 text-sm py-2 rounded-lg hover:bg-slate-100 transition"
                 >
-                  Edit
+                  {{ t('common.edit') }}
                 </button>
 
                 <button
@@ -188,18 +194,18 @@ onMounted(async () => {
         <div v-if="activeTab === 'account'" class="space-y-6 max-w-lg mx-auto">
 
           <h3 class="text-xl font-bold text-slate-800 text-center">
-            Account Information
+            {{ t('profile.account_info') }}
           </h3>
 
           <div>
-            <label class="text-sm text-slate-500">Full Name</label>
+            <label class="text-sm text-slate-500">{{ t('profile.full_name') }}</label>
             <div class="mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl">
               {{ auth.user?.name }}
             </div>
           </div>
 
           <div>
-            <label class="text-sm text-slate-500">Email</label>
+            <label class="text-sm text-slate-500">{{ t('profile.email') }}</label>
 
             <div class="mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
               <span>{{ auth.user?.email }}</span>
@@ -208,14 +214,14 @@ onMounted(async () => {
                   v-if="auth.user?.isVerified"
                   class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full"
               >
-                Verified
+                {{ t('profile.verified') }}
               </span>
 
               <span
                   v-else
                   class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full"
               >
-                Unverified
+                {{ t('profile.unverified') }}
               </span>
             </div>
 

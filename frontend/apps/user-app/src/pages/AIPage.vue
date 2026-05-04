@@ -5,6 +5,9 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { processAiAnswer } from '@/utils/aiMarkdown';
 import { useCVStore } from '@/stores/cv';
 import CVRenderer from '@/components/core/CVRenderer.vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const auth = useAuthStore();
 const cvStore = useCVStore();
@@ -21,12 +24,12 @@ const selectedLevel = ref<string | null>(null);
 const messages = ref<any[]>([]);
 
 const levels = [
-  { label: "General", value: null },
-  { label: "Intern", value: "INTERN" },
-  { label: "Fresher", value: "FRESHER" },
-  { label: "Junior", value: "JUNIOR" },
-  { label: "Middle", value: "MIDDLE" },
-  { label: "Senior", value: "SENIOR" }
+  { label: t('ai.level_general'), value: null },
+  { label: t('ai.level_intern'), value: 'INTERN' },
+  { label: t('ai.level_fresher'), value: 'FRESHER' },
+  { label: t('ai.level_junior'), value: 'JUNIOR' },
+  { label: t('ai.level_middle'), value: 'MIDDLE' },
+  { label: t('ai.level_senior'), value: 'SENIOR' }
 ];
 
 const getParsedContent = (content: any) => {
@@ -89,7 +92,7 @@ const sendMessage = async () => {
   if (!selectedCVId.value) {
     messages.value.push({
       role: 'assistant',
-      content: 'Please select a CV first.'
+      content: t('ai.empty_hint')
     });
     return;
   }
@@ -101,8 +104,12 @@ const sendMessage = async () => {
   isSending.value = true;
 
   try {
-    const res = await aiApi.chat(selectedCVId.value, userMsg, selectedLevel.value);
-    const reply = res.data?.answer || res.data?.message || 'Done';
+    const { useLanguageStore } = await import('@/stores/language.store');
+    const langStore = useLanguageStore();
+
+    // FIX TS2345: coalesce null → undefined for strict type compatibility
+    const res = await aiApi.chat(selectedCVId.value, userMsg, selectedLevel.value || undefined, langStore.locale);
+    const reply = res.data?.answer || res.data?.message || t('ai.default_response');
 
     const html = await processAiAnswer(reply);
 
@@ -115,7 +122,7 @@ const sendMessage = async () => {
   } catch (e: any) {
     messages.value.push({
       role: 'assistant',
-      content: e.message || 'Error occurred'
+      content: e.message || t('common.noData')
     });
   } finally {
     isSending.value = false;
@@ -130,10 +137,10 @@ const sendMessage = async () => {
     <section class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-10 px-6">
       <div class="max-w-4xl mx-auto text-center">
         <h1 class="text-4xl font-bold tracking-tight">
-          AI Career Assistant
+          {{ t('ai.chat_title') }}
         </h1>
         <p class="text-indigo-100 mt-2 text-sm">
-          Optimize your CV with AI-powered feedback
+          {{ t('ai.empty_hint') }}
         </p>
       </div>
     </section>
@@ -150,7 +157,7 @@ const sendMessage = async () => {
           <!-- header -->
           <div class="p-3 border-b flex justify-between items-center bg-blue-50/60">
             <span class="text-xs font-semibold text-blue-700">
-              AI Assistant
+              {{ t('ai.chat_title') }}
             </span>
 
             <select
@@ -169,7 +176,7 @@ const sendMessage = async () => {
 
             <div v-if="messages.length === 0"
                  class="text-center text-blue-300 mt-10 text-sm">
-              🤖 Start chatting with your CV
+              🤖 {{ t('ai.empty_hint') }}
             </div>
 
             <div
@@ -191,7 +198,7 @@ const sendMessage = async () => {
             <div v-if="isSending"
                  class="text-xs text-blue-400 flex items-center gap-2">
               <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              AI is thinking...
+              {{ t('common.loading') }}
             </div>
 
           </div>
@@ -202,7 +209,7 @@ const sendMessage = async () => {
                 v-model="inputMessage"
                 @keyup.enter.prevent="sendMessage"
                 class="w-full border border-blue-100 rounded-xl p-3 text-sm h-20 resize-none focus:ring-2 focus:ring-blue-300 focus:outline-none"
-                placeholder="Ask AI about your CV..."
+                :placeholder="t('ai.input_placeholder')"
             />
 
             <button
@@ -210,7 +217,7 @@ const sendMessage = async () => {
                 :disabled="isSending"
                 class="mt-2 w-full bg-blue-600 text-white py-2 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition"
             >
-              Send
+              {{ t('ai.send') }}
             </button>
           </div>
 
@@ -221,7 +228,7 @@ const sendMessage = async () => {
 
           <div class="p-3 border-b bg-blue-50/40">
             <span class="text-xs font-semibold text-blue-700 uppercase">
-              CV Preview
+              {{ t('ai.chat_title') }}
             </span>
           </div>
 
@@ -241,7 +248,7 @@ const sendMessage = async () => {
 
           <div class="p-3 border-b flex justify-between items-center bg-blue-50/40">
             <span class="text-xs font-semibold text-blue-700">
-              Your CVs
+              {{ t('dashboard.title') }}
             </span>
 
             <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
@@ -253,7 +260,7 @@ const sendMessage = async () => {
 
             <div v-if="isLoadingCVs"
                  class="text-xs text-blue-300 text-center py-4">
-              Loading...
+              {{ t('common.loading') }}
             </div>
 
             <button
@@ -266,7 +273,7 @@ const sendMessage = async () => {
                 : 'hover:bg-blue-50/50 border-blue-100'"
             >
               <div class="font-semibold text-slate-700 truncate">
-                {{ cv.title || 'Untitled' }}
+                {{ cv.title || t('dashboard.untitled') }}
               </div>
 
               <div class="text-[10px] text-slate-400 mt-1">

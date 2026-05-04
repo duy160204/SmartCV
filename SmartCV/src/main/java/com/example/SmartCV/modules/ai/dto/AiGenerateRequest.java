@@ -6,4 +6,5 @@ import lombok.Data;
 public class AiGenerateRequest {
     private String prompt;
     private String templateConfigJson;
+    private String locale;
 }

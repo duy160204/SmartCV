@@ -1,0 +1,157 @@
+{
+  "admin": {
+    "title": "SmartCV Admin"
+  },
+  "common": {
+    "logout": "Logout",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "retry": "Retry",
+    "refresh": "Refresh Data",
+    "error_title": "Error loading dashboard data"
+  },
+  "nav": {
+    "brand": "CV Management",
+    "templates": "Templates",
+    "ai_feature": "AI Feature",
+    "pricing": "Pricing",
+    "dashboard": "Dashboard",
+    "users": "Users"
+  },
+  "dashboard": {
+    "title": "Dashboard Overview",
+    "total_users": "Total Users",
+    "verified": "Verified",
+    "locked": "Locked",
+    "new_7days": "in last 7 days",
+    "total_revenue": "Total Revenue",
+    "from_paid": "From {count} paid users",
+    "active_content": "Active Content",
+    "total_cvs": "Total CVs",
+    "templates": "Templates",
+    "success_payments": "Successful Payments",
+    "total_transactions": "Out of {count} total transactions",
+    "revenue_trend": "Revenue Trend",
+    "subscription_dist": "Subscription Distribution",
+    "recent_payments": "Recent Payments",
+    "no_payments": "No recent payments",
+    "recent_subs": "Recent Subscriptions",
+    "no_subs": "No recent subscriptions"
+  },
+  "table": {
+    "col_id": "ID",
+    "col_amount": "Amount",
+    "col_method": "Method",
+    "col_status": "Status",
+    "col_date": "Date",
+    "col_user_id": "User ID",
+    "col_upgrade": "Upgrade Path",
+    "col_reason": "Reason",
+    "col_actions": "Actions",
+    "col_email": "Email",
+    "col_plan": "Plan",
+    "col_verified": "Verified",
+    "col_code": "Plan Code",
+    "col_name": "Plan Name",
+    "col_tier": "Tier",
+    "col_price": "Price",
+    "col_duration": "Duration",
+    "col_title": "Title",
+    "col_owner": "Owner",
+    "col_id_template": "ID / Template",
+    "col_req_plan": "Requested Plan",
+    "col_transaction_id": "Transaction ID"
+  },
+  "status": {
+    "SUCCESS": "Success",
+    "PENDING": "Pending",
+    "FAILED": "Failed",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "ACTIVE": "Active",
+    "LOCKED": "Locked",
+    "YES": "Yes",
+    "NO": "No"
+  },
+  "users": {
+    "title": "User Management",
+    "loading": "Loading users...",
+    "error": "Failed to load users",
+    "no_users": "No users found",
+    "unlock": "Unlock",
+    "lock": "Lock"
+  },
+  "payments": {
+    "title": "Payment Management",
+    "total_revenue": "Total Revenue",
+    "all_status": "All Status",
+    "all_providers": "All Providers",
+    "search": "Search",
+    "reset": "Reset",
+    "no_payments": "No payments found"
+  },
+  "subscriptions": {
+    "title": "Subscription Management",
+    "direct_update": "Direct Subscription Update",
+    "months": "Months",
+    "preview": "Preview",
+    "confirm": "Confirm",
+    "all": "All",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "no_requests": "No requests found"
+  },
+  "plans": {
+    "title": "Subscription Plans",
+    "subtitle": "Manage functional tiers and purchase options",
+    "create": "Create New Plan",
+    "syncing": "Synchronizing plans...",
+    "no_plans": "No matching plans found.",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "enable": "Enable",
+    "system_core": "System Core",
+    "retired": "Retired",
+    "form": {
+      "code": "Plan Code",
+      "name": "Display Name",
+      "price": "Price (VND)",
+      "tier": "Tier / Type",
+      "duration": "Duration (Months)",
+      "max_share": "Max Share / Month",
+      "link_expiry": "Link Expiry (Days)",
+      "description": "Description",
+      "back": "Back to List",
+      "free_managed": "FREE plan is system-managed and cannot be created.",
+      "placeholder_code": "e.g. PRO_MONTHLY",
+      "placeholder_name": "e.g. Pro Monthly Plan",
+      "unique_id": "Unique identifier (internal use)"
+    }
+  },
+  "template": {
+    "management": "Template Management",
+    "editor": {
+      "new": "New Template",
+      "back": "Back",
+      "name": "Template Name",
+      "plan": "Plan",
+      "thumbnail": "Thumbnail",
+      "saving": "Saving...",
+      "sections": "Template Sections",
+      "ai_builder": "AI Template Builder",
+      "ai_building": "AI building template from image...",
+      "ai_success": "AI successfully generated the template structure!",
+      "ai_failed": "AI Generation failed",
+      "saved": "Template saved!"
+    }
+  },
+  "cv": {
+    "title": "CV Management",
+    "loading": "Loading CVs...",
+    "error": "Failed to load CVs",
+    "no_cvs": "No CVs found",
+    "detail_title": "CV Detail",
+    "untitled": "Untitled"
+  }
+}
