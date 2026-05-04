@@ -59,6 +59,11 @@ public interface PaymentTransactionRepository
         );
 
     List<PaymentTransaction>
+        findTop5ByStatusOrderByCreatedAtDesc(
+            PaymentStatus status
+        );
+
+    List<PaymentTransaction>
         findByProviderOrderByCreatedAtDesc(
             PaymentProvider provider
         );

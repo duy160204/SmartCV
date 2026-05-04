@@ -10,5 +10,7 @@ public interface SubscriptionHistoryRepository extends JpaRepository<Subscriptio
 
     List<SubscriptionHistory> findByUserIdOrderByChangedAtDesc(Long userId);
     
+    List<SubscriptionHistory> findTop5ByOrderByChangedAtDesc();
+
     boolean existsByPaymentId(Long paymentId);
 }

@@ -13,6 +13,7 @@ public class AdminDashboardResponse {
     private long totalUsers;
     private long verifiedUsers;
     private long lockedUsers;
+    private long newUsers7Days;
 
     // =========================
     // CV

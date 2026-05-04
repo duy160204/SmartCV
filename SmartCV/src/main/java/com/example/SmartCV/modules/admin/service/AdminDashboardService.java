@@ -34,6 +34,7 @@ public class AdminDashboardService {
         long totalUsers = userRepository.count();
         long verifiedUsers = userRepository.countByVerifiedTrue();
         long lockedUsers = userRepository.countByLockedTrue();
+        long newUsers7Days = userRepository.countByCreatedAtAfter(java.time.LocalDate.now().minusDays(7));
 
         // =========================
         // CV
@@ -91,6 +92,7 @@ public class AdminDashboardService {
                 .totalUsers(totalUsers)
                 .verifiedUsers(verifiedUsers)
                 .lockedUsers(lockedUsers)
+                .newUsers7Days(newUsers7Days)
 
                 // CV
                 .totalCVs(totalCVs)

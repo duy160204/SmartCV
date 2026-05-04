@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByVerifiedTrue();
 
     long countByLockedTrue();
+    
+    long countByCreatedAtAfter(java.time.LocalDate date);
 }
 
     
