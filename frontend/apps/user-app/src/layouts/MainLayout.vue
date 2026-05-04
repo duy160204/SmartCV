@@ -17,7 +17,7 @@ defineExpose({ openAuth });
 <template>
     <div class="min-h-screen flex flex-col font-sans bg-gray-50">
         <Navbar @open-auth="openAuth" />
-        
+
         <main class="flex-1">
             <slot></slot>
         </main>
@@ -26,10 +26,10 @@ defineExpose({ openAuth });
             <p>© 2026 SmartCV. All rights reserved.</p>
         </footer>
 
-        <AuthModal 
-            :isOpen="showAuthModal" 
-            :initialMode="authMode" 
-            @close="showAuthModal = false" 
+        <AuthModal
+            :isOpen="showAuthModal"
+            :initialMode="authMode"
+            @close="showAuthModal = false"
         />
     </div>
 </template>

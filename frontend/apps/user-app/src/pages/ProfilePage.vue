@@ -1,164 +1,234 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth';
-import api from '@/api/axios';
 import { ref, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useUserPlanStore } from '@/stores/user-plan.store';
 import { cvApi } from '@/api/user.api';
 
 const auth = useAuthStore();
 const planStore = useUserPlanStore();
 const router = useRouter();
-const route = useRoute(); // Add useRoute
-const activeTab = ref('cvs'); // 'cvs', 'account', 'subscription'
+
+const activeTab = ref('cvs');
 
 const userCVs = ref<any[]>([]);
 const isLoadingCVs = ref(false);
 
 const loadCVs = async () => {
-    isLoadingCVs.value = true;
-    try {
-        const res = await cvApi.getAll();
-        userCVs.value = res.data;
-    } catch (e) {
-        console.error("Failed to load CVs", e);
-    } finally {
-        isLoadingCVs.value = false;
-    }
+  isLoadingCVs.value = true;
+  try {
+    const res = await cvApi.getAll();
+    userCVs.value = res.data;
+  } finally {
+    isLoadingCVs.value = false;
+  }
 };
 
 const deleteCV = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this CV?")) return;
-    try {
-        await cvApi.delete(id);
-        userCVs.value = userCVs.value.filter(cv => cv.id !== id);
-    } catch (e: any) {
-        alert("Failed to delete: " + e.message);
-    }
+  if (!confirm("Are you sure you want to delete this CV?")) return;
+  await cvApi.delete(id);
+  userCVs.value = userCVs.value.filter(cv => cv.id !== id);
 };
 
 const openCV = (id: number) => {
-    router.push(`/cv/editor/${id}`);
+  router.push(`/cv/editor/${id}`);
 };
 
 const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString();
-};
-
-const formatCurrency = (val: number, currency: string) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: currency }).format(val);
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString();
 };
 
 onMounted(async () => {
-    loadCVs();
-    await planStore.init();
+  loadCVs();
+  await planStore.init();
 });
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-      <nav class="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm sticky top-0 z-20">
-          <h1 class="font-bold text-xl"><router-link to="/">SmartCV</router-link></h1>
-          <div class="flex items-center gap-4">
-               <span class="font-medium text-gray-700">{{ auth.user?.name }}</span>
-               <button @click="auth.logout()" class="text-sm text-red-600 hover:text-red-800">Logout</button>
-          </div>
+  <div class="min-h-screen bg-gradient-to-b from-slate-100 via-white to-blue-100 flex justify-center">
+
+    <div class="w-full max-w-6xl px-6 py-10">
+
+      <!-- NAV -->
+      <nav class="bg-white border border-slate-200 px-6 py-4 flex justify-between items-center rounded-2xl shadow-sm">
+        <h1 class="font-bold text-xl text-slate-800">
+          <router-link to="/">SmartCV</router-link>
+        </h1>
+
+        <div class="flex items-center gap-4">
+          <span class="font-medium text-slate-700">
+            {{ auth.user?.name }}
+          </span>
+
+          <button
+              @click="auth.logout()"
+              class="text-sm text-red-500 hover:text-red-600 transition"
+          >
+            Logout
+          </button>
+        </div>
       </nav>
 
-      <div class="max-w-6xl mx-auto mt-8 p-6">
-          <h2 class="text-3xl font-bold mb-8 text-gray-800">My Workspace</h2>
-          
-          <div class="flex flex-col md:flex-row gap-8">
-              <!-- Sidebar / Tabs -->
-              <div class="md:w-64 flex-shrink-0">
-                  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                      <button 
-                        @click="activeTab = 'cvs'"
-                        :class="['w-full text-left px-6 py-4 font-medium transition flex items-center gap-3', activeTab === 'cvs' ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:bg-gray-50']"
-                      >
-                          <span>📄</span> My CVs
-                      </button>
-                      <button 
-                        @click="activeTab = 'account'"
-                        :class="['w-full text-left px-6 py-4 font-medium transition flex items-center gap-3', activeTab === 'account' ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' : 'text-gray-600 hover:bg-gray-50']"
-                      >
-                          <span>👤</span> Account
-                      </button>
-                  </div>
-              </div>
-
-              <!-- Main Content -->
-              <div class="flex-1">
-                  <!-- My CVs Tab -->
-                  <div v-if="activeTab === 'cvs'" class="space-y-6">
-                      <div class="flex justify-between items-center mb-4">
-                          <h3 class="text-xl font-bold text-gray-800">My Resumes</h3>
-                          <router-link to="/" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow text-sm">
-                              + Create New
-                          </router-link>
-                      </div>
-
-                      <div v-if="isLoadingCVs" class="text-center py-12 text-gray-500">Loading CVs...</div>
-                      
-                      <div v-else-if="userCVs.length === 0" class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                          <div class="text-4xl mb-4">📝</div>
-                          <h3 class="text-lg font-bold text-gray-800 mb-2">No CVs yet</h3>
-                          <p class="text-gray-500 mb-6">Create your first professional resume in minutes.</p>
-                          <router-link to="/" class="text-blue-600 font-bold hover:underline">Pick a Template</router-link>
-                      </div>
-
-                      <div v-else class="grid gap-4">
-                          <div v-for="cv in userCVs" :key="cv.id" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-md transition">
-                              <div class="flex items-center gap-4">
-                                  <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-xl">📄</div>
-                                  <div>
-                                      <h4 class="font-bold text-gray-800 text-lg">{{ cv.title || 'Untitled Resume' }}</h4>
-                                      <p class="text-xs text-gray-500">Updated: {{ formatDate(cv.updatedAt) }}</p>
-                                  </div>
-                              </div>
-                              
-                              <div class="flex items-center gap-3 w-full sm:w-auto">
-                                  <button @click="openCV(cv.id)" class="flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition">
-                                      Edit
-                                  </button>
-                                  <button @click="deleteCV(cv.id)" class="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Delete CV">
-                                      🗑️
-                                  </button>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-
-                  <!-- Account Tab -->
-                  <div v-if="activeTab === 'account'" class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                       <h3 class="text-xl font-bold text-gray-800 mb-6">Account Information</h3>
-                       
-                       <div class="space-y-6 max-w-lg">
-                           <div>
-                               <label class="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
-                               <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-gray-800 font-medium">
-                                   {{ auth.user?.name }}
-                               </div>
-                           </div>
-                           
-                           <div>
-                               <label class="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                               <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-gray-800 font-medium flex justify-between items-center">
-                                   <span>{{ auth.user?.email }}</span>
-                                   <span v-if="auth.user?.isVerified" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">Verified</span>
-                                   <span v-else class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-bold">Unverified</span>
-                               </div>
-                               <!-- OAuth Badge -->
-                               <div class="mt-2 text-xs text-gray-400">
-                                   Logged in via {{ auth.user?.role === 'ADMIN' ? 'Admin Access' : 'Standard Access' }}
-                                   <!-- Real OAuth provider info would come from user object if available -->
-                               </div>
-                           </div>
-                        </div>
-                   </div>
-              </div>
-          </div>
+      <!-- TITLE -->
+      <div class="text-center mt-10 mb-6">
+        <h2 class="text-3xl font-bold text-slate-800">
+          My Workspace
+        </h2>
       </div>
+
+      <!-- 🔥 CENTERED TAB -->
+      <div class="flex justify-center mb-10">
+        <div class="relative bg-white border border-slate-200 rounded-full p-1 flex shadow-sm">
+
+          <!-- active indicator -->
+          <div
+              class="absolute top-1 bottom-1 w-1/2 rounded-full bg-blue-600 transition-all duration-300"
+              :class="activeTab === 'account' ? 'translate-x-full' : 'translate-x-0'"
+          ></div>
+
+          <button
+              @click="activeTab = 'cvs'"
+              class="relative z-10 px-8 py-2 text-sm font-medium transition"
+              :class="activeTab === 'cvs' ? 'text-white' : 'text-slate-600'"
+          >
+            📄 My CVs
+          </button>
+
+          <button
+              @click="activeTab = 'account'"
+              class="relative z-10 px-8 py-2 text-sm font-medium transition"
+              :class="activeTab === 'account' ? 'text-white' : 'text-slate-600'"
+          >
+            👤 Account
+          </button>
+
+        </div>
+      </div>
+
+      <!-- CONTENT CARD -->
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+
+        <!-- ================= CVs ================= -->
+        <div v-if="activeTab === 'cvs'" class="space-y-6">
+
+          <div class="flex justify-between items-center">
+            <h3 class="text-xl font-bold text-slate-800">
+              My Resumes
+            </h3>
+
+            <router-link
+                to="/"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm"
+            >
+              + Create New
+            </router-link>
+          </div>
+
+          <!-- loading -->
+          <div v-if="isLoadingCVs" class="text-center py-10 text-slate-400">
+            Loading CVs...
+          </div>
+
+          <!-- empty -->
+          <div v-else-if="userCVs.length === 0" class="text-center py-14 text-slate-500">
+            📝 No CVs yet
+          </div>
+
+          <!-- 🔥 HORIZONTAL CV LIST (LIKE TEMPLATES) -->
+          <div v-else class="flex gap-4 overflow-x-auto pb-2">
+
+            <div
+                v-for="cv in userCVs"
+                :key="cv.id"
+                class="min-w-[260px] bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col justify-between hover:shadow-md transition"
+            >
+
+              <!-- icon + title -->
+              <div>
+                <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-3">
+                  📄
+                </div>
+
+                <div class="font-semibold text-slate-800">
+                  {{ cv.title || 'Untitled Resume' }}
+                </div>
+
+                <div class="text-xs text-slate-400 mt-1">
+                  Updated: {{ formatDate(cv.updatedAt) }}
+                </div>
+              </div>
+
+              <!-- actions -->
+              <div class="flex gap-2 mt-4">
+
+                <button
+                    @click="openCV(cv.id)"
+                    class="flex-1 bg-white border border-slate-200 text-slate-700 text-sm py-2 rounded-lg hover:bg-slate-100 transition"
+                >
+                  Edit
+                </button>
+
+                <button
+                    @click="deleteCV(cv.id)"
+                    class="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                >
+                  🗑️
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ================= ACCOUNT ================= -->
+        <div v-if="activeTab === 'account'" class="space-y-6 max-w-lg mx-auto">
+
+          <h3 class="text-xl font-bold text-slate-800 text-center">
+            Account Information
+          </h3>
+
+          <div>
+            <label class="text-sm text-slate-500">Full Name</label>
+            <div class="mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              {{ auth.user?.name }}
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-500">Email</label>
+
+            <div class="mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
+              <span>{{ auth.user?.email }}</span>
+
+              <span
+                  v-if="auth.user?.isVerified"
+                  class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full"
+              >
+                Verified
+              </span>
+
+              <span
+                  v-else
+                  class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full"
+              >
+                Unverified
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
 </template>
+
+<style scoped>
+</style>

@@ -54,7 +54,6 @@ const goProfile = () => {
             <!-- Auth / User Actions -->
             <div class="hidden md:flex items-center gap-4">
                 <template v-if="auth.isAuthenticated">
-                     <router-link to="/ai" class="text-gray-600 hover:text-black font-medium transition">AI Features</router-link>
                      <div class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition relative group" @click="goProfile">
                         <img v-if="auth.user?.avatarURL" :src="auth.user.avatarURL" class="w-10 h-10 rounded-full border">
                         <div v-else class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
