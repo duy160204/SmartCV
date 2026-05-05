@@ -13,16 +13,37 @@ export interface PlanDefinition {
     description: string;
     maxSharePerMonth: number;
     publicLinkExpireDays: number;
+    maxAiRequestsPerDay: number;
     features: string[];
 }
 
 export interface MySubscription {
-    plan: string;
-    status: string;
-    startDate: string;
-    endDate: string;
-    cvCount: number;
-    maxCVs: number;
+    userId: number;
+    role: string;
+    plan: {
+        code: string;
+        name: string;
+        maxAiRequestsPerDay: number;
+    };
+    subscription: {
+        status: string;
+        startDate: string;
+        endDate: string;
+    };
+    usage: {
+        usedToday: number;
+        remaining: number;
+        resetAt: string;
+    };
+    limits: {
+        isUnlimited: boolean;
+        rateLimitPerMinute: number;
+    };
+    // Flat fields for 4.3 API REQUIREMENT
+    planName: string;
+    maxAiRequestsPerDay: number;
+    usedToday: number;
+    remainingToday: number;
 }
 
 export const useUserPlanStore = defineStore('user-plan', () => {
@@ -30,10 +51,16 @@ export const useUserPlanStore = defineStore('user-plan', () => {
     const currentSubscription = ref<MySubscription | null>(null);
     const isLoading = ref(false);
     const error = ref<string | null>(null);
+    const isLimitModalOpen = ref(false);
 
-    const currentPlanDefinition = computed(() => {
-        if (!currentSubscription.value || !plans.value.length) return null;
-        return plans.value.find(p => p.planType === currentSubscription.value?.plan);
+    const isUnlimited = computed(() => currentSubscription.value?.limits.isUnlimited || false);
+    
+    const usagePercentage = computed(() => {
+        if (!currentSubscription.value || isUnlimited.value) return 0;
+        const used = currentSubscription.value.usage.usedToday;
+        const total = currentSubscription.value.plan.maxAiRequestsPerDay;
+        if (total === 0) return 100;
+        return Math.min(100, (used / total) * 100);
     });
 
     async function fetchPlans() {
@@ -53,14 +80,10 @@ export const useUserPlanStore = defineStore('user-plan', () => {
         try {
             isLoading.value = true;
             const res = await subscriptionApi.getMySubscription();
-            // Backend returns wrapped data? Checking previous view...
-            // view_file of SubscriptionController shows: 
-            // return ResponseEntity.ok(new SimpleResponseDTO("Subscription info", dto))
-            // So data structure is res.data.data
+            // Backend returns: { message: "...", data: { ...MySubscriptionDTO } }
             currentSubscription.value = res.data.data;
         } catch (e: any) {
             console.error("Failed to fetch subscription", e);
-            // Non-blocking error, user might just be Guest or Free default
         } finally {
             isLoading.value = false;
         }
@@ -76,13 +99,12 @@ export const useUserPlanStore = defineStore('user-plan', () => {
                 provider: provider
             }));
 
-            // Response: { paymentUrl: "...", clientSecret: "...", provider: "VNPAY/STRIPE" }
             const { paymentUrl, clientSecret, provider: resProvider } = res.data;
             
             if (resProvider === 'VNPAY' && paymentUrl) {
                 window.location.href = paymentUrl;
             } else if (resProvider === 'STRIPE' && clientSecret) {
-                return clientSecret; // Return the secret so that the flow can render Stripe Elements 
+                return clientSecret;
             } else {
                 throw new Error("Invalid payment gateway response");
             }
@@ -90,7 +112,7 @@ export const useUserPlanStore = defineStore('user-plan', () => {
         } catch (e: any) {
             console.error("Payment creation failed", e);
             error.value = e.response?.data?.message || e.message || "Failed to initiate payment";
-            throw e; // Re-throw for UI to handle
+            throw e;
         } finally {
             isLoading.value = false;
         }
@@ -103,9 +125,11 @@ export const useUserPlanStore = defineStore('user-plan', () => {
     return {
         plans,
         currentSubscription,
-        currentPlanDefinition,
+        isUnlimited,
+        usagePercentage,
         isLoading,
         error,
+        isLimitModalOpen,
         fetchPlans,
         fetchSubscription,
         upgradePlan,

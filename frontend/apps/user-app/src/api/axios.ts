@@ -59,6 +59,12 @@ api.interceptors.response.use(
                 });
             }
         }
+        if (error.response?.status === 429 || error.response?.data?.message === 'AI_DAILY_LIMIT_EXCEEDED') {
+            import('../stores/user-plan.store').then(m => {
+                const planStore = m.useUserPlanStore();
+                planStore.isLimitModalOpen = true;
+            });
+        }
         return Promise.reject(error);
     }
 );

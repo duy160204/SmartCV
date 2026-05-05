@@ -13,21 +13,17 @@ const templatesRef = ref<HTMLElement | null>(null);
 
 /* HERO */
 const showHero = ref(false);
-onMounted(() => setTimeout(() => (showHero.value = true), 100));
+onMounted(() => {
+  setTimeout(() => (showHero.value = true), 100);
+  if (window.location.hash === '#template-section') {
+    setTimeout(() => {
+      document.getElementById('template-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 500);
+  }
+});
 
-/* FEATURE */
-const activeFeature = ref(0);
 
-/* FAQ */
-const faqs = ref([
-  { qKey: 'landing.faq_q1', aKey: 'landing.faq_a1', open: false },
-  { qKey: 'landing.faq_q2', aKey: 'landing.faq_a2', open: false },
-  { qKey: 'landing.faq_q3', aKey: 'landing.faq_a3', open: false },
-  { qKey: 'landing.faq_q4', aKey: 'landing.faq_a4', open: false },
-  { qKey: 'landing.faq_q5', aKey: 'landing.faq_a5', open: false }
-]);
 
-const toggleFAQ = (i: number) => faqs.value[i].open = !faqs.value[i].open;
 
 /* ACTION */
 const triggerAuth = (mode: 'login' | 'register' = 'register') => {
@@ -123,56 +119,85 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
     </section>
 
     <!-- TEMPLATE -->
-    <div ref="templatesRef" class="bg-gray-50 py-20">
+    <div id="template-section" ref="templatesRef" class="bg-gray-50 py-20">
       <TemplateSection @trigger-auth="triggerAuth" />
     </div>
 
-    <!-- EVERYTHING -->
+    <!-- TOOLS -->
     <section class="py-24 bg-white">
       <div class="max-w-7xl mx-auto px-6">
 
-        <h2 class="text-4xl font-bold text-center mb-16">
+        <h2 class="text-4xl font-bold text-center mb-4">
           {{ t('landing.tools_title') }}
         </h2>
+        <p class="text-center text-gray-500 mb-16 max-w-2xl mx-auto">
+          {{ t('landing.tools_subtitle') }}
+        </p>
 
-        <div class="grid md:grid-cols-3 gap-10">
+        <div class="grid md:grid-cols-3 gap-8">
 
-          <div class="bg-gray-50 border rounded-2xl p-4 space-y-2">
-            <div v-for="(itemKey, i) in ['landing.feature_get_noticed', 'landing.feature_get_hired', 'landing.feature_get_paid', 'landing.feature_get_promoted']"
-                 :key="i"
-                 @click="activeFeature = i"
-                 class="px-4 py-4 rounded-xl cursor-pointer transition"
-                 :class="activeFeature === i
-              ? 'bg-blue-100 text-blue-600 font-semibold'
-              : 'hover:bg-gray-100 text-gray-700'">
-                {{ i + 1 }}. {{ t(itemKey) }}
+          <!-- 1. JobHunter -->
+          <a
+            href="https://jobhunter-vn.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-8 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+          >
+            <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
+              🧭
             </div>
-          </div>
-
-          <div class="md:col-span-2 grid md:grid-cols-2 gap-6">
-
-            <div class="bg-green-100/60 p-6 rounded-2xl hover:shadow-lg transition">
-              <h3 class="font-semibold text-lg mb-2">{{ t('landing.interview_prep') }}</h3>
-              <p class="text-sm text-gray-600 mb-4">
-                {{ t('landing.interview_desc') }}
-              </p>
-              <div class="bg-white p-4 rounded-xl shadow text-sm">
-                🎤 {{ t('landing.ai_mock') }}
-              </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">{{ t('landing.tool_jobhunter_title') }}</h3>
+            <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-1">
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-0.5">✦</span> {{ t('landing.tool_jobhunter_1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-0.5">✦</span> {{ t('landing.tool_jobhunter_2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-blue-500 mt-0.5">✦</span> {{ t('landing.tool_jobhunter_3') }}</li>
+            </ul>
+            <div class="text-sm font-semibold text-blue-600 group-hover:underline flex items-center gap-1">
+              {{ t('landing.tool_jobhunter_cta') }} <span class="group-hover:translate-x-1 transition-transform">→</span>
             </div>
+          </a>
 
-            <div class="bg-purple-100/60 p-6 rounded-2xl hover:shadow-lg transition">
-              <h3 class="font-semibold text-lg mb-2">{{ t('landing.salary_analyzer') }}</h3>
-              <p class="text-sm text-gray-600 mb-4">
-                {{ t('landing.salary_desc') }}
-              </p>
-              <div class="bg-white p-4 rounded-xl shadow text-center">
-                <p class="text-2xl font-bold text-blue-600">+11.5%</p>
-                <p class="text-xs text-gray-500">{{ t('landing.salary_above') }}</p>
-              </div>
+          <!-- 2. Yoodli -->
+          <a
+            href="https://yoodli.ai/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-8 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+          >
+            <div class="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
+              🎤
             </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">{{ t('landing.tool_yoodli_title') }}</h3>
+            <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-1">
+              <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✦</span> {{ t('landing.tool_yoodli_1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✦</span> {{ t('landing.tool_yoodli_2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✦</span> {{ t('landing.tool_yoodli_3') }}</li>
+            </ul>
+            <div class="text-sm font-semibold text-green-600 group-hover:underline flex items-center gap-1">
+              {{ t('landing.tool_yoodli_cta') }} <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </a>
 
-          </div>
+          <!-- 3. HiringLab -->
+          <a
+            href="https://www.hiringlab.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-8 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+          >
+            <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
+              📊
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-3">{{ t('landing.tool_hiringlab_title') }}</h3>
+            <ul class="text-sm text-gray-600 space-y-2 mb-6 flex-1">
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-0.5">✦</span> {{ t('landing.tool_hiringlab_1') }}</li>
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-0.5">✦</span> {{ t('landing.tool_hiringlab_2') }}</li>
+              <li class="flex items-start gap-2"><span class="text-purple-500 mt-0.5">✦</span> {{ t('landing.tool_hiringlab_3') }}</li>
+            </ul>
+            <div class="text-sm font-semibold text-purple-600 group-hover:underline flex items-center gap-1">
+              {{ t('landing.tool_hiringlab_cta') }} <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </a>
 
         </div>
       </div>
@@ -189,30 +214,7 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
       </div>
     </section>
 
-    <!-- FAQ -->
-    <section class="py-28 bg-white">
-      <div class="max-w-4xl mx-auto px-6">
 
-        <h2 class="text-4xl font-bold mb-12 text-center">
-          {{ t('landing.faq_title') }}
-        </h2>
-
-        <div class="divide-y">
-          <div v-for="(item, i) in faqs" :key="i" class="py-6">
-            <button @click="toggleFAQ(i)"
-                    class="w-full flex justify-between text-left">
-              <span class="text-lg font-medium">{{ t(item.qKey) }}</span>
-              <span>{{ item.open ? '−' : '+' }}</span>
-            </button>
-
-            <div v-if="item.open" class="mt-4 text-gray-600 text-sm">
-              {{ t(item.aKey) }}
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
 
     <!-- CTA (FIX KHÔNG BỊ KHỐI CỨNG) -->
     <section class="py-28 text-center bg-gradient-to-b from-white to-blue-600 text-white">

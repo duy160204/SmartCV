@@ -52,6 +52,10 @@ public class PlanDefinition {
     @Column(name = "public_link_expire_days", nullable = false)
     private int publicLinkExpireDays;
 
+    @Column(name = "max_ai_requests_per_day", nullable = false)
+    @Builder.Default
+    private int maxAiRequestsPerDay = 50;
+
     public void setIsActive(boolean isActive) {
         this.isActive = isActive;
     }

@@ -16,6 +16,7 @@ const formData = ref({
     planType: 'PRO',
     maxSharePerMonth: 10,
     publicLinkExpireDays: 30,
+    maxAiRequestsPerDay: 50,
     description: ''
 });
 
@@ -123,6 +124,12 @@ const cancel = () => {
                         <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">{{ t('plans.form.link_expiry') }} <span class="text-red-500">*</span></label>
                         <input v-model.number="formData.publicLinkExpireDays" type="number" min="1" 
                                class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-2 text-gray-500 uppercase tracking-wider">AI Limit per Day <span class="text-red-500">*</span></label>
+                        <input v-model.number="formData.maxAiRequestsPerDay" type="number" min="0" 
+                               class="w-full border border-gray-200 p-3 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm" required />
+                        <p class="text-[10px] text-gray-400 mt-1 italic">0 = Unlimited</p>
                     </div>
                 </div>
 

@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.SmartCV.modules.auth.domain.User;
+import com.example.SmartCV.modules.auth.domain.Role;
 import com.example.SmartCV.modules.auth.repository.UserRepository;
+import com.example.SmartCV.modules.auth.repository.RoleRepository;
 import com.example.SmartCV.modules.auth.service.EmailService;
 import com.example.SmartCV.modules.cv.domain.CV;
 import com.example.SmartCV.modules.cv.repository.CVRepository;
@@ -19,6 +21,8 @@ import com.example.SmartCV.modules.subscription.domain.*;
 import com.example.SmartCV.modules.subscription.dto.MySubscriptionDTO;
 import com.example.SmartCV.modules.subscription.dto.PublicLinkResponseDTO;
 import com.example.SmartCV.modules.subscription.repository.*;
+import com.example.SmartCV.modules.ai.service.AiGateway;
+import com.example.SmartCV.modules.ai.service.AiUsageService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,9 +40,69 @@ public class SubscriptionService {
     private final CVRepository cvRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final RoleRepository roleRepository;
+    
+    private final AiGateway aiGateway;
+    private final AiUsageService aiUsageService;
 
     @Value("${app.public-cv-url:http://localhost:3000}")
     private String publicCvUrl;
+    
+    @Value("${app.ai.rate-limit-per-minute:10}")
+    private int rateLimitPerMinute;
+
+    /**
+     * UNIFIED SOURCE OF TRUTH FOR FE
+     */
+    public MySubscriptionDTO getMySubscriptionInfo(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        UserSubscription sub = userSubscriptionRepository.findByUserId(userId)
+            .orElseGet(() -> {
+                initFreeSubscription(userId);
+                return getActiveSubscription(userId);
+            });
+
+        PlanDefinition planDef = planDefinitionRepository.findFirstByPlanAndIsActiveTrueOrderByIdDesc(sub.getPlan()).orElse(null);
+
+        int dailyLimit = aiGateway.getDailyLimit(userId);
+        int usedToday = aiUsageService.getUsageCount(userId);
+        boolean isAdmin = aiGateway.isUserAdmin();
+
+        String roleName = user.getRole() != null ? user.getRole().getName() : "ROLE_USER";
+
+        int remainingToday = isAdmin ? 9999 : Math.max(0, dailyLimit - usedToday);
+        String pName = sub.getPlan() == PlanType.FREE ? "Free Plan" : (planDef != null ? planDef.getName() : "Free Plan");
+
+        return MySubscriptionDTO.builder()
+            .userId(userId)
+            .role(roleName)
+            .planName(pName)
+            .maxAiRequestsPerDay(dailyLimit)
+            .usedToday(usedToday)
+            .remainingToday(remainingToday)
+            .plan(MySubscriptionDTO.PlanInfo.builder()
+                .code(sub.getPlan().name())
+                .name(pName)
+                .maxAiRequestsPerDay(dailyLimit)
+                .build())
+            .subscription(MySubscriptionDTO.SubscriptionInfo.builder()
+                .status(sub.getStatus())
+                .startDate(sub.getStartDate())
+                .endDate(sub.getEndDate())
+                .build())
+            .usage(MySubscriptionDTO.UsageInfo.builder()
+                .usedToday(usedToday)
+                .remaining(remainingToday)
+                .resetAt(LocalDate.now().plusDays(1))
+                .build())
+            .limits(MySubscriptionDTO.LimitInfo.builder()
+                .isUnlimited(isAdmin)
+                .rateLimitPerMinute(rateLimitPerMinute)
+                .build())
+            .build();
+    }
 
     // =========================
     // INIT FREE SUB (KHI REGISTER)
@@ -66,20 +130,6 @@ public class SubscriptionService {
         return userSubscriptionRepository.findByUserId(userId)
                 .filter(UserSubscription::isActive)
                 .orElseThrow(() -> new RuntimeException("User has no active subscription"));
-    }
-
-    // =========================
-    // GET MY SUB INFO
-    // =========================
-    public MySubscriptionDTO getMySubscriptionInfo(Long userId) {
-
-        UserSubscription sub = getActiveSubscription(userId);
-
-        return new MySubscriptionDTO(
-                sub.getPlan(),
-                sub.getStatus(),
-                sub.getStartDate(),
-                sub.getEndDate());
     }
 
     // =========================
@@ -242,7 +292,7 @@ public class SubscriptionService {
     public void activateSubscriptionSafe(Long userId, PlanType newPlan, Long paymentId) {
 
         PlanDefinition planDef = planDefinitionRepository
-                .findByPlan(newPlan)
+                .findFirstByPlanAndIsActiveTrueOrderByIdDesc(newPlan)
                 .orElseThrow(() -> new RuntimeException("Plan not found: " + newPlan));
 
         UserSubscription sub = userSubscriptionRepository.findByUserId(userId)
@@ -313,7 +363,7 @@ public class SubscriptionService {
     // =========================
     private PlanDefinition getPlanDefinition(PlanType plan) {
 
-        return planDefinitionRepository.findByPlan(plan)
+        return planDefinitionRepository.findFirstByPlanAndIsActiveTrueOrderByIdDesc(plan)
                 .orElseThrow(() -> new RuntimeException("Plan definition not found"));
     }
 

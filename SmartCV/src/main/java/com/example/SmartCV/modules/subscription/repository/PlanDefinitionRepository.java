@@ -9,7 +9,7 @@ import com.example.SmartCV.modules.subscription.domain.PlanType;
 
 public interface PlanDefinitionRepository extends JpaRepository<PlanDefinition, Long> {
 
-    Optional<PlanDefinition> findByPlan(PlanType plan);
+    Optional<PlanDefinition> findFirstByPlanAndIsActiveTrueOrderByIdDesc(PlanType plan);
 
     Optional<PlanDefinition> findByCode(String code);
 

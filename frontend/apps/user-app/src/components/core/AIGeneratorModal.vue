@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useUserPlanStore } from '@/stores/user-plan.store';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -10,10 +11,11 @@ const emit = defineEmits<{
     (e: 'generate', prompt: string): void;
 }>();
 
+const planStore = useUserPlanStore();
 const promptText = ref('');
 
 const handleGenerate = () => {
-    if (!promptText.value.trim()) return;
+    if (!promptText.value.trim() || (planStore.currentSubscription?.usage.remaining === 0 && !planStore.isUnlimited)) return;
     emit('generate', promptText.value);
     promptText.value = ''; // Reset after emit
 };
@@ -48,10 +50,10 @@ const handleGenerate = () => {
                 </button>
                 <button 
                     @click="handleGenerate"
-                    :disabled="!promptText.trim()"
-                    class="px-4 py-2 bg-purple-600 text-white rounded shadow font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                    :disabled="!promptText.trim() || (planStore.currentSubscription?.usage.remaining === 0 && !planStore.isUnlimited)"
+                    class="px-4 py-2 bg-purple-600 text-white rounded shadow font-medium hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                    Generate CV
+                    {{ planStore.currentSubscription?.usage.remaining === 0 && !planStore.isUnlimited ? 'Limit Reached' : 'Generate CV' }}
                 </button>
             </div>
         </div>

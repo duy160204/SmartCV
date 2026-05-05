@@ -2,6 +2,7 @@ package com.example.SmartCV.modules.ai.service;
 
 import java.time.Instant;
 import java.util.Collections;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AiRateLimiter {
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Value("${app.ai.rate-limit-per-minute:10}")
+    private double ratePerMinute;
+
+    @Value("${app.ai.rate-limit-capacity:15}")
+    private int capacity;
 
     // True Token Bucket Algorithm deployed directly onto Redis via atomic Lua
     private static final String LUA_SCRIPT =
@@ -39,13 +46,16 @@ public class AiRateLimiter {
     public void checkRateLimit(Long userId) {
         String key = "rate_limit:ai:tokens:" + userId;
         long now = Instant.now().getEpochSecond();
-        // rate: 1 token per 60 secs (0.016), capacity: 5 burst requests. Rejects if empty.
+        
+        // Convert rate per minute to tokens per second
+        double ratePerSecond = ratePerMinute / 60.0;
+        
         DefaultRedisScript<Long> script = new DefaultRedisScript<>(LUA_SCRIPT, Long.class);
         Long result = redisTemplate.execute(script, Collections.singletonList(key), 
-            "0.0166", "5", String.valueOf(now), "1");
+            String.valueOf(ratePerSecond), String.valueOf(capacity), String.valueOf(now), "1");
 
         if (result == null || result == 0L) {
-            throw new BusinessException("AI Rate Limit Exceeded. Your Token Bucket is temporarily empty.", org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);
+            throw new BusinessException("AI_RATE_LIMIT_EXCEEDED", org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);
         }
     }
 }

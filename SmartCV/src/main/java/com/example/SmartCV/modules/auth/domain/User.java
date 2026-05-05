@@ -33,8 +33,12 @@ public class User {
 
     private String avatarURL;
 
-    @Column(name = "role_id")
+    @Column(name = "role_id", insertable = false, updatable = false)
     private Long roleId;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     // ===== CORE STATUS =====
     @Column(name = "is_verified", nullable = false)

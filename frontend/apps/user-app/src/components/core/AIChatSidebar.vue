@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useCVStore } from '@/stores/cv';
+import { useUserPlanStore } from '@/stores/user-plan.store';
 import { processAiAnswer } from '@/utils/aiMarkdown';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const store = useCVStore();
+const planStore = useUserPlanStore();
 
 const isOpen = ref(false);
 
@@ -77,6 +79,7 @@ const sendMessage = async () => {
     });
   } finally {
     isProcessing.value = false;
+    planStore.fetchSubscription();
   }
 };
 </script>
@@ -162,14 +165,15 @@ const sendMessage = async () => {
       <div class="p-2 border-t flex gap-2">
         <input
           v-model="currentInput"
-          class="flex-1 border rounded px-2 py-1 text-sm"
-          :placeholder="t('ai.input_placeholder')"
+          class="flex-1 border rounded px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+          :placeholder="planStore.currentSubscription?.usage.remaining === 0 && !planStore.isUnlimited ? t('ai.limit_reached_placeholder') : t('ai.input_placeholder')"
+          :disabled="isProcessing || (planStore.currentSubscription?.usage.remaining === 0 && !planStore.isUnlimited)"
         />
 
         <button
           @click="sendMessage"
-          class="bg-indigo-600 text-white px-3 py-1 rounded text-sm"
-          :disabled="isProcessing"
+          class="bg-indigo-600 text-white px-3 py-1 rounded text-sm disabled:bg-indigo-300 disabled:cursor-not-allowed"
+          :disabled="isProcessing || (planStore.currentSubscription?.usage.remaining === 0 && !planStore.isUnlimited)"
         >
           {{ t('ai.send') }}
         </button>

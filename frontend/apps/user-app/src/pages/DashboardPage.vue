@@ -15,6 +15,16 @@ const isLoading = ref(true);
 
 const planStore = useUserPlanStore();
 
+const resolveThumbnail = (cv: any) => {
+    return cv.templateThumbnailUrl || '/images/cv-placeholder.png';
+};
+
+const handleImageError = (e: Event) => {
+    const img = e.target as HTMLImageElement;
+    img.onerror = null;
+    img.src = '/images/cv-placeholder.png';
+};
+
 onMounted(async () => {
     try {
         await Promise.all([
@@ -56,26 +66,7 @@ const goSettings = () => router.push('/settings');
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
-      <!-- Navbar -->
-      <nav class="bg-white border-b px-8 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-          <div class="flex items-center gap-4">
-              <h1 class="font-bold text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer" @click="router.push('/dashboard')">{{ t('nav.brand') }}</h1>
-              <LanguageSwitcher />
-          </div>
-          <div class="flex items-center gap-4">
-               <div class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition" @click="goSettings">
-                   <img v-if="auth.user?.avatarURL" :src="auth.user.avatarURL" class="w-8 h-8 rounded-full border">
-                   <div v-else class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                       {{ auth.user?.name?.charAt(0) || 'U' }}
-                   </div>
-                   <span class="font-medium text-gray-700">{{ auth.user?.name }}</span>
-               </div>
-               <button @click="auth.logout()" class="text-sm text-gray-500 hover:text-red-500 transition border-l pl-4">{{ t('common.logout') }}</button>
-          </div>
-      </nav>
-
-      <main class="flex-1 p-8 max-w-6xl mx-auto w-full">
+  <div class="flex-1 p-8 max-w-6xl mx-auto w-full">
           <!-- Header Actions -->
           <div class="flex justify-between items-center mb-10">
               <div>
@@ -111,11 +102,15 @@ const goSettings = () => router.push('/settings');
           <!-- Grid -->
           <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div v-for="cv in cvs" :key="cv.id" class="group bg-white rounded-xl shadow-sm border hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
-                  <!-- Thumbnail Placeholder -->
-                  <div class="h-48 bg-gray-100 relative overflow-hidden group-hover:scale-105 transition duration-500">
-                      <div class="absolute inset-0 flex items-center justify-center text-gray-300">
-                           <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                      </div>
+                  <!-- Thumbnail Container -->
+                  <div class="aspect-[210/297] bg-slate-50 relative overflow-hidden border-b border-slate-100 flex-shrink-0">
+                      <img 
+                          :src="resolveThumbnail(cv)" 
+                          @error="handleImageError"
+                          loading="lazy"
+                          class="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
+                          alt="CV Preview"
+                      />
                       <div class="absolute top-2 right-2 flex gap-1 actions opacity-0 group-hover:opacity-100 transition">
                           <!-- Overlay Actions could go here -->
                       </div>
@@ -130,13 +125,11 @@ const goSettings = () => router.push('/settings');
                            <router-link :to="`/cv/editor/${cv.id}`" class="col-span-2 text-center bg-blue-50 text-blue-600 font-bold py-2 rounded-lg hover:bg-blue-100 transition border border-blue-100">
                                {{ t('common.edit') }}
                            </router-link>
-                           <!-- Secondary Actions -->
-                           <!-- We could add Share/Preview here later -->
-                           <button @click="deleteCV(cv.id)" class="text-gray-400 hover:text-red-500 text-sm py-2">{{ t('common.delete') }}</button>
+                           <button @click="deleteCV(cv.id)" class="col-span-2 text-gray-400 hover:text-red-500 text-sm py-2 hover:bg-red-50 rounded-lg transition">{{ t('common.delete') }}</button>
                       </div>
                   </div>
               </div>
           </div>
-      </main>
+      </div>
   </div>
 </template>

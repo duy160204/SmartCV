@@ -68,6 +68,7 @@ public class PlanService {
                 .plan(req.getPlanType())
                 .maxSharePerMonth(req.getMaxSharePerMonth())
                 .publicLinkExpireDays(req.getPublicLinkExpireDays())
+                .maxAiRequestsPerDay(req.getMaxAiRequestsPerDay())
                 .description(req.getDescription())
                 .isActive(true)
                 .currency("VND")
@@ -90,6 +91,8 @@ public class PlanService {
             plan.setMaxSharePerMonth(req.getMaxSharePerMonth());
         if (req.getPublicLinkExpireDays() > 0)
             plan.setPublicLinkExpireDays(req.getPublicLinkExpireDays());
+        if (req.getMaxAiRequestsPerDay() > 0)
+            plan.setMaxAiRequestsPerDay(req.getMaxAiRequestsPerDay());
         if (req.getDescription() != null)
             plan.setDescription(req.getDescription());
 
@@ -172,6 +175,7 @@ public class PlanService {
                 .planType(plan.getPlan())
                 .maxSharePerMonth(plan.getMaxSharePerMonth())
                 .publicLinkExpireDays(plan.getPublicLinkExpireDays())
+                .maxAiRequestsPerDay(plan.getMaxAiRequestsPerDay())
                 .description(plan.getDescription())
                 .active(plan.isActive())
                 .features(features)

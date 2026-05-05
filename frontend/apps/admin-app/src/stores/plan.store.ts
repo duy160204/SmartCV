@@ -12,6 +12,7 @@ export interface Plan {
     planType: string;
     maxSharePerMonth: number;
     publicLinkExpireDays: number;
+    maxAiRequestsPerDay: number;
     description: string;
     active: boolean; // Note: DTO uses 'active' or 'isActive'? Check backend. Backend DTO has no field for active status in the list view? checked PlanDefinitionDTO -> it does not have isActive field. Wait, PlanService.toDTO does NOT map isActive. Let me check the backend code again.
 }

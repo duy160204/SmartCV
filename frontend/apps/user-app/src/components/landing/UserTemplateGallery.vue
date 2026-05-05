@@ -7,7 +7,6 @@ import FullscreenPreviewModal from '@/components/common/FullscreenPreviewModal.v
 
 const router = useRouter();
 const templates = ref<any[]>([]);
-const subscription = ref<any>(null);
 const isLoading = ref(true);
 const isCreating = ref(false);
 const previewModalOpen = ref(false);
@@ -28,10 +27,7 @@ const getImageUrl = (url: string | null) => {
 const loadData = async (pageNum = 0) => {
     isLoading.value = true;
     try {
-        const [tplRes, subRes] = await Promise.all([
-            api.get(`/templates?page=${pageNum}&size=${size}`),
-            api.get('/subscription/me')
-        ]);
+        const tplRes = await api.get(`/templates?page=${pageNum}&size=${size}`);
         
         let pageData = tplRes.data;
         if (tplRes.data && tplRes.data.data) {
@@ -45,8 +41,6 @@ const loadData = async (pageNum = 0) => {
         } else {
             templates.value = pageData;
         }
-
-        subscription.value = subRes.data?.data || subRes.data;
     } catch (e) {
         console.error("Failed to load user data", e);
     } finally {
@@ -97,11 +91,6 @@ onMounted(() => {
         <div class="max-w-7xl mx-auto px-6">
             <div class="flex justify-between items-center mb-10">
                 <h2 class="text-3xl font-bold text-gray-800">Select a Template</h2>
-                <div v-if="subscription" class="text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-medium border border-blue-100 flex items-center gap-2">
-                    <span>Plan: <span class="font-bold">{{ subscription.plan }}</span></span>
-                    <span class="text-gray-400">|</span>
-                    <span>Usage: {{ subscription.cvCount }} / {{ subscription.maxCVs === -1 ? '∞' : subscription.maxCVs }}</span>
-                </div>
             </div>
 
             <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">

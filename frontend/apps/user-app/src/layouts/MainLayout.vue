@@ -1,23 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import Navbar from '@/components/layout/Navbar.vue';
-import AuthModal from '@/components/auth/AuthModal.vue';
-
-const showAuthModal = ref(false);
-const authMode = ref<'login' | 'register'>('login');
-
-const openAuth = (mode: 'login' | 'register') => {
-    authMode.value = mode;
-    showAuthModal.value = true;
-};
-
-defineExpose({ openAuth });
+import AiQuotaLimitModal from '@/components/common/AiQuotaLimitModal.vue';
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col font-sans bg-gray-50">
-        <Navbar @open-auth="openAuth" />
-
+    <div class="flex flex-col font-sans bg-gray-50">
         <main class="flex-1">
             <slot></slot>
         </main>
@@ -26,10 +13,6 @@ defineExpose({ openAuth });
             <p>© 2026 SmartCV. All rights reserved.</p>
         </footer>
 
-        <AuthModal
-            :isOpen="showAuthModal"
-            :initialMode="authMode"
-            @close="showAuthModal = false"
-        />
+        <AiQuotaLimitModal />
     </div>
 </template>

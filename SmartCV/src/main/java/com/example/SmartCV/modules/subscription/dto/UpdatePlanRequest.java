@@ -19,5 +19,8 @@ public class UpdatePlanRequest {
     @jakarta.validation.constraints.Min(1)
     private int publicLinkExpireDays;
 
+    @jakarta.validation.constraints.Min(0)
+    private int maxAiRequestsPerDay;
+
     private String description;
 }

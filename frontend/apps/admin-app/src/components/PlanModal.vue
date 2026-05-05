@@ -20,6 +20,7 @@ const formData = ref({
     planType: 'PRO', // Default
     maxSharePerMonth: 10,
     publicLinkExpireDays: 30,
+    maxAiRequestsPerDay: 50,
     description: ''
 });
 
@@ -40,6 +41,7 @@ watch(
                     planType: 'PRO',
                     maxSharePerMonth: 10,
                     publicLinkExpireDays: 30,
+                    maxAiRequestsPerDay: 50,
                     description: ''
                 };
             }
@@ -136,10 +138,17 @@ const handleSubmit = async () => {
                   </div>
               </div>
               
-              <div>
-                  <label class="block text-sm font-medium">Public Link Expiry (Days)</label>
-                  <input v-model.number="formData.publicLinkExpireDays" type="number" class="border p-2 w-full rounded" required min="1" />
-              </div>
+               <div class="grid grid-cols-2 gap-4">
+                  <div>
+                      <label class="block text-sm font-medium">Public Link Expiry (Days)</label>
+                      <input v-model.number="formData.publicLinkExpireDays" type="number" class="border p-2 w-full rounded" required min="1" />
+                  </div>
+                  <div>
+                      <label class="block text-sm font-medium">AI Limit per Day</label>
+                      <input v-model.number="formData.maxAiRequestsPerDay" type="number" class="border p-2 w-full rounded" required min="0" />
+                      <p class="text-[9px] text-gray-500 italic">0 = Unlimited</p>
+                  </div>
+               </div>
 
               <!-- Description -->
               <div>

@@ -28,5 +28,8 @@ public class CreatePlanRequest {
     @jakarta.validation.constraints.Min(value = 1, message = "Public link expire days must be at least 1")
     private int publicLinkExpireDays;
 
+    @jakarta.validation.constraints.Min(value = 0, message = "Max AI requests per day cannot be negative")
+    private int maxAiRequestsPerDay;
+
     private String description;
 }

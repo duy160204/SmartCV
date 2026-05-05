@@ -21,6 +21,14 @@ public interface CVRepository extends JpaRepository<CV, Long> {
 
     long countByIsPublicTrue();
 
-    // PROJECTION
-    List<com.example.SmartCV.modules.cv.dto.projection.CVListProjection> findProjectionsByUserId(Long userId);
+    // PROJECTION – single query, LEFT JOIN to fetch template thumbnail
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT new com.example.SmartCV.modules.cv.dto.projection.CVListProjection(" +
+        "  c.id, c.title, c.templateId, c.status, c.isPublic, c.viewCount, c.createdAt, c.updatedAt," +
+        "  t.thumbnailUrl" +
+        ") FROM CV c LEFT JOIN Template t ON t.id = c.templateId " +
+        "WHERE c.userId = :userId ORDER BY c.updatedAt DESC"
+    )
+    List<com.example.SmartCV.modules.cv.dto.projection.CVListProjection> findProjectionsByUserId(
+            @org.springframework.data.repository.query.Param("userId") Long userId);
 }

@@ -17,6 +17,7 @@ public class PlanDefinitionDTO {
     private PlanType planType; // The functional tier (FREE, PRO, etc)
     private int maxSharePerMonth;
     private int publicLinkExpireDays;
+    private int maxAiRequestsPerDay;
     private String description;
     private boolean active;
     private java.util.List<String> features;

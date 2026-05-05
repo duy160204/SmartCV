@@ -38,7 +38,7 @@ public class PaymentTransactionService {
         }
 
         // 2. Validate plan có tồn tại
-        planDefinitionRepository.findByPlan(plan)
+        planDefinitionRepository.findFirstByPlanAndIsActiveTrueOrderByIdDesc(plan)
                 .orElseThrow(() -> new IllegalArgumentException("Plan not supported: " + plan));
 
         // 3. Tính tiền (rule: giá * số tháng)

@@ -11,7 +11,10 @@ const auth = useAuthStore();
 const route = useRoute();
 const mobileMenuOpen = ref(false);
 
-const emit = defineEmits(['open-auth']);
+import AuthModal from '@/components/auth/AuthModal.vue';
+
+const showAuthModal = ref(false);
+const authMode = ref<'login' | 'register'>('login');
 
 const userInitials = computed(() => {
     return auth.user?.name?.charAt(0) || 'U';
@@ -22,11 +25,13 @@ const toggleMobileMenu = () => {
 };
 
 const handleLoginClick = () => {
-    emit('open-auth', 'login');
+    authMode.value = 'login';
+    showAuthModal.value = true;
 };
 
 const handleRegisterClick = () => {
-    emit('open-auth', 'register');
+    authMode.value = 'register';
+    showAuthModal.value = true;
 };
 
 const logout = () => {
@@ -36,6 +41,14 @@ const logout = () => {
 
 const goProfile = () => {
     router.push('/profile');
+};
+
+const scrollToTemplates = () => {
+    if (route.path !== '/') {
+        router.push('/#template-section');
+    } else {
+        document.getElementById('template-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
 };
 </script>
 
@@ -52,9 +65,10 @@ const goProfile = () => {
 
             <!-- Desktop Menu -->
             <div class="hidden md:flex items-center gap-8">
-                <router-link to="/" class="text-gray-600 hover:text-blue-600 font-medium transition">{{ t('nav.templates') }}</router-link>
+                <button @click="scrollToTemplates" class="text-gray-600 hover:text-blue-600 font-medium transition" :class="{ 'text-blue-600': route.path === '/' && route.hash === '#template-section' }">{{ t('nav.templates') }}</button>
                 <router-link to="/ai" class="text-gray-600 hover:text-blue-600 font-medium transition">{{ t('nav.ai_feature') }}</router-link>
                 <router-link to="/pricing" class="text-gray-600 hover:text-blue-600 font-medium transition">{{ t('nav.pricing') }}</router-link>
+                <router-link to="/about" class="text-gray-600 hover:text-blue-600 font-medium transition">{{ t('nav.about') }}</router-link>
             </div>
 
             <!-- Auth / User Actions -->
@@ -72,7 +86,7 @@ const goProfile = () => {
                                  <p class="font-bold text-gray-800">{{ auth.user?.name }}</p>
                                  <p class="text-xs text-gray-500 truncate">{{ auth.user?.email }}</p>
                              </div>
-                             <button @click="goProfile" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm">Settings</button>
+                             <button @click="goProfile" class="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm">{{ t('nav.settings') }}</button>
                              <button @click="logout" class="w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 text-sm">{{ t('common.logout') }}</button>
                         </div>
                      </div>
@@ -91,9 +105,10 @@ const goProfile = () => {
 
         <!-- Mobile Drawer -->
         <div v-if="mobileMenuOpen" class="md:hidden absolute top-full left-0 right-0 bg-white border-b shadow-xl p-4 flex flex-col gap-4 animate-in slide-in-from-top-2">
-            <router-link to="/" class="p-2 hover:bg-gray-50 rounded">{{ t('nav.templates') }}</router-link>
+            <button @click="scrollToTemplates" class="p-2 hover:bg-gray-50 rounded text-left">{{ t('nav.templates') }}</button>
             <router-link to="/ai" class="p-2 hover:bg-gray-50 rounded">{{ t('nav.ai_feature') }}</router-link>
             <router-link to="/pricing" class="p-2 hover:bg-gray-50 rounded">{{ t('nav.pricing') }}</router-link>
+            <router-link to="/about" class="p-2 hover:bg-gray-50 rounded">{{ t('nav.about') }}</router-link>
             <div class="h-px bg-gray-100 my-2"></div>
             
             <template v-if="auth.isAuthenticated">
@@ -104,7 +119,7 @@ const goProfile = () => {
                         <span class="font-bold">{{ auth.user?.name }}</span>
                  </div>
                  <div class="px-2 pt-2 pb-3 space-y-1">
-                    <a @click="goProfile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer">Profile</a>
+                    <a @click="goProfile" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer">{{ t('nav.profile') }}</a>
                  </div>
                  <button @click="logout" class="text-left p-2 text-red-600 hover:bg-red-50 rounded">{{ t('common.logout') }}</button>
             </template>
@@ -113,5 +128,11 @@ const goProfile = () => {
                     <button @click="handleRegisterClick" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg">{{ t('common.register') }}</button>
             </template>
         </div>
+
+        <AuthModal
+            :isOpen="showAuthModal"
+            :initialMode="authMode"
+            @close="showAuthModal = false"
+        />
     </nav>
 </template>
