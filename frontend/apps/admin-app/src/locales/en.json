@@ -105,7 +105,7 @@
   "plans": {
     "title": "Subscription Plans",
     "subtitle": "Manage functional tiers and purchase options",
-    "create": "Create New Plan",
+    "create": "Create New ",
     "syncing": "Synchronizing plans...",
     "no_plans": "No matching plans found.",
     "edit": "Edit",
