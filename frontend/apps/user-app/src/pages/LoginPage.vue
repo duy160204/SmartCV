@@ -24,7 +24,7 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-gray-100">
+  <div class="flex min-h-screen items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
     <div class="p-8 bg-white rounded shadow-md w-96">
       <h1 class="text-2xl font-bold mb-4 text-center">{{ t('auth.login_title') }}</h1>
       

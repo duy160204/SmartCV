@@ -32,7 +32,7 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
     <div class="p-8 bg-white rounded-xl shadow-lg w-96">
       <h1 class="text-2xl font-bold mb-2 text-gray-800">Forgot Password</h1>
       <p class="text-gray-500 mb-6 text-sm">Enter your email and we'll send you a new password</p>

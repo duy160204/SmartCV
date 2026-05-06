@@ -30,7 +30,7 @@ const triggerAuth = (mode: 'login' | 'register' = 'register') => {
   if (auth.isAuthenticated) {
     templatesRef.value?.scrollIntoView({ behavior: 'smooth' });
   } else {
-    layoutRef.value?.openAuth(mode);
+    (layoutRef.value as any)?.openAuth(mode);
   }
 };
 </script>

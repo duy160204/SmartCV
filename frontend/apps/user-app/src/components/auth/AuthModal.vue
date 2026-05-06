@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import OAuthProviderButton from '@/components/auth/OAuthProviderButton.vue';
@@ -27,14 +27,21 @@ watch(() => props.initialMode, (newVal) => {
     error.value = '';
 });
 
-// Reset form when opening
+// Reset form and handle body scroll lock when opening
 watch(() => props.isOpen, (isOpen) => {
     if (isOpen) {
+        document.body.style.overflow = 'hidden';
         email.value = '';
         password.value = '';
         name.value = '';
         error.value = '';
+    } else {
+        document.body.style.overflow = '';
     }
+}, { immediate: true });
+
+onUnmounted(() => {
+    document.body.style.overflow = '';
 });
 
 const switchMode = () => {
@@ -64,12 +71,15 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <div v-if="isOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  <Teleport to="body">
+    <div v-if="isOpen" class="fixed inset-0 z-[100] overflow-y-auto">
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')"></div>
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')"></div>
         
-        <!-- Modal -->
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+        <!-- Modal Container (handles scroll and centering) -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
+             <!-- Modal -->
+             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden text-left my-8 animate-in zoom-in-95 duration-200">
              <!-- Header -->
              <div class="px-8 pt-8 pb-6 text-center">
                  <h2 class="text-2xl font-bold text-gray-800">{{ mode === 'login' ? 'Welcome Back' : 'Create Account' }}</h2>
@@ -130,6 +140,8 @@ const handleSubmit = async () => {
              
              <!-- Close Button -->
              <button @click="$emit('close')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+         </div>
         </div>
     </div>
+  </Teleport>
 </template>
