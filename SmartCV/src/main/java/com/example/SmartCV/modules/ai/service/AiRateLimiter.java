@@ -23,12 +23,15 @@ public class AiRateLimiter {
     // True Token Bucket Algorithm deployed directly onto Redis via atomic Lua
     private static final String LUA_SCRIPT =
         "local key = KEYS[1]\n" +
-        "local rate = tonumber(ARGV[1])\n" +
-        "local capacity = tonumber(ARGV[2])\n" +
-        "local now = tonumber(ARGV[3])\n" +
-        "local requested = tonumber(ARGV[4])\n" +
+        "local rate = tonumber((string.gsub(tostring(ARGV[1]), '[\\\"%s]', ''))) or 0.1666\n" +
+        "local capacity = tonumber((string.gsub(tostring(ARGV[2]), '[\\\"%s]', ''))) or 15\n" +
+        "local now = tonumber((string.gsub(tostring(ARGV[3]), '[\\\"%s]', ''))) or 0\n" +
+        "local requested = tonumber((string.gsub(tostring(ARGV[4]), '[\\\"%s]', ''))) or 1\n" +
+        "if rate <= 0 then rate = 0.1666 end\n" +
+        "if capacity <= 0 then capacity = 15 end\n" +
         "local fill_time = capacity/rate\n" +
         "local ttl = math.floor(fill_time*2)\n" +
+        "if ttl < 60 then ttl = 60 end\n" +
         "local last_tokens = tonumber(redis.call('hget', key, 'tokens'))\n" +
         "if last_tokens == nil then last_tokens = capacity end\n" +
         "local last_refreshed = tonumber(redis.call('hget', key, 'timestamp'))\n" +
@@ -52,7 +55,7 @@ public class AiRateLimiter {
         
         DefaultRedisScript<Long> script = new DefaultRedisScript<>(LUA_SCRIPT, Long.class);
         Long result = redisTemplate.execute(script, Collections.singletonList(key), 
-            String.valueOf(ratePerSecond), String.valueOf(capacity), String.valueOf(now), "1");
+            ratePerSecond, capacity, now, 1);
 
         if (result == null || result == 0L) {
             throw new BusinessException("AI_RATE_LIMIT_EXCEEDED", org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);

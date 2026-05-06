@@ -56,12 +56,15 @@ public class GlobalRateLimitFilter implements Filter {
     private static final String LUA_SCRIPT =
         "local key = KEYS[1]\n" +
         "if not key then return -1 end\n" +
-        "local capacity = tonumber(ARGV[1]) or 50\n" +
-        "local rate = tonumber(ARGV[2]) or 10\n" +
-        "local now = tonumber(ARGV[3]) or 0\n" +
-        "local requested = tonumber(ARGV[4]) or 1\n" +
+        "local capacity = tonumber((string.gsub(tostring(ARGV[1]), '[\\\"%s]', ''))) or 50\n" +
+        "local rate = tonumber((string.gsub(tostring(ARGV[2]), '[\\\"%s]', ''))) or 10\n" +
+        "local now = tonumber((string.gsub(tostring(ARGV[3]), '[\\\"%s]', ''))) or 0\n" +
+        "local requested = tonumber((string.gsub(tostring(ARGV[4]), '[\\\"%s]', ''))) or 1\n" +
+        "if rate <= 0 then rate = 10 end\n" +
+        "if capacity <= 0 then capacity = 50 end\n" +
         "local fill_time = capacity/rate\n" +
         "local ttl = math.floor(fill_time*2)\n" +
+        "if ttl < 60 then ttl = 60 end\n" +
         "local last_tokens = tonumber(redis.call('hget', key, 'tokens'))\n" +
         "if last_tokens == nil then last_tokens = capacity end\n" +
         "local last_refreshed = tonumber(redis.call('hget', key, 'timestamp'))\n" +
@@ -95,7 +98,7 @@ public class GlobalRateLimitFilter implements Filter {
         try {
             DefaultRedisScript<Long> script = new DefaultRedisScript<>(LUA_SCRIPT, Long.class);
             Long result = redisTemplate.execute(script, Collections.singletonList(key), 
-                String.valueOf(capacity), String.valueOf(refillRate), String.valueOf(now), String.valueOf(requested));
+                capacity, refillRate, now, requested);
 
             if (result == null || result == 0L) {
                 log.warn("Global Rate Limit Exceeded for IP: {}", clientIp);
