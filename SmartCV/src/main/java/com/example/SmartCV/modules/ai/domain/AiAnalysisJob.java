@@ -14,9 +14,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class AiAnalysisJob {
     @Id
     @Column(name = "job_id", unique = true, nullable = false, updatable = false)
+    @EqualsAndHashCode.Include
     private String jobId;
 
     @Column(name = "user_id", nullable = false)

@@ -17,6 +17,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class AiUsage {
 
     @Id
@@ -24,9 +25,11 @@ public class AiUsage {
     private Long id;
 
     @Column(name = "user_id", nullable = false)
+    @EqualsAndHashCode.Include
     private Long userId;
 
     @Column(name = "usage_date", nullable = false)
+    @EqualsAndHashCode.Include
     private LocalDate usageDate;
 
     @Column(name = "request_count", nullable = false)

@@ -7,7 +7,6 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
-import java.util.Collection;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -48,8 +47,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             Authentication authentication) throws IOException, ServletException {
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        // FIX: Use a safer way to get email in SuccessHandler
-        String email = oAuth2User.getAttribute("email"); // Standard attribute
+        String email = oAuth2User.getAttribute("email");
         if (email == null || email.isBlank()) {
             email = oAuth2User.getName();
         }
@@ -59,8 +57,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found after OAuth2 execution"));
 
-        // 🚨 REQUIRED SECURITY RULE: UNIFIED PRINCIPAL REPLACEMENT 🚨
-        // Re-store properly mapped generic standard UserPrincipal inside local execution
         String roleName = roleRepository.findById(user.getRoleId())
                 .map(com.example.SmartCV.modules.auth.domain.Role::getName)
                 .orElse("ROLE_USER");
@@ -81,14 +77,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String accessToken = jwtUtils.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
+        // Standardize SameSite and Secure based on environment
+        String sameSite = cookieSecure ? "None" : "Lax";
+
         // ===== Access Token Cookie =====
         response.addHeader("Set-Cookie",
                 ResponseCookie.from("jwt", accessToken)
                         .httpOnly(true)
-                        .secure(false) // DEV FIX
+                        .secure(cookieSecure)
                         .path("/")
                         .maxAge(86400)
-                        .sameSite("Lax") // DEV FIX
+                        .sameSite(sameSite)
                         .build()
                         .toString());
 
@@ -96,25 +95,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         response.addHeader("Set-Cookie",
                 ResponseCookie.from("refresh_token", refreshToken.getToken())
                         .httpOnly(true)
-                        .secure(false) // DEV FIX
+                        .secure(cookieSecure)
                         .path("/")
                         .maxAge(604800)
-                        .sameSite("Lax") // DEV FIX
+                        .sameSite(sameSite)
                         .build()
                         .toString());
 
-        log.info("JWT cookie set successfully");
-
-        // Determine Provider from request URI if possible, or just default.
-        // Request URI: /login/oauth2/code/{registrationId} or
-        // /api/login/oauth2/code/{registrationId}
-        // Extract registrationId to send back to frontend.
-        String uri = request.getRequestURI();
-        String provider = "google"; // default
-        if (uri.contains("/")) {
-            String[] parts = uri.split("/");
-            provider = parts[parts.length - 1];
-        }
+        log.info("JWT cookies set successfully. Secure={}, SameSite={}", cookieSecure, sameSite);
 
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback")
                 .queryParam("status", "success")

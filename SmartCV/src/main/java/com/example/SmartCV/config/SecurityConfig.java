@@ -1,38 +1,23 @@
 package com.example.SmartCV.config;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.SmartCV.common.utils.CustomUserDetailsService;
-import com.example.SmartCV.common.utils.JWTUtils;
-import com.example.SmartCV.common.utils.UserPrincipal;
 import com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationFailureHandler;
 import com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationSuccessHandler;
 import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,7 +33,7 @@ public class SecurityConfig {
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
     private List<String> allowedOrigins;
 
     @Bean
@@ -60,7 +45,7 @@ public class SecurityConfig {
                 .securityContext(context -> context.requireExplicitSave(false))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/public/**").permitAll() // Public CV Access
+                        .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/payments/vnpay/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/preview/**").permitAll()
@@ -83,9 +68,9 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(auth -> auth
-                                .baseUri("/api/oauth2/authorization")) // Must match Proxy
+                                .baseUri("/api/oauth2/authorization"))
                         .redirectionEndpoint(red -> red
-                                .baseUri("/api/login/oauth2/code/*")) // Callback handling
+                                .baseUri("/api/login/oauth2/code/*"))
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                                 .oidcUserService(customOAuth2UserService::loadOidcUser))
@@ -107,7 +92,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:3001"));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         config.setAllowCredentials(true);

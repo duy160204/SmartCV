@@ -15,10 +15,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class CV {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(name = "user_id", nullable = false)
@@ -50,7 +52,6 @@ public class CV {
     @Column(name = "is_public")
     private Boolean isPublic = false;
 
-    // 👉 THÊM DÒNG NÀY
     @Builder.Default
     @Column(name = "is_locked")
     private Boolean isLocked = false;

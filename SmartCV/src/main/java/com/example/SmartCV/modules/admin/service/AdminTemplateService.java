@@ -14,7 +14,6 @@ import com.example.SmartCV.modules.cv.domain.Template;
 import com.example.SmartCV.modules.cv.repository.CVRepository;
 import com.example.SmartCV.modules.subscription.domain.PlanType;
 import com.example.SmartCV.modules.cv.repository.TemplateRepository;
-import com.example.SmartCV.modules.cv.repository.CVRepository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -209,8 +208,8 @@ public class AdminTemplateService {
         if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("file:")) {
             throw new RuntimeException("Dangerous protocols are not allowed in Thumbnail URL");
         }
-        if (!lower.startsWith("https://") && !lower.startsWith("http://localhost") && !lower.startsWith("/uploads/")) {
-            throw new RuntimeException("Thumbnail URL must be a valid HTTPS URL or an uploaded resource.");
+        if (!lower.startsWith("https://") && !lower.startsWith("http://") && !lower.startsWith("/uploads/") && !lower.startsWith("preview/")) {
+            throw new RuntimeException("Thumbnail URL must be a valid URL or an uploaded resource.");
         }
     }
 

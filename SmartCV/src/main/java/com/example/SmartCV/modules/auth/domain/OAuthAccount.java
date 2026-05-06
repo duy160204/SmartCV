@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,6 +16,7 @@ import lombok.Setter;
 @Table(name = "oauth_accounts")
 @Getter
 @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class OAuthAccount {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,8 +25,12 @@ public class OAuthAccount {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(nullable = false)
+    @EqualsAndHashCode.Include
     private String provider; 
 
+    @Column(nullable = false)
+    @EqualsAndHashCode.Include
     private String providerUserId;
 
     @Column(name = "created_at")

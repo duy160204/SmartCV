@@ -5,6 +5,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,12 @@ public class PuppeteerPdfService {
     private final TemplateRepository templateRepository;
     private final ObjectMapper objectMapper;
     private final Handlebars handlebars = new Handlebars();
+
+    @Value("${app.backend.url:http://localhost:8080}")
+    private String backendUrl;
+
+    @Value("${app.pdf-service.url:http://localhost:3002/render-pdf}")
+    private String pdfServiceUrl;
 
     public byte[] renderWithPuppeteer(CV cv) {
         try {
@@ -74,10 +81,13 @@ public class PuppeteerPdfService {
             com.github.jknack.handlebars.Template hbsTemplate = handlebars.compileInline(htmlTemplate);
             String bodyHtml = hbsTemplate.apply(contentObj);
 
+            // Ensure base URL ends with slash for <base> tag
+            String baseHref = backendUrl.endsWith("/") ? backendUrl : backendUrl + "/";
+
             String customFontCss = 
                 "@font-face {\n" +
                 "  font-family: 'Noto Sans';\n" +
-                "  src: url('http://localhost:8080/fonts/NotoSans-Regular.ttf');\n" +
+                "  src: url('" + baseHref + "fonts/NotoSans-Regular.ttf');\n" +
                 "}\n" +
                 "body {\n" +
                 "  font-family: 'Noto Sans', sans-serif;\n" +
@@ -87,11 +97,11 @@ public class PuppeteerPdfService {
 
             String fullHtml = "<!DOCTYPE html>\n" +
                     "<html>\n<head>\n<meta charset=\"UTF-8\"/>\n" +
-                    "<base href=\"http://localhost:8080/\" />\n" +
+                    "<base href=\"" + baseHref + "\" />\n" +
                     "<style>\n" + customFontCss + "\n" + css + "\n</style>\n</head>\n<body>\n" +
                     bodyHtml + "\n</body>\n</html>";
 
-            HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:3002/render-pdf").openConnection();
+            HttpURLConnection conn = (HttpURLConnection) new URL(pdfServiceUrl).openConnection();
             
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);

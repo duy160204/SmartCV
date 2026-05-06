@@ -3,6 +3,7 @@ package com.example.SmartCV.modules.auth.domain;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +11,7 @@ import lombok.Setter;
 @Table(name = "users")
 @Getter
 @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class User {
 
     @PrePersist
@@ -25,6 +27,7 @@ public class User {
     private Long id;
 
     @Column(unique = true, nullable = false)
+    @EqualsAndHashCode.Include
     private String email;
 
     private String username;
@@ -42,10 +45,10 @@ public class User {
 
     // ===== CORE STATUS =====
     @Column(name = "is_verified", nullable = false)
-    private boolean verified = false; // mặc định false khi tạo mới
+    private boolean verified = false;
 
     @Column(name = "locked", nullable = false)
-    private boolean locked = true; // mặc định khóa tài khoản
+    private boolean locked = true;
 
     @Column(name = "verify_token")
     private String verifyToken;

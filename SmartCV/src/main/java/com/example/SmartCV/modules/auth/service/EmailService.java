@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -16,16 +17,20 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
+    @Value("${app.backend.url:http://localhost:8080}")
+    private String backendUrl;
+
     private static final String APP_NAME = "SmartCV";
-    private static final String BASE_PUBLIC_URL = "http://localhost:3000/public/";
-    private static final String BASE_BACKEND_URL = "http://localhost:8080";
 
     // =================================================
     // USER EMAILS
     // =================================================
 
     public void sendVerificationEmail(String toEmail, String verifyToken) {
-        String verifyLink = BASE_BACKEND_URL + "/api/auth/verify-email?token=" + verifyToken;
+        String verifyLink = backendUrl + "/api/auth/verify-email?token=" + verifyToken;
 
         sendToSingleUser(
                 toEmail,
@@ -182,18 +187,6 @@ public class EmailService {
     );
 }
 
-        public void sendSystemNotificationEmail(
-        java.util.List<String> adminEmails,
-        String subject,
-        String content
-) {
-    SimpleMailMessage message = new SimpleMailMessage();
-    message.setTo(adminEmails.toArray(new String[0]));
-    message.setSubject(subject);
-    message.setText(content);
-    mailSender.send(message);
-}
-
     // =================================================
     // ADMIN / SYSTEM EMAILS
     // =================================================
@@ -240,9 +233,10 @@ public class EmailService {
     }
 
     private String buildPublicLinkContent(String uuid, LocalDateTime expireAt, String title) {
+        String basePublicUrl = frontendUrl + (frontendUrl.endsWith("/") ? "" : "/") + "public/";
         return "Chào bạn,\n\n" +
                title + "\n\n" +
-               "Link: " + BASE_PUBLIC_URL + uuid + "\n" +
+               "Link: " + basePublicUrl + uuid + "\n" +
                "Hết hạn lúc: " + formatDateTime(expireAt) + "\n\n" +
                "Trân trọng,\n" + APP_NAME + " Team";
     }
