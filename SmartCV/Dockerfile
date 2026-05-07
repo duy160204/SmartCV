@@ -1,39 +1,50 @@
 # ===================== BUILD STAGE =====================
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
-
 WORKDIR /app
-
-# Cache dependencies
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
-
-# Build application
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # ===================== RUNTIME STAGE =====================
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jdk-jammy
+
+# 1. Install dependencies: Redis, Supervisor, and basic tools
+RUN apt-get update && apt-get install -y \
+    redis-server \
+    supervisor \
+    wget \
+    bash \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install Kafka (KRaft mode supported)
+ENV KAFKA_VERSION=3.6.1
+ENV SCALA_VERSION=2.13
+RUN wget -q https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -O /tmp/kafka.tgz \
+    && tar -xzf /tmp/kafka.tgz -C /opt \
+    && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka \
+    && rm /tmp/kafka.tgz
 
 WORKDIR /app
 
-# Install curl for healthchecks (optional but recommended)
-RUN apk add --no-cache curl
-
-# Create non-root user
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring
-
-# Copy jar from build stage
+# 3. Copy application files
 COPY --from=build /app/target/SmartCV-0.0.1-SNAPSHOT.jar app.jar
+COPY supervisord.conf /app/supervisord.conf
+COPY kafka-server.properties /app/kafka-server.properties
+COPY start.sh /app/start.sh
 
-# Standard Render environment variables defaults
+# 4. Prepare environment
+RUN chmod +x /app/start.sh \
+    && mkdir -p /app/kafka-logs \
+    && mkdir -p /var/log/supervisor
+
+# 5. Environment variables
 ENV PORT=8080
 ENV SPRING_PROFILES_ACTIVE=prod
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
+# Kafka/Redis use default ports on localhost
 
-# Expose port (informative for Render)
-EXPOSE 8080
+EXPOSE ${PORT}
 
-# Run with optimized JVM settings for container environments
-# Using sh -c to allow environment variable expansion for $PORT
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT} -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
+# 6. Entrypoint uses the startup script to initialize services
+ENTRYPOINT ["/bin/bash", "/app/start.sh"]
