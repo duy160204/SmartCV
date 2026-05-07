@@ -35,11 +35,11 @@ public class SubscriptionUsage {
     private Long cvId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType plan;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "usage_type", nullable = false)
+    @Column(name = "usage_type", nullable = false, columnDefinition = "VARCHAR(255)")
     private UsageType usageType;
 
     @Column(name = "share_uuid", unique = true, nullable = false)

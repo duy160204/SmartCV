@@ -31,7 +31,7 @@ public class PaymentTransaction {
     private Long userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType plan;
 
     @Column(nullable = false)
@@ -41,11 +41,11 @@ public class PaymentTransaction {
     private Long amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "provider", nullable = false, columnDefinition = "VARCHAR(255)")
     private PaymentProvider provider;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private PaymentStatus status;
 
     @Column(name = "transaction_code", nullable = false, unique = true)

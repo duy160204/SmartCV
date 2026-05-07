@@ -55,7 +55,7 @@ public class Template {
     private String configJson;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "plan_required", nullable = false)
+    @Column(name = "plan_required", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType planRequired;
 
     @Column(name = "is_active", nullable = false)

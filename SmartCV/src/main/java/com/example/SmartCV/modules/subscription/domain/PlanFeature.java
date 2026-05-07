@@ -17,7 +17,7 @@ public class PlanFeature {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType plan;
 
     @Column(name = "feature_code", nullable = false)
