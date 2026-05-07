@@ -28,14 +28,14 @@ public class SubscriptionHistory {
      * Plan cũ (null nếu là lần đầu hoặc FREE)
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "old_plan")
+    @Column(name = "old_plan", columnDefinition = "VARCHAR(255)")
     private PlanType oldPlan;
 
     /**
      * Plan mới
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "new_plan", nullable = false)
+    @Column(name = "new_plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType newPlan;
 
     /**
@@ -43,7 +43,7 @@ public class SubscriptionHistory {
      * ADMIN_UPDATE, PAYMENT_SUCCESS, EXPIRED, DOWNGRADED, SYSTEM_INIT
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "change_type", nullable = false)
+    @Column(name = "change_type", nullable = false, columnDefinition = "VARCHAR(255)")
     private SubscriptionChangeType changeType;
 
     /**
@@ -51,7 +51,7 @@ public class SubscriptionHistory {
      * ADMIN, PAYMENT, SYSTEM
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "reason", nullable = false)
+    @Column(name = "reason", nullable = false, columnDefinition = "VARCHAR(255)")
     private ChangeReason reason;
 
     /**
