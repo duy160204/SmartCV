@@ -56,9 +56,6 @@ public class AdminPlanControllerTest {
     @MockBean
     private com.example.SmartCV.modules.auth.handler.OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
-    @MockBean
-    private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
-
     @Autowired
     private ObjectMapper objectMapper;
 

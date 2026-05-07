@@ -19,23 +19,13 @@ RUN mvn package -DskipTests
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-# Install Redis and Supervisor
-RUN apt-get update && apt-get install -y \
-    redis-server \
-    supervisor \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy artifacts
 COPY --from=backend-builder /app/target/*.jar app.jar
-COPY supervisord.conf /app/supervisord.conf
-COPY start.sh /app/start.sh
 
 # Environment variables for Low RAM
 ENV MALLOC_ARENA_MAX=2
 ENV PORT=8080
 
-RUN chmod +x /app/start.sh
-
 EXPOSE ${PORT}
 
-CMD ["/app/start.sh"]
+CMD ["java", "-Xms128m", "-Xmx256m", "-XX:MaxMetaspaceSize=96m", "-XX:+UseG1GC", "-Dserver.port=${PORT}", "-Dspring.profiles.active=prod", "-jar", "app.jar"]

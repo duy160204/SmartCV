@@ -8,7 +8,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import com.example.SmartCV.common.utils.UserPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.data.redis.core.RedisTemplate;
 import java.util.Collection;
 
 import com.example.SmartCV.common.utils.JWTUtils;
@@ -34,7 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
-    private final RedisTemplate<String, Object> redisTemplate; // Redis caching for blacklist
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -57,15 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("JWT = {}", token);
 
         if (token != null && jwtUtils.validateToken(token)) {
-            // REDIS BEST EFFORT FAIL-OPEN
-            boolean isRevoked = false;
-            try {
-                if (Boolean.TRUE.equals(redisTemplate.hasKey("jwt_blacklist:" + token))) {
-                    isRevoked = true;
-                }
-            } catch (Exception redisEx) {
-                log.warn("Redis Connection Failed! FAIL-OPEN strategy applied...");
-            }
+            boolean isRevoked = jwtUtils.isBlacklisted(token);
 
             if (!isRevoked) {
                 String email = jwtUtils.getEmailFromToken(token);

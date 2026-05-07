@@ -8,7 +8,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 
+import org.springframework.scheduling.annotation.EnableAsync;
+
 @Configuration
+@EnableAsync
 public class BeanConfig {
 
     @Bean

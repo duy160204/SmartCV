@@ -209,12 +209,13 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- ================= REDIS & KAFKA ================= -->
+        <!-- ================= H2 (TEST ONLY) ================= -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
-        
+
         <!-- ================= RESILIENCE & RETRY ================= -->
         <dependency>
             <groupId>org.springframework.retry</groupId>

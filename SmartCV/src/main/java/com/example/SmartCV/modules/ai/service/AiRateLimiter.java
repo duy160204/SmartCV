@@ -1,18 +1,14 @@
 package com.example.SmartCV.modules.ai.service;
 
 import java.time.Instant;
-import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import com.example.SmartCV.common.exception.BusinessException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 
 @Service
-@RequiredArgsConstructor
 public class AiRateLimiter {
-    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${app.ai.rate-limit-per-minute:10}")
     private double ratePerMinute;
@@ -20,45 +16,41 @@ public class AiRateLimiter {
     @Value("${app.ai.rate-limit-capacity:15}")
     private int capacity;
 
-    // True Token Bucket Algorithm deployed directly onto Redis via atomic Lua
-    private static final String LUA_SCRIPT =
-        "local key = KEYS[1]\n" +
-        "local rate = tonumber((string.gsub(tostring(ARGV[1]), '[\\\"%s]', ''))) or 0.1666\n" +
-        "local capacity = tonumber((string.gsub(tostring(ARGV[2]), '[\\\"%s]', ''))) or 15\n" +
-        "local now = tonumber((string.gsub(tostring(ARGV[3]), '[\\\"%s]', ''))) or 0\n" +
-        "local requested = tonumber((string.gsub(tostring(ARGV[4]), '[\\\"%s]', ''))) or 1\n" +
-        "if rate <= 0 then rate = 0.1666 end\n" +
-        "if capacity <= 0 then capacity = 15 end\n" +
-        "local fill_time = capacity/rate\n" +
-        "local ttl = math.floor(fill_time*2)\n" +
-        "if ttl < 60 then ttl = 60 end\n" +
-        "local last_tokens = tonumber(redis.call('hget', key, 'tokens'))\n" +
-        "if last_tokens == nil then last_tokens = capacity end\n" +
-        "local last_refreshed = tonumber(redis.call('hget', key, 'timestamp'))\n" +
-        "if last_refreshed == nil then last_refreshed = 0 end\n" +
-        "local delta = math.max(0, now - last_refreshed)\n" +
-        "local filled_tokens = math.min(capacity, last_tokens + (delta * rate))\n" +
-        "local allowed = filled_tokens >= requested\n" +
-        "local new_tokens = filled_tokens\n" +
-        "if allowed then new_tokens = filled_tokens - requested end\n" +
-        "redis.call('hset', key, 'tokens', new_tokens)\n" +
-        "redis.call('hset', key, 'timestamp', now)\n" +
-        "redis.call('expire', key, ttl)\n" +
-        "return allowed and 1 or 0";
+    private final ConcurrentHashMap<Long, BucketState> buckets = new ConcurrentHashMap<>();
+
+    private static class BucketState {
+        double tokens;
+        long lastRefreshed;
+
+        BucketState(double tokens, long lastRefreshed) {
+            this.tokens = tokens;
+            this.lastRefreshed = lastRefreshed;
+        }
+    }
 
     public void checkRateLimit(Long userId) {
-        String key = "rate_limit:ai:tokens:" + userId;
         long now = Instant.now().getEpochSecond();
-        
-        // Convert rate per minute to tokens per second
         double ratePerSecond = ratePerMinute / 60.0;
-        
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>(LUA_SCRIPT, Long.class);
-        Long result = redisTemplate.execute(script, Collections.singletonList(key), 
-            ratePerSecond, capacity, now, 1);
 
-        if (result == null || result == 0L) {
-            throw new BusinessException("AI_RATE_LIMIT_EXCEEDED", org.springframework.http.HttpStatus.TOO_MANY_REQUESTS);
+        BucketState state = buckets.computeIfAbsent(userId, k -> new BucketState(capacity, now));
+
+        synchronized (state) {
+            long delta = Math.max(0L, now - state.lastRefreshed);
+            double filledTokens = Math.min(capacity, state.tokens + (delta * ratePerSecond));
+
+            if (filledTokens >= 1.0) {
+                state.tokens = filledTokens - 1.0;
+                state.lastRefreshed = now;
+            } else {
+                state.tokens = filledTokens;
+                state.lastRefreshed = now;
+                throw new BusinessException("AI_RATE_LIMIT_EXCEEDED", HttpStatus.TOO_MANY_REQUESTS);
+            }
+        }
+
+        // Periodically cleanup map to prevent OOM
+        if (buckets.size() > 2000) {
+            buckets.entrySet().removeIf(entry -> (now - entry.getValue().lastRefreshed) > 3600);
         }
     }
 }

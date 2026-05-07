@@ -28,7 +28,7 @@ public class AiGateway {
     private final AiService aiService;
     private final UserSubscriptionRepository userSubscriptionRepository;
     private final PlanDefinitionRepository planDefinitionRepository;
-    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+    private final AiJobProcessor aiJobProcessor;
 
     @org.springframework.beans.factory.annotation.Value("${app.ai.free-plan-daily-limit:50}")
     private int freePlanDailyLimit;
@@ -37,28 +37,12 @@ public class AiGateway {
      * Submit Async AI Analysis Job
      */
     public void submitAiAnalysisJob(String jobId, Long userId, String cvContent, String prompt) {
+        // Enforce limit policies synchronously before proceeding
         enforcePolicies(userId);
 
-        java.util.Map<String, String> payload = new java.util.HashMap<>();
-        payload.put("jobId", jobId);
-        payload.put("userId", String.valueOf(userId));
-        payload.put("cvContent", cvContent);
-        payload.put("prompt", prompt);
-
-        redisTemplate.opsForStream().add(com.example.SmartCV.config.RedisStreamConfig.STREAM_AI_REQUEST, payload);
-        log.info("Submitted async AI job {} to Redis Stream", jobId);
-    }
-
-    /**
-     * Helper to create Redis Stream Group
-     */
-    public void createStreamGroup(String streamKey, String groupName) {
-        try {
-            redisTemplate.opsForStream().createGroup(streamKey, groupName);
-        } catch (org.springframework.data.redis.RedisSystemException e) {
-            // Usually means group already exists
-            log.debug("Stream group {} already exists for {}", groupName, streamKey);
-        }
+        // Process the AI evaluation in the background thread pool
+        aiJobProcessor.processJobAsync(jobId, cvContent, prompt);
+        log.info("Submitted async AI job {} to in-memory async executor", jobId);
     }
 
     public String chatWithCv(Long userId, String cvContent, String userMessage, String level, String locale) {
