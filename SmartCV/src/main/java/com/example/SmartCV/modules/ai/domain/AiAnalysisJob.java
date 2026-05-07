@@ -25,7 +25,7 @@ public class AiAnalysisJob {
     private Long userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private JobStatus status;
 
     @Column(name = "result", columnDefinition = "TEXT")

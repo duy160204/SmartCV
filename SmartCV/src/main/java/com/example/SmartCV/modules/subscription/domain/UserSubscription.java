@@ -25,11 +25,11 @@ public class UserSubscription {
 
     // ===== PLAN INFO =====
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType plan;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private SubscriptionStatus status;
 
     // ===== PERIOD =====

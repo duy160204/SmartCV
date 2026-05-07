@@ -19,7 +19,7 @@ public class PlanDefinition {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false) // NO unique=true here! Multiple plans can be PRO.
+    @Column(name = "plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType plan; // Determines feature set (FREE, PRO, PREMIUM)
 
     @Column(nullable = false, unique = true)

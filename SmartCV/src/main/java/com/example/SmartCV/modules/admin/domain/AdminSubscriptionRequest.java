@@ -26,7 +26,7 @@ public class AdminSubscriptionRequest {
 
     // ===== PLAN =====
     @Enumerated(EnumType.STRING)
-    @Column(name = "requested_plan", nullable = false)
+    @Column(name = "requested_plan", nullable = false, columnDefinition = "VARCHAR(255)")
     private PlanType requestedPlan;
 
     @Column(name = "months", nullable = false)
@@ -38,7 +38,7 @@ public class AdminSubscriptionRequest {
 
     // ===== STATUS =====
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private AdminSubscriptionRequestStatus status;
 
     // ===== ADMIN TRACE =====

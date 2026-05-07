@@ -45,7 +45,7 @@ public class CV {
     private String dataJson;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private CVStatus status;
 
     @Builder.Default
