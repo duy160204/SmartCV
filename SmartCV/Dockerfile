@@ -7,15 +7,15 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # ===================== RUNTIME STAGE =====================
-FROM eclipse-temurin:21-jdk-jammy
+# Use JRE instead of JDK to save space/RAM
+FROM eclipse-temurin:21-jre-jammy
 
-# 1. Install dependencies: Redis, Supervisor, and basic tools
-RUN apt-get update && apt-get install -y \
+# 1. Install dependencies: Redis, Supervisor
+RUN apt-get update && apt-get install -y --no-install-recommends \
     redis-server \
     supervisor \
     wget \
-    bash \
-    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Install Kafka (KRaft mode supported)
@@ -39,12 +39,12 @@ RUN chmod +x /app/start.sh \
     && mkdir -p /app/kafka-logs \
     && mkdir -p /var/log/supervisor
 
-# 5. Environment variables
+# 5. Runtime Environment Tuning
 ENV PORT=8080
 ENV SPRING_PROFILES_ACTIVE=prod
-# Kafka/Redis use default ports on localhost
+# MALLOC_ARENA_MAX=2 helps limit native memory fragmentation in GLIBC
+ENV MALLOC_ARENA_MAX=2
 
 EXPOSE ${PORT}
 
-# 6. Entrypoint uses the startup script to initialize services
 ENTRYPOINT ["/bin/bash", "/app/start.sh"]
