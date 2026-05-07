@@ -42,6 +42,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
+    @Value("${app.admin.url:http://localhost:3001}")
+    private String adminUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
@@ -104,7 +107,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         log.info("JWT cookies set successfully. Secure={}, SameSite={}", cookieSecure, sameSite);
 
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback")
+        // Redirect based on role
+        String baseUrl = roleName.equals("ROLE_ADMIN") ? adminUrl : frontendUrl;
+
+        String targetUrl = UriComponentsBuilder.fromUriString(baseUrl + "/oauth/callback")
                 .queryParam("status", "success")
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshToken.getToken())
