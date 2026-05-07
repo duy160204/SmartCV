@@ -1,33 +1,39 @@
 package com.example.SmartCV.modules.auth.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.data.redis.connection.stream.ObjectRecord;
+import org.springframework.data.redis.connection.stream.StreamRecords;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
 
+import com.example.SmartCV.config.RedisStreamConfig;
 import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService.UserRegisteredEvent;
 import com.example.SmartCV.modules.auth.service.CustomOAuth2UserService.OAuth2LoginEvent;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @Slf4j
-public class AuthKafkaProducer {
+@RequiredArgsConstructor
+public class AuthStreamProducer {
 
-    @Autowired(required = false)
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public void sendUserRegistered(String email, String provider) {
-        sendMessage("user-registered", String.format("{\"email\":\"%s\",\"provider\":\"%s\"}", email, provider));
+        sendMessage("user-registered", email, provider);
     }
 
     public void sendOAuth2Login(String email, String provider) {
-        sendMessage("oauth2-login", String.format("{\"email\":\"%s\",\"provider\":\"%s\"}", email, provider));
+        sendMessage("oauth2-login", email, provider);
     }
 
     public void sendSubscriptionActivated(String email, String plan) {
-        sendMessage("subscription-activated", String.format("{\"email\":\"%s\",\"plan\":\"%s\"}", email, plan));
+        sendMessage("subscription-activated", email, plan);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -41,16 +47,17 @@ public class AuthKafkaProducer {
         sendOAuth2Login(event.email(), event.provider());
     }
 
-    private void sendMessage(String topic, String payload) {
+    private void sendMessage(String type, String email, String data) {
         try {
-            if (kafkaTemplate != null) {
-                kafkaTemplate.send(topic, payload);
-                log.info("Sent async event to Kafka: topic={}, payload={}", topic, payload);
-            } else {
-                log.warn("Kafka Template is missing. Dropping event: topic={}, payload={}", topic, payload);
-            }
+            Map<String, String> payload = new HashMap<>();
+            payload.put("type", type);
+            payload.put("email", email);
+            payload.put("data", data);
+
+            redisTemplate.opsForStream().add(RedisStreamConfig.STREAM_AUTH_EVENT, payload);
+            log.info("Sent async event to Redis Stream: topic={}, type={}", RedisStreamConfig.STREAM_AUTH_EVENT, type);
         } catch (Exception e) {
-            log.error("Failed to send Kafka event. Moving on without blocking main flow. Topic: {}, Error: {}", topic, e.getMessage());
+            log.error("Failed to send Redis Stream event: {}", e.getMessage());
         }
     }
 }

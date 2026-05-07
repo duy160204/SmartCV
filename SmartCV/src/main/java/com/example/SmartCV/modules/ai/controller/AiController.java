@@ -20,6 +20,39 @@ public class AiController {
 
     private final AiGateway aiGateway;
     private final CVService cvService;
+    private final com.example.SmartCV.modules.ai.repository.AiAnalysisJobRepository aiAnalysisJobRepository;
+
+    @PostMapping({ "/cv/analyze-async", "/cv/analyze-async/" })
+    public ResponseEntity<java.util.Map<String, String>> analyzeAsync(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody AiChatRequest request) {
+        
+        String jobId = java.util.UUID.randomUUID().toString();
+        CV cv = cvService.getMyCVDetail(principal.getId(), request.getCvId());
+
+        // 1. Create Job Record
+        com.example.SmartCV.modules.ai.domain.AiAnalysisJob job = com.example.SmartCV.modules.ai.domain.AiAnalysisJob.builder()
+                .jobId(jobId)
+                .userId(principal.getId())
+                .status(com.example.SmartCV.modules.ai.domain.AiAnalysisJob.JobStatus.PENDING)
+                .build();
+        aiAnalysisJobRepository.save(job);
+
+        // 2. Submit to Stream
+        aiGateway.submitAiAnalysisJob(jobId, principal.getId(), cv.getContent(), request.getMessage());
+
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("jobId", jobId);
+        response.put("status", "PENDING");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping({ "/job/{jobId}", "/job/{jobId}/" })
+    public ResponseEntity<com.example.SmartCV.modules.ai.domain.AiAnalysisJob> getJobStatus(@PathVariable String jobId) {
+        return aiAnalysisJobRepository.findById(jobId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     @PostMapping({ "/cv/chat", "/cv/chat/" })
     public ResponseEntity<AiChatResponse> chatWithCv(

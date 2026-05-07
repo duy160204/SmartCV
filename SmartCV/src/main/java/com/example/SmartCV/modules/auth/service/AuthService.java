@@ -61,7 +61,7 @@ public class AuthService {
      * ============================
      */
     @Autowired
-    private AuthKafkaProducer authKafkaProducer;
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void register(RegisterRequestDTO request) {
@@ -90,8 +90,7 @@ public class AuthService {
 
         // 2. AUTO INIT FREE SUBSCRIPTION
         subscriptionService.initFreeSubscription(savedUser.getId());
-        authKafkaProducer.sendSubscriptionActivated(savedUser.getEmail(), "FREE");
-        authKafkaProducer.sendUserRegistered(savedUser.getEmail(), "LOCAL");
+        eventPublisher.publishEvent(new CustomOAuth2UserService.UserRegisteredEvent(savedUser.getEmail(), "LOCAL"));
 
         // 3. Send verify email safely ONLY after transaction commits
         org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
